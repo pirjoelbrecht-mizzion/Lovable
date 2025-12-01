@@ -531,7 +531,7 @@ class AutoCalculationService {
     // Bulk save fitness indices
     const supabase = getSupabase();
     if (supabase) {
-      const BATCH_SIZE = 50;
+      const BATCH_SIZE = 10; // Smaller batches to avoid RLS timeout
 
       // Save fitness indices in batches
       for (let i = 0; i < fitnessIndices.length; i += BATCH_SIZE) {
@@ -540,9 +540,9 @@ class AutoCalculationService {
           onConflict: 'user_id,date',
         });
         if (error) {
-          console.error(`Failed to save fitness index (batch ${i / BATCH_SIZE + 1}):`, error);
+          console.error(`Failed to save fitness index (batch ${Math.floor(i / BATCH_SIZE) + 1}):`, error);
         } else {
-          console.log(`[calculateFitnessIndex] Saved batch ${i / BATCH_SIZE + 1} (${batch.length} records)`);
+          console.log(`[calculateFitnessIndex] Saved batch ${Math.floor(i / BATCH_SIZE) + 1} (${batch.length} records)`);
         }
       }
 
@@ -553,9 +553,9 @@ class AutoCalculationService {
           onConflict: 'user_id,week_start_date',
         });
         if (error) {
-          console.error(`Failed to save weekly metric (batch ${i / BATCH_SIZE + 1}):`, error);
+          console.error(`Failed to save weekly metric (batch ${Math.floor(i / BATCH_SIZE) + 1}):`, error);
         } else {
-          console.log(`[calculateFitnessIndex] Saved weekly metrics batch ${i / BATCH_SIZE + 1} (${batch.length} records)`);
+          console.log(`[calculateFitnessIndex] Saved weekly metrics batch ${Math.floor(i / BATCH_SIZE) + 1} (${batch.length} records)`);
         }
       }
     }
