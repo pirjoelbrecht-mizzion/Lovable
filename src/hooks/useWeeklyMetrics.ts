@@ -132,7 +132,7 @@ export function useWeeklyMetrics(startDate: string, endDate: string) {
           : null;
 
         const longRunKm = Math.max(...entries.map(e => e.km), 0);
-        const elevationGain = 0;
+        const elevationGain = entries.reduce((sum, e) => sum + (e.elevationGain || 0), 0);
 
         const acuteLoad = totalKm;
         weeklyLoads.push(acuteLoad);
