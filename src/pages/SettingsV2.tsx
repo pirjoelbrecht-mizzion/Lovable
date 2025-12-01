@@ -267,16 +267,38 @@ export default function SettingsV2() {
 
       console.log('[SettingsV2] Valid entries:', validEntries.length, 'of', entries.length);
 
+      // CRITICAL: Apply 2-year import limitation
+      const { filterByImportDateLimit, logImportFilterStats, getImportLimitMessage } = await import("@/utils/importDateLimits");
+      const filterResult = filterByImportDateLimit(validEntries, (entry) => entry.dateISO);
+
+      logImportFilterStats('SettingsV2 CSV Import', filterResult.stats);
+
+      if (filterResult.rejected.length > 0) {
+        const limitMessage = getImportLimitMessage(filterResult.rejected.length, filterResult.stats.oldestRejected);
+        console.warn(limitMessage);
+        toast(limitMessage, "warning");
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      const filteredEntries = filterResult.accepted;
+
+      if (filteredEntries.length === 0) {
+        toast('All entries were older than 2 years and were filtered out', 'error');
+        return;
+      }
+
+      console.log('[SettingsV2] After 2-year filter:', filteredEntries.length, 'entries');
+
       const cur = load<LogEntry[]>("logEntries", []);
-      const merged = mergeDedup(cur, validEntries);
+      const merged = mergeDedup(cur, filteredEntries);
       const added = Math.max(merged.length - cur.length, 0);
       const totalKm = merged.reduce((sum, e) => sum + (e.km || 0), 0);
 
       save("logEntries", merged);
 
-      console.log('[SettingsV2] Inserting', validEntries.length, 'valid entries to database...');
+      console.log('[SettingsV2] Inserting', filteredEntries.length, 'filtered entries to database...');
       const { bulkInsertLogEntries } = await import("@/lib/database");
-      const inserted = await bulkInsertLogEntries(validEntries);
+      const inserted = await bulkInsertLogEntries(filteredEntries);
       console.log('[SettingsV2] Inserted', inserted, 'entries to database');
 
       const { emit } = await import("@/lib/bus");
@@ -284,7 +306,7 @@ export default function SettingsV2() {
       console.log('[SettingsV2] Emitted log:import-complete event');
 
       setImportSummary(
-        `Imported ${validEntries.length} (${added} new) • ${totalKm.toFixed(1)} km total • HRmax: ${est?.hrMax ?? "-"} bpm • Threshold: ${est?.hrThreshold ?? "-"} bpm`
+        `Imported ${filteredEntries.length} (${added} new) • ${totalKm.toFixed(1)} km total • HRmax: ${est?.hrMax ?? "-"} bpm • Threshold: ${est?.hrThreshold ?? "-"} bpm`
       );
       toast("Strava import successful!", "success");
     } catch (err: any) {

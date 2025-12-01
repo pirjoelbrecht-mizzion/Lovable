@@ -142,7 +142,7 @@ export default function Settings() {
       }
 
       console.log('[CSV Import] Creating entries array...');
-      const entries: LogEntry[] = runs.map(run => ({
+      const allEntries: LogEntry[] = runs.map(run => ({
         title: run.name || "Run",
         dateISO: run.date,
         km: run.distanceKm,
@@ -160,6 +160,21 @@ export default function Settings() {
         weather: run.weather,
         location: run.location,
       }));
+
+      // CRITICAL: Apply 2-year import limitation
+      const { filterByImportDateLimit, logImportFilterStats, getImportLimitMessage } = await import("@/utils/importDateLimits");
+      const filterResult = filterByImportDateLimit(allEntries, (entry) => entry.dateISO);
+
+      logImportFilterStats('Settings CSV Import', filterResult.stats);
+
+      if (filterResult.rejected.length > 0) {
+        const limitMessage = getImportLimitMessage(filterResult.rejected.length, filterResult.stats.oldestRejected);
+        console.warn(limitMessage);
+        setMsg(`ℹ️ ${limitMessage}`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+
+      const entries = filterResult.accepted;
 
       console.log('[CSV Import] About to insert', entries.length, 'entries');
       const { bulkInsertLogEntries } = await import("@/lib/database");

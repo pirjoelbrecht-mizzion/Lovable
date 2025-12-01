@@ -1,4 +1,5 @@
 import { updateUserProfile } from "@/state/userData";
+import { filterByImportDateLimit, logImportFilterStats, getImportLimitMessage } from "@/utils/importDateLimits";
 
 /* ✅ Töötab Strava CSV-ga – käsitsi parser jutumärkide ja komadega */
 function splitCSVLine(line: string): string[] {
@@ -233,7 +234,18 @@ export async function parseStravaCSV(file: File) {
   }
 
   console.log(`Parsed ${runs.length} valid runs from ${runCount} run activities (${lines.length - 1} total activities)`);
-  return runs;
+
+  // CRITICAL: Apply 2-year import limitation
+  const filterResult = filterByImportDateLimit(runs, (run) => run.date);
+
+  logImportFilterStats('Strava CSV Import', filterResult.stats);
+
+  if (filterResult.rejected.length > 0) {
+    const message = getImportLimitMessage(filterResult.rejected.length, filterResult.stats.oldestRejected);
+    console.warn(message);
+  }
+
+  return filterResult.accepted;
 }
 
 export function autoEstimateProfile(runs: { pace: number; avgHr: number }[]) {

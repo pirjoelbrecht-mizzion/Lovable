@@ -1,6 +1,7 @@
 import { ProviderInterface, WearableMetric } from '../../../types/wearable';
 import { supabase } from '../../../lib/supabase';
 import { LogEntry } from '../../../types';
+import { getValidatedAPIDateRange, filterByImportDateLimit, logImportFilterStats } from '../../../utils/importDateLimits';
 
 export class StravaProvider implements ProviderInterface {
   name = 'strava' as const;
@@ -28,8 +29,14 @@ export class StravaProvider implements ProviderInterface {
       const accessToken = await this.ensureValidToken();
       if (!accessToken) return [];
 
-      const after = Math.floor(new Date(startDate).getTime() / 1000);
-      const before = Math.floor(new Date(endDate).getTime() / 1000);
+      // CRITICAL: Apply 2-year import limitation
+      const validatedRange = getValidatedAPIDateRange(startDate);
+      if (validatedRange.wasLimited) {
+        console.warn(`[StravaProvider] Start date limited from ${startDate} to ${validatedRange.startDate} (2-year maximum)`);
+      }
+
+      const after = Math.floor(new Date(validatedRange.startDate).getTime() / 1000);
+      const before = Math.floor(new Date(validatedRange.endDate).getTime() / 1000);
 
       // Fetch all activities with pagination
       let allActivities: any[] = [];
@@ -140,7 +147,16 @@ export class StravaProvider implements ProviderInterface {
 
       console.log(`Fetched ${logEntries.length} runs from Strava (from ${allActivities.length} total activities)`);
       console.log('Sample log entry:', logEntries[0]);
-      return logEntries;
+
+      // CRITICAL: Double-check with date filter (defense in depth)
+      const filterResult = filterByImportDateLimit(logEntries, (entry) => entry.dateISO);
+      logImportFilterStats('Strava API Import', filterResult.stats);
+
+      if (filterResult.rejected.length > 0) {
+        console.warn(`[StravaProvider] Filtered out ${filterResult.rejected.length} activities older than 2 years`);
+      }
+
+      return filterResult.accepted;
     } catch (error) {
       console.error('Strava fetch error:', error);
       return [];
