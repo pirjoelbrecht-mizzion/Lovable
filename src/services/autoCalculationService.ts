@@ -531,9 +531,11 @@ class AutoCalculationService {
     // Bulk save fitness indices
     const supabase = getSupabase();
     if (supabase) {
-      const BATCH_SIZE = 10; // Smaller batches to avoid RLS timeout
+      const BATCH_SIZE = 5; // Very small batches due to RLS overhead
 
       // Save fitness indices in batches
+      let fitnessSuccess = 0;
+      let fitnessErrors = 0;
       for (let i = 0; i < fitnessIndices.length; i += BATCH_SIZE) {
         const batch = fitnessIndices.slice(i, i + BATCH_SIZE);
         const { error } = await supabase.from('fitness_index').upsert(batch, {
@@ -541,12 +543,19 @@ class AutoCalculationService {
         });
         if (error) {
           console.error(`Failed to save fitness index (batch ${Math.floor(i / BATCH_SIZE) + 1}):`, error);
+          fitnessErrors++;
         } else {
-          console.log(`[calculateFitnessIndex] Saved batch ${Math.floor(i / BATCH_SIZE) + 1} (${batch.length} records)`);
+          fitnessSuccess += batch.length;
+          if ((i / BATCH_SIZE) % 10 === 0) {
+            console.log(`[calculateFitnessIndex] Progress: ${fitnessSuccess}/${fitnessIndices.length} fitness records saved`);
+          }
         }
       }
+      console.log(`[calculateFitnessIndex] Fitness indices: ${fitnessSuccess} saved, ${fitnessErrors} batches failed`);
 
       // Save weekly metrics in batches
+      let metricsSuccess = 0;
+      let metricsErrors = 0;
       for (let i = 0; i < weeklyMetrics.length; i += BATCH_SIZE) {
         const batch = weeklyMetrics.slice(i, i + BATCH_SIZE);
         const { error } = await supabase.from('weekly_metrics').upsert(batch, {
@@ -554,10 +563,15 @@ class AutoCalculationService {
         });
         if (error) {
           console.error(`Failed to save weekly metric (batch ${Math.floor(i / BATCH_SIZE) + 1}):`, error);
+          metricsErrors++;
         } else {
-          console.log(`[calculateFitnessIndex] Saved weekly metrics batch ${Math.floor(i / BATCH_SIZE) + 1} (${batch.length} records)`);
+          metricsSuccess += batch.length;
+          if ((i / BATCH_SIZE) % 10 === 0) {
+            console.log(`[calculateFitnessIndex] Progress: ${metricsSuccess}/${weeklyMetrics.length} weekly metrics saved`);
+          }
         }
       }
+      console.log(`[calculateFitnessIndex] Weekly metrics: ${metricsSuccess} saved, ${metricsErrors} batches failed`);
     }
 
     console.log('[AutoCalc] Fitness indices updated');

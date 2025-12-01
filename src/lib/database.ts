@@ -1674,8 +1674,11 @@ export async function saveDerivedMetricsWeekly(
     user_id: userId,
   }));
 
-  // Batch upserts to avoid timeouts (10 records per batch to work with RLS)
-  const BATCH_SIZE = 10;
+  // Batch upserts with very small batches due to RLS overhead
+  const BATCH_SIZE = 5;
+  let successCount = 0;
+  let errorCount = 0;
+
   for (let i = 0; i < dbMetrics.length; i += BATCH_SIZE) {
     const batch = dbMetrics.slice(i, i + BATCH_SIZE);
     const { error } = await supabase.from('derived_metrics_weekly').upsert(batch, {
@@ -1684,12 +1687,18 @@ export async function saveDerivedMetricsWeekly(
 
     if (error) {
       console.error(`Failed to save derived metrics weekly (batch ${Math.floor(i / BATCH_SIZE) + 1}):`, error);
-      return false;
+      errorCount++;
+      // Continue processing remaining batches instead of failing completely
+      continue;
     }
-    console.log(`[saveDerivedMetricsWeekly] Saved batch ${Math.floor(i / BATCH_SIZE) + 1} (${batch.length} records)`);
+    successCount += batch.length;
+    if ((i / BATCH_SIZE) % 10 === 0) {
+      console.log(`[saveDerivedMetricsWeekly] Progress: ${successCount}/${dbMetrics.length} records saved`);
+    }
   }
 
-  return true;
+  console.log(`[saveDerivedMetricsWeekly] Complete: ${successCount} saved, ${errorCount} batches failed`);
+  return errorCount === 0;
 }
 
 export async function logMetricComputation(log: DbMetricComputationLog): Promise<boolean> {
