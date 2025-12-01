@@ -460,29 +460,104 @@ class AutoCalculationService {
     console.log('[AutoCalc] Calculating fitness indices...');
 
     const { getLogEntriesByDateRange } = await import('@/lib/database');
-    const { updateFitnessForWeek } = await import('@/lib/fitnessCalculator');
+    const { getSupabase } = await import('@/lib/supabase');
 
     const entries = await getLogEntriesByDateRange('2000-01-01', '2100-12-31');
 
-    // Get unique weeks
-    const weeks = new Set<string>();
+    // Aggregate by week
+    const weeklyMap = new Map<string, typeof entries>();
     entries.forEach(e => {
       const date = new Date(e.dateISO);
       const day = date.getDay();
       const diff = date.getDate() - day + (day === 0 ? -6 : 1);
       const monday = new Date(date);
       monday.setDate(diff);
-      weeks.add(monday.toISOString().split('T')[0]);
+      const weekStart = monday.toISOString().split('T')[0];
+
+      if (!weeklyMap.has(weekStart)) {
+        weeklyMap.set(weekStart, []);
+      }
+      weeklyMap.get(weekStart)!.push(e);
     });
 
-    const sortedWeeks = Array.from(weeks).sort();
-    console.log(`[AutoCalc] Updating fitness for ${sortedWeeks.length} weeks`);
+    const sortedWeeks = Array.from(weeklyMap.keys()).sort();
+    console.log(`[AutoCalc] Computing fitness for ${sortedWeeks.length} weeks`);
 
-    // Update fitness for each week (in batches to avoid overwhelming the system)
-    const BATCH_SIZE = 10;
-    for (let i = 0; i < sortedWeeks.length; i += BATCH_SIZE) {
-      const batch = sortedWeeks.slice(i, i + BATCH_SIZE);
-      await Promise.all(batch.map(week => updateFitnessForWeek(week)));
+    // Calculate fitness indices
+    const fitnessIndices: any[] = [];
+    const weeklyMetrics: any[] = [];
+    let previousFitness = 50;
+
+    for (const weekStart of sortedWeeks) {
+      const weekEntries = weeklyMap.get(weekStart)!;
+      const totalKm = weekEntries.reduce((sum, e) => sum + e.km, 0);
+
+      // Calculate fitness score
+      const volumeComponent = (totalKm / 50) * 0.1;
+      const fitnessScore = Math.max(0, Math.min(100, previousFitness * 0.9 + volumeComponent * 100));
+      previousFitness = fitnessScore;
+
+      // Calculate weekly metrics
+      const entriesWithHR = weekEntries.filter(e => e.hrAvg);
+      const avgHr = entriesWithHR.length > 0
+        ? entriesWithHR.reduce((sum, e) => sum + e.hrAvg!, 0) / entriesWithHR.length
+        : null;
+
+      const factors = {
+        volume: totalKm,
+        consistency: totalKm > 0 ? 1 : 0,
+        intensity: 0.5,
+        recovery: 1,
+      };
+
+      fitnessIndices.push({
+        user_id: userId,
+        date: weekStart,
+        fitness_score: fitnessScore,
+        factors,
+      });
+
+      weeklyMetrics.push({
+        user_id: userId,
+        week_start_date: weekStart,
+        total_km: totalKm,
+        avg_hr: avgHr,
+        avg_rpe: null,
+        progression_ratio: 1.0,
+        metadata: {},
+      });
+    }
+
+    // Bulk save fitness indices
+    const supabase = getSupabase();
+    if (supabase) {
+      const BATCH_SIZE = 50;
+
+      // Save fitness indices in batches
+      for (let i = 0; i < fitnessIndices.length; i += BATCH_SIZE) {
+        const batch = fitnessIndices.slice(i, i + BATCH_SIZE);
+        const { error } = await supabase.from('fitness_index').upsert(batch, {
+          onConflict: 'user_id,date',
+        });
+        if (error) {
+          console.error(`Failed to save fitness index (batch ${i / BATCH_SIZE + 1}):`, error);
+        } else {
+          console.log(`[calculateFitnessIndex] Saved batch ${i / BATCH_SIZE + 1} (${batch.length} records)`);
+        }
+      }
+
+      // Save weekly metrics in batches
+      for (let i = 0; i < weeklyMetrics.length; i += BATCH_SIZE) {
+        const batch = weeklyMetrics.slice(i, i + BATCH_SIZE);
+        const { error } = await supabase.from('weekly_metrics').upsert(batch, {
+          onConflict: 'user_id,week_start_date',
+        });
+        if (error) {
+          console.error(`Failed to save weekly metric (batch ${i / BATCH_SIZE + 1}):`, error);
+        } else {
+          console.log(`[calculateFitnessIndex] Saved weekly metrics batch ${i / BATCH_SIZE + 1} (${batch.length} records)`);
+        }
+      }
     }
 
     console.log('[AutoCalc] Fitness indices updated');

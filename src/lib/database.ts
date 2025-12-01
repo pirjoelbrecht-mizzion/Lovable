@@ -1674,13 +1674,19 @@ export async function saveDerivedMetricsWeekly(
     user_id: userId,
   }));
 
-  const { error } = await supabase.from('derived_metrics_weekly').upsert(dbMetrics, {
-    onConflict: 'user_id,week_start_date',
-  });
+  // Batch upserts to avoid timeouts (50 records per batch)
+  const BATCH_SIZE = 50;
+  for (let i = 0; i < dbMetrics.length; i += BATCH_SIZE) {
+    const batch = dbMetrics.slice(i, i + BATCH_SIZE);
+    const { error } = await supabase.from('derived_metrics_weekly').upsert(batch, {
+      onConflict: 'user_id,week_start_date',
+    });
 
-  if (error) {
-    console.error('Failed to save derived metrics weekly:', error);
-    return false;
+    if (error) {
+      console.error(`Failed to save derived metrics weekly (batch ${i / BATCH_SIZE + 1}):`, error);
+      return false;
+    }
+    console.log(`[saveDerivedMetricsWeekly] Saved batch ${i / BATCH_SIZE + 1} (${batch.length} records)`);
   }
 
   return true;
