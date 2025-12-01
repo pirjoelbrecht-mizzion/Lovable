@@ -2,6 +2,27 @@ import { getSupabase, getCurrentUserId } from './supabase';
 import type { LogEntry } from '@/types';
 import { load, save } from '@/utils/storage';
 
+// Request cache to prevent concurrent duplicate requests
+const requestCache = new Map<string, { promise: Promise<any>; timestamp: number }>();
+const CACHE_TTL = 2000; // 2 seconds
+
+function getCachedRequest<T>(key: string, fetchFn: () => Promise<T>): Promise<T> {
+  const now = Date.now();
+  const cached = requestCache.get(key);
+
+  if (cached && (now - cached.timestamp) < CACHE_TTL) {
+    return cached.promise as Promise<T>;
+  }
+
+  const promise = fetchFn().finally(() => {
+    // Clean up after a short delay
+    setTimeout(() => requestCache.delete(key), CACHE_TTL);
+  });
+
+  requestCache.set(key, { promise, timestamp: now });
+  return promise;
+}
+
 /**
  * Sanitize string to remove null bytes and other invalid characters
  * PostgreSQL cannot store \u0000 (null bytes) in text fields
@@ -812,59 +833,61 @@ export type DbPlanAdjustment = {
 };
 
 export async function getEvents(limit = 50): Promise<DbEvent[]> {
-  const supabase = getSupabase();
-  if (!supabase) {
-    console.log('No Supabase, loading from localStorage');
+  return getCachedRequest(`events-${limit}`, async () => {
+    const supabase = getSupabase();
+    if (!supabase) {
+      console.log('No Supabase, loading from localStorage');
+      const localEvents = load<DbEvent[]>('calendar:events', []);
+      console.log('Loaded events from localStorage:', localEvents);
+      return localEvents;
+    }
+
+    const userId = await getCurrentUserId();
+    console.log('Getting events for user:', userId);
+
+    if (!userId) {
+      console.log('No user ID, loading from localStorage');
+      const localEvents = load<DbEvent[]>('calendar:events', []);
+      console.log('Loaded events from localStorage:', localEvents);
+      return localEvents;
+    }
+
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('user_id', userId)
+      .order('date', { ascending: true })
+      .limit(limit);
+
+    if (error) {
+      console.error('Failed to fetch events from Supabase:', error);
+      console.log('Falling back to localStorage');
+      const localEvents = load<DbEvent[]>('calendar:events', []);
+      console.log('Loaded events from localStorage:', localEvents);
+      return localEvents;
+    }
+
+    console.log('Loaded events from Supabase:', data);
+
+    // Always merge with localStorage events
     const localEvents = load<DbEvent[]>('calendar:events', []);
-    console.log('Loaded events from localStorage:', localEvents);
-    return localEvents;
-  }
+    console.log('Checking localStorage for events:', localEvents);
 
-  const userId = await getCurrentUserId();
-  console.log('Getting events for user:', userId);
+    if (localEvents.length > 0) {
+      console.log('Found localStorage events to merge:', localEvents);
+      // Add local events that aren't in Supabase yet
+      const mergedEvents = [...(data || []), ...localEvents];
+      // Remove duplicates by id
+      const uniqueEvents = mergedEvents.filter((event, index, self) =>
+        index === self.findIndex((e) => e.id === event.id)
+      );
+      console.log('Merged events (final):', uniqueEvents);
+      return uniqueEvents;
+    }
 
-  if (!userId) {
-    console.log('No user ID, loading from localStorage');
-    const localEvents = load<DbEvent[]>('calendar:events', []);
-    console.log('Loaded events from localStorage:', localEvents);
-    return localEvents;
-  }
-
-  const { data, error } = await supabase
-    .from('events')
-    .select('*')
-    .eq('user_id', userId)
-    .order('date', { ascending: true })
-    .limit(limit);
-
-  if (error) {
-    console.error('Failed to fetch events from Supabase:', error);
-    console.log('Falling back to localStorage');
-    const localEvents = load<DbEvent[]>('calendar:events', []);
-    console.log('Loaded events from localStorage:', localEvents);
-    return localEvents;
-  }
-
-  console.log('Loaded events from Supabase:', data);
-
-  // Always merge with localStorage events
-  const localEvents = load<DbEvent[]>('calendar:events', []);
-  console.log('Checking localStorage for events:', localEvents);
-
-  if (localEvents.length > 0) {
-    console.log('Found localStorage events to merge:', localEvents);
-    // Add local events that aren't in Supabase yet
-    const mergedEvents = [...(data || []), ...localEvents];
-    // Remove duplicates by id
-    const uniqueEvents = mergedEvents.filter((event, index, self) =>
-      index === self.findIndex((e) => e.id === event.id)
-    );
-    console.log('Merged events (final):', uniqueEvents);
-    return uniqueEvents;
-  }
-
-  console.log('No localStorage events found, returning Supabase data only');
-  return data || [];
+    console.log('No localStorage events found, returning Supabase data only');
+    return data || [];
+  });
 }
 
 export async function saveEvent(event: DbEvent): Promise<boolean | string> {
