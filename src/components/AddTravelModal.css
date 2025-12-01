@@ -1,0 +1,297 @@
+.travel-modal {
+  background: linear-gradient(to bottom right, #0B0B12, #161829, #000000);
+  border: 2px solid rgba(122, 92, 255, 0.3);
+  color: #FFFFFF;
+  width: 100%;
+  max-width: 448px;
+  margin: 32px 16px;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 8px 32px rgba(122, 92, 255, 0.2);
+  backdrop-filter: blur(16px);
+  animation: modal-enter 200ms ease-out;
+}
+
+.travel-modal-header {
+  padding: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(to bottom, rgba(122, 92, 255, 0.05), transparent);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.travel-modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #7A5CFF;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin: 0 0 4px 0;
+}
+
+.travel-modal-subtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 400;
+  line-height: 1.4;
+  margin: 0;
+  font-style: italic;
+}
+
+.travel-modal-close {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+
+.travel-modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+}
+
+.travel-modal-close:active {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(0.95);
+}
+
+.travel-modal-form {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.travel-form-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.travel-form-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.travel-date-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 8px;
+  display: block;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.travel-form-input {
+  width: 100%;
+  height: 44px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #FFFFFF;
+  font-size: 15px;
+  font-weight: 400;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s ease;
+}
+
+.travel-form-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.travel-form-input:focus {
+  outline: none;
+  border-color: rgba(122, 92, 255, 0.6);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(122, 92, 255, 0.15);
+}
+
+.travel-form-input:hover:not(:focus) {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.travel-form-input-error {
+  border-color: rgba(255, 107, 107, 0.6);
+  background: rgba(255, 107, 107, 0.05);
+  animation: shake 0.3s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.travel-form-input-error:focus {
+  border-color: #FF6B6B;
+  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.15);
+}
+
+.travel-form-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.travel-date-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.travel-date-input {
+  cursor: pointer;
+}
+
+.travel-date-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+.travel-form-error {
+  margin-top: 6px;
+  padding: 8px 12px;
+  background: rgba(255, 107, 107, 0.1);
+  border-left: 3px solid #FF6B6B;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #FF6B6B;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.travel-info-box {
+  padding: 12px;
+  background: rgba(122, 92, 255, 0.1);
+  border: 1px solid rgba(122, 92, 255, 0.2);
+  border-radius: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(122, 92, 255, 0.08), rgba(185, 242, 39, 0.08));
+}
+
+.travel-info-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.travel-info-text {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.travel-modal-actions {
+  display: flex;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.travel-modal-btn {
+  flex: 1;
+  height: 48px;
+  padding: 14px 20px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.travel-modal-btn-cancel {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.travel-modal-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #FFFFFF;
+}
+
+.travel-modal-btn-cancel:active {
+  background: rgba(255, 255, 255, 0.08);
+  transform: scale(0.98);
+}
+
+.travel-modal-btn-submit {
+  background: #7A5CFF;
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(122, 92, 255, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.travel-modal-btn-submit::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.travel-modal-btn-submit:hover {
+  background: #B9F227;
+  color: #000000;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(185, 242, 39, 0.4);
+}
+
+.travel-modal-btn-submit:hover::before {
+  left: 100%;
+}
+
+.travel-modal-btn-submit:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 8px rgba(122, 92, 255, 0.4);
+}
+
+.travel-modal-btn-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(122, 92, 255, 0.3);
+  box-shadow: none;
+  pointer-events: none;
+}
+
+@media (max-width: 448px) {
+  .travel-modal {
+    max-width: calc(100vw - 32px);
+    margin: 16px;
+  }
+
+  .travel-date-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .travel-modal-form {
+    padding: 20px 16px;
+  }
+}

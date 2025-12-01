@@ -1,0 +1,1006 @@
+/* ===== QUEST PAGE - EXACT DESIGN SPECIFICATIONS ===== */
+
+.quest-container {
+  position: relative;
+  min-height: 100vh;
+  background: linear-gradient(to bottom right, #0B0B12 0%, #161829 50%, #000000 100%);
+  font-family: 'Inter', sans-serif;
+}
+
+/* ===== FLOATING BACKGROUND ORBS ===== */
+.quest-bg-orbs {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.quest-orb {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.quest-orb-teal {
+  top: 80px;
+  right: 40px;
+  width: 128px;
+  height: 128px;
+  background: linear-gradient(to bottom right, #46E7B1 10%, transparent);
+  opacity: 0.1;
+  filter: blur(48px);
+  animation: pulse 3s ease-in-out infinite;
+}
+
+.quest-orb-lime {
+  top: 240px;
+  left: 64px;
+  width: 96px;
+  height: 96px;
+  background: linear-gradient(to bottom right, #B9F227 10%, transparent);
+  opacity: 0.1;
+  filter: blur(32px);
+  animation: float-animation 3s ease-in-out infinite;
+}
+
+.quest-orb-coral {
+  bottom: 160px;
+  right: 80px;
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(to bottom right, #FF5C7A 10%, transparent);
+  opacity: 0.1;
+  filter: blur(24px);
+  animation: pulse-gaming 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes float-animation {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-gaming {
+  0%, 100% { opacity: 0.1; }
+  50% { opacity: 0.15; }
+}
+
+/* ===== MAIN CONTENT CONTAINER ===== */
+.quest-content {
+  position: relative;
+  z-index: 10;
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 24px 80px 24px;
+}
+
+/* ===== TRAINING SESSION BUBBLES SECTION ===== */
+.quest-training-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.quest-training-card {
+  position: relative;
+  background: linear-gradient(to bottom right, rgba(22, 24, 41, 0.5), rgba(11, 11, 18, 0.5));
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 448px;
+  padding: 24px;
+  transition: all 0.3s ease;
+}
+
+.quest-training-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(74, 144, 226, 0.4);
+  box-shadow: 0 8px 24px rgba(74, 144, 226, 0.15);
+}
+
+.quest-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.quest-card-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #B9F227;
+  margin: 0;
+}
+
+.quest-list-btn {
+  font-size: 12px;
+  color: #46E7B1;
+  padding: 4px 8px;
+  height: auto;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.quest-list-btn:hover {
+  color: #B9F227;
+}
+
+.quest-instruction-text {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.quest-swap-indicator {
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: linear-gradient(to right, rgba(70, 231, 177, 0.2), rgba(185, 242, 39, 0.2));
+  border: 1px solid rgba(70, 231, 177, 0.4);
+  border-radius: 6px;
+  text-align: center;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.quest-swap-text {
+  font-size: 12px;
+  color: #46E7B1;
+}
+
+/* ===== INTERACTIVE BUBBLE CONTAINER ===== */
+.quest-bubble-container {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  touch-action: none;
+  user-select: none;
+}
+
+.quest-day-label {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.quest-day-right {
+  right: 0;
+  transform: translateY(-50%) translateX(calc(100% + 12px));
+}
+
+.quest-day-left {
+  left: 0;
+  transform: translateY(-50%) translateX(calc(-100% - 12px));
+}
+
+/* ===== INDIVIDUAL BUBBLE ===== */
+.quest-bubble {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 10;
+}
+
+.quest-bubble-dragging {
+  transition: none;
+  z-index: 30;
+  cursor: grabbing;
+}
+
+.quest-bubble:not(.quest-bubble-dragging):hover {
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.quest-bubble-completed {
+  background: linear-gradient(to bottom right, rgba(70, 231, 177, 0.3), rgba(70, 231, 177, 0.1));
+  border: 3px solid #46E7B1;
+}
+
+.quest-bubble-today {
+  background: linear-gradient(to bottom right, rgba(185, 242, 39, 0.3), rgba(185, 242, 39, 0.1));
+  border: 3px solid #B9F227;
+  box-shadow: 0 0 20px rgba(185, 242, 39, 0.4), 0 0 40px rgba(185, 242, 39, 0.2);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.quest-bubble-upcoming {
+  background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.quest-bubble-upcoming:hover {
+  border-color: rgba(70, 231, 177, 0.5);
+}
+
+.quest-bubble-swap-target {
+  border-color: #B9F227;
+  box-shadow: 0 0 20px rgba(185, 242, 39, 0.6);
+}
+
+.quest-bubble-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+}
+
+.quest-bubble-emoji {
+  font-size: 24px;
+  margin-bottom: 2px;
+}
+
+.quest-bubble-type {
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.quest-bubble-duration {
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+}
+
+/* ===== BUBBLE BADGES ===== */
+.quest-bubble-badge {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  border: 2px solid #0B0B12;
+}
+
+.quest-bubble-check {
+  top: -8px;
+  right: -8px;
+  background: #46E7B1;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+  color: #0B0B12;
+}
+
+.quest-bubble-now {
+  top: -8px;
+  right: -8px;
+  background: #B9F227;
+  color: #0B0B12;
+  border-radius: 9999px;
+  padding: 4px 8px;
+}
+
+.quest-bubble-ai {
+  bottom: -8px;
+  right: -8px;
+  background: #7A5CFF;
+  border-radius: 9999px;
+  padding: 4px 8px;
+  font-size: 9px;
+  color: #FFFFFF;
+}
+
+/* ===== UPCOMING RACES SECTION ===== */
+.quest-races-container {
+  margin-bottom: 16px;
+  padding: 0 4px;
+}
+
+.quest-race-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  margin-bottom: 12px;
+}
+
+.quest-race-item:hover {
+  opacity: 0.8;
+}
+
+.quest-race-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.quest-race-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.quest-race-trophy {
+  width: 12px;
+  height: 12px;
+  color: #FFD700;
+  flex-shrink: 0;
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.quest-race-name {
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quest-race-goal-badge {
+  color: #FF5C7A;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.quest-race-details-row {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-left: 20px;
+}
+
+.quest-race-right {
+  text-align: right;
+  flex-shrink: 0;
+  font-size: 14px;
+  color: #B9F227;
+}
+
+/* ===== FANCY CALENDAR BUTTON ===== */
+.quest-calendar-button-wrapper {
+  margin-top: 12px;
+}
+
+.quest-calendar-button {
+  position: relative;
+  width: 100%;
+  height: 48px;
+  overflow: hidden;
+  border-radius: 12px;
+  transition: all 0.3s;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  background: transparent;
+}
+
+.quest-calendar-button:hover {
+  transform: scale(1.02);
+}
+
+.quest-calendar-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right,
+    rgba(185, 242, 39, 0.2),
+    rgba(70, 231, 177, 0.2),
+    rgba(122, 92, 255, 0.2)
+  );
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.quest-calendar-border {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  border: 2px solid rgba(185, 242, 39, 0.4);
+  box-shadow: 0 0 20px rgba(185, 242, 39, 0.3), inset 0 0 20px rgba(185, 242, 39, 0.1);
+  transition: border-color 0.3s;
+}
+
+.quest-calendar-button:hover .quest-calendar-border {
+  border-color: rgba(185, 242, 39, 0.6);
+}
+
+.quest-calendar-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transform: translateX(-100%);
+  transition: transform 1s;
+}
+
+.quest-calendar-button:hover .quest-calendar-shimmer {
+  transform: translateX(100%);
+}
+
+.quest-calendar-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  padding: 0 16px;
+}
+
+.quest-calendar-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(to bottom right, rgba(185, 242, 39, 0.3), rgba(70, 231, 177, 0.2));
+  border: 1px solid rgba(185, 242, 39, 0.4);
+  transition: transform 0.3s;
+}
+
+.quest-calendar-button:hover .quest-calendar-icon-container {
+  transform: scale(1.1);
+}
+
+.quest-calendar-emoji {
+  font-size: 16px;
+  color: #B9F227;
+  filter: drop-shadow(0 0 8px rgba(185, 242, 39, 0.8));
+}
+
+.quest-calendar-text-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.quest-calendar-main-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #4A90E2;
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(74, 144, 226, 0.6), 0 0 20px rgba(74, 144, 226, 0.4);
+}
+
+.quest-calendar-sub-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.quest-calendar-arrow {
+  margin-left: auto;
+  color: #46E7B1;
+  transition: transform 0.3s;
+}
+
+.quest-calendar-button:hover .quest-calendar-arrow {
+  transform: translateX(4px);
+}
+
+.quest-calendar-corner {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  opacity: 0.6;
+}
+
+.quest-calendar-corner-tl {
+  top: 0;
+  left: 0;
+  border-top: 2px solid #46E7B1;
+  border-left: 2px solid #46E7B1;
+  border-radius: 12px 0 0 0;
+}
+
+.quest-calendar-corner-br {
+  bottom: 0;
+  right: 0;
+  border-bottom: 2px solid #7A5CFF;
+  border-right: 2px solid #7A5CFF;
+  border-radius: 0 0 12px 0;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 640px) {
+  .quest-content {
+    padding: 16px 16px 80px 16px;
+  }
+
+  .quest-training-card {
+    padding: 16px;
+  }
+
+  .quest-bubble-container {
+    height: 280px;
+  }
+
+  .quest-card-title {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .quest-bubble {
+    font-size: 20px;
+  }
+
+  .quest-bubble-type {
+    font-size: 8px;
+  }
+
+  .quest-bubble-duration {
+    font-size: 7px;
+  }
+
+  .quest-day-label {
+    font-size: 10px;
+  }
+}
+
+/* ===== BUBBLE WEATHER ===== */
+.quest-bubble-weather {
+  font-size: 7px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+/* ===== LIST VIEW ===== */
+.quest-list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.quest-list-item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(to bottom right, rgba(22, 24, 41, 0.4), rgba(11, 11, 18, 0.4));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quest-list-item:hover {
+  border-color: rgba(70, 231, 177, 0.3);
+  background: linear-gradient(to bottom right, rgba(22, 24, 41, 0.6), rgba(11, 11, 18, 0.6));
+}
+
+.quest-list-completed {
+  border-color: rgba(70, 231, 177, 0.3);
+  background: linear-gradient(to bottom right, rgba(70, 231, 177, 0.1), rgba(70, 231, 177, 0.05));
+}
+
+.quest-list-today {
+  border-color: rgba(185, 242, 39, 0.4);
+  background: linear-gradient(to bottom right, rgba(185, 242, 39, 0.1), rgba(185, 242, 39, 0.05));
+  box-shadow: 0 0 20px rgba(185, 242, 39, 0.2);
+}
+
+.quest-list-drag-handle {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 14px;
+  cursor: grab;
+  padding: 4px 0;
+}
+
+.quest-list-item.quest-list-dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.quest-list-item.quest-list-drag-over {
+  border-color: rgba(74, 144, 226, 0.6);
+  background: linear-gradient(to bottom right, rgba(74, 144, 226, 0.15), rgba(74, 144, 226, 0.1));
+  transform: scale(1.02);
+}
+
+.quest-list-icon {
+  font-size: 32px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.quest-list-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.quest-list-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.quest-list-day {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+}
+
+.quest-list-now-badge {
+  background: #B9F227;
+  color: #0B0B12;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.quest-list-ai-badge {
+  background: #7A5CFF;
+  color: #FFFFFF;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.quest-list-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #FFFFFF;
+  margin-bottom: 4px;
+}
+
+.quest-list-details {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.quest-list-separator {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.quest-list-adapted-note {
+  font-size: 11px;
+  color: #7A5CFF;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.quest-list-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.quest-list-weather {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.quest-list-weather-icon {
+  font-size: 18px;
+}
+
+.quest-list-weather-temp {
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 600;
+}
+
+.quest-list-zones {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.quest-list-check {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: #46E7B1;
+  color: #0B0B12;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ===== SESSION DETAIL MODAL ===== */
+.quest-session-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.quest-session-modal {
+  position: relative;
+  background: linear-gradient(to bottom right, rgba(22, 24, 41, 0.95), rgba(11, 11, 18, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.quest-session-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #FFFFFF;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s;
+  z-index: 1;
+}
+
+.quest-session-modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: rotate(90deg);
+}
+
+.quest-session-modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.quest-session-modal-icon {
+  font-size: 48px;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(to bottom right, rgba(185, 242, 39, 0.2), rgba(70, 231, 177, 0.1));
+  border: 2px solid rgba(185, 242, 39, 0.3);
+  border-radius: 16px;
+  flex-shrink: 0;
+}
+
+.quest-session-modal-title-section {
+  flex: 1;
+}
+
+.quest-session-modal-day {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.quest-session-modal-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0;
+}
+
+.quest-session-modal-now-badge {
+  background: #B9F227;
+  color: #0B0B12;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.quest-session-modal-ai-badge {
+  background: #7A5CFF;
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.quest-session-modal-body {
+  padding: 24px;
+}
+
+.quest-session-modal-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.quest-session-modal-stat {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 12px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.quest-session-modal-stat-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.quest-session-modal-stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #B9F227;
+}
+
+.quest-session-modal-weather {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(to right, rgba(70, 231, 177, 0.1), rgba(185, 242, 39, 0.1));
+  border: 1px solid rgba(70, 231, 177, 0.2);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.quest-session-modal-weather-icon {
+  font-size: 24px;
+}
+
+.quest-session-modal-weather-text {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.quest-session-modal-description {
+  margin-bottom: 24px;
+}
+
+.quest-session-modal-description-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.quest-session-modal-description p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+}
+
+.quest-session-modal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.quest-session-modal-btn {
+  flex: 1;
+  padding: 14px 20px;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.quest-session-modal-btn-primary {
+  background: linear-gradient(to right, #B9F227, #46E7B1);
+  color: #0B0B12;
+  box-shadow: 0 4px 12px rgba(185, 242, 39, 0.3);
+}
+
+.quest-session-modal-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(185, 242, 39, 0.4);
+}
+
+.quest-session-modal-btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.quest-session-modal-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ===== RESPONSIVE MODAL ===== */
+@media (max-width: 640px) {
+  .quest-session-modal {
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    max-height: 85vh;
+  }
+
+  .quest-session-modal-header {
+    padding: 20px;
+  }
+
+  .quest-session-modal-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 36px;
+  }
+
+  .quest-session-modal-title {
+    font-size: 18px;
+  }
+
+  .quest-session-modal-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

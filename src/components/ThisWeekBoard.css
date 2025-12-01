@@ -1,0 +1,40 @@
+.bubble-cloud {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 18px;
+  padding: 10px;
+  min-height: 200px;
+}
+
+@media (max-width: 640px) {
+  .bubble-cloud {
+    gap: 12px;
+    padding: 8px;
+    min-height: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .bubble-cloud {
+    gap: 8px;
+    padding: 6px;
+    min-height: 120px;
+  }
+}
+
+.bubble-wrap {
+  cursor: grab;
+  touch-action: none;
+}
+.bubble-wrap:active {
+  cursor: grabbing;
+}
+
+/* optional playful hover */
+.bubble:hover {
+  transform: scale(1.03);
+  transition: transform 0.2s ease;
+}

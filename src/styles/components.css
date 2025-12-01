@@ -1,0 +1,170 @@
+/* ================================
+   COMPONENTS — Visual extras
+   ================================ */
+
+/* ===== Bubbles ===== */
+.bubble{
+  position: relative;
+  width:150px;
+  height:150px;
+  border-radius:999px;
+  padding:10px;
+  color:#0c1020;
+  box-shadow:0 8px 18px rgba(0,0,0,.35);
+  border:1px solid rgba(255,255,255,.06);
+  display:grid;
+  grid-template-rows:auto 1fr;
+}
+
+@media (max-width: 640px) {
+  .bubble {
+    width: 120px;
+    height: 120px;
+  }
+  .bubble .bubble-mid div:first-child {
+    font-size: 28px !important;
+  }
+  .bubble .title {
+    font-size: 12px !important;
+  }
+  .bubble .sub {
+    font-size: 10px !important;
+  }
+  .bubble .ring {
+    width: 128px;
+    height: 128px;
+  }
+}
+
+@media (max-width: 480px) {
+  .bubble {
+    width: 100px;
+    height: 100px;
+  }
+  .bubble .bubble-mid div:first-child {
+    font-size: 24px !important;
+  }
+  .bubble .title {
+    font-size: 11px !important;
+  }
+  .bubble .sub {
+    font-size: 9px !important;
+  }
+  .bubble .ring {
+    width: 108px;
+    height: 108px;
+  }
+  .badge-now {
+    font-size: 8px;
+    padding: 1px 4px;
+  }
+  .chip-weather {
+    font-size: 10px !important;
+    padding: 1px 4px;
+  }
+}
+.bubble .bubble-top{
+  display:flex;gap:6px;align-items:center;justify-content:space-between;
+}
+.badge-now{
+  font-size:10px;background:#00ff9c;color:#002015;
+  padding:2px 6px;border-radius:12px;font-weight:700;
+}
+.chip-weather{
+  display:inline-flex;gap:4px;align-items:center;
+  font-size:10px;background:rgba(255,255,255,.2);
+  padding:2px 6px;border-radius:999px;
+}
+.bubble .bubble-mid{align-self:center;text-align:center;}
+.bubble .title{font-weight:800;font-size:14px;}
+.bubble .sub{font-size:12px;opacity:.85;}
+.bubble .ring{
+  position:absolute;
+  top:50%;
+  left:50%;
+  width:calc(100% + 8px);
+  height:calc(100% + 8px);
+  transform:translate(-50%, -50%) rotate(-90deg);
+  pointer-events:none;
+}
+.ring .track{fill:none;stroke:rgba(255,255,255,.14);stroke-width:3;}
+.ring .prog{fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;
+  stroke-dasharray:113;stroke-dashoffset:var(--ring-off,56);opacity:.9;}
+
+/* ===== Weather / Coach / Toast ===== */
+.coach-fab{position:fixed;right:20px;bottom:20px;z-index:60;
+  width:54px;height:54px;border-radius:999px;border:1px solid var(--line);
+  background:#1f2024;color:var(--text);font-size:24px;
+  display:grid;place-items:center;cursor:pointer;}
+.coach-panel{position:fixed;right:20px;bottom:84px;width:min(420px,92vw);
+  max-height:70vh;background:var(--card);border:1px solid var(--line);
+  border-radius:14px;padding:12px;box-shadow:0 8px 40px rgba(0,0,0,.35);
+  z-index:61;display:flex;flex-direction:column;}
+.toast-wrap{position:fixed;inset:0 auto auto 0;left:50%;
+  transform:translateX(-50%);top:16px;display:flex;flex-direction:column;gap:10px;z-index:9999;}
+.toast{position:relative;background:#101114;border:1px solid var(--line);
+  color:var(--text);padding:10px 14px;border-radius:12px;font-size:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,.35);animation:toastIn .15s ease-out;}
+.toast.success{border-left:4px solid var(--good);}
+.toast.error{border-left:4px solid var(--bad);}
+
+/* ===== Animations ===== */
+@keyframes popfade{
+  0%{opacity:0;transform:translateY(-10px) scale(0.9);}
+  10%{opacity:1;transform:translateY(0) scale(1);}
+  90%{opacity:1;}
+  100%{opacity:0;transform:translateY(-10px);}
+}
+@keyframes blink{0%,20%{opacity:.2;}50%{opacity:1;}100%{opacity:.2;}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(125,211,252,.7);}
+70%{box-shadow:0 0 0 10px rgba(125,211,252,0);}
+100%{box-shadow:0 0 0 0 rgba(125,211,252,0);}}
+@keyframes toastIn{from{transform:translateY(-8px);opacity:0;}
+to{transform:translateY(0);opacity:1;}}
+@keyframes drop{
+  from{transform:translateX(calc((var(--i)-8)*10px)) translateY(-6px);opacity:0;}
+  to{transform:translateX(calc((var(--i)-8)*10px)) translateY(24px);opacity:1;}
+}
+
+/* typing dots */
+.typing-dot{display:inline-block;width:3px;margin-left:2px;animation:blink 1s infinite;}
+.typing-dot:nth-child(2){animation-delay:.2s;}
+.typing-dot:nth-child(3){animation-delay:.4s;}
+
+.bubble {
+  box-shadow: 0 8px 25px rgba(0,0,0,.4);
+  border: 1px solid rgba(255,255,255,.08);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.bubble:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 35px rgba(0,0,0,.5);
+}
+.chip-weather {
+  font-size: 14px !important;
+  background: rgba(255,255,255,.25);
+  color: #fff;
+  font-weight: 600;
+}
+/* === Training Profile styles (Settings page) === */
+
+.settings-card .setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.settings-card input[type="range"] {
+  width: 100%;
+}
+
+.settings-card label.small {
+  font-weight: 500;
+}
+
+.settings-card .hint {
+  font-size: 0.85rem;
+  color: var(--text-muted, #666);
+}

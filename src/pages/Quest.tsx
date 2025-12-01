@@ -1,0 +1,1059 @@
+import { useState, useEffect, useMemo, useRef } from "react";
+import { Link } from "react-router-dom";
+import { useT } from "@/i18n";
+import QuickAddRace from "@/components/QuickAddRace";
+import WeatherAlertBanner from "@/components/WeatherAlertBanner";
+import AdaptiveCoachPanel from "@/components/AdaptiveCoachPanel";
+import ReadinessCard from "@/components/ReadinessCard";
+import DailyBanner from "@/components/DailyBanner";
+import MotivationHeader from "@/components/MotivationHeader";
+import { getWeekPlan, type WeekPlan, todayDayIndex } from "@/lib/plan";
+import { fetchDailyWeather, type DailyWeather, getWeatherForLocation, type CurrentWeather } from "@/utils/weather";
+import { loadUserProfile } from "@/state/userData";
+import { loadWeekPlan, type WeekItem } from "@/utils/weekPlan";
+import { listRaces, type Race } from "@/utils/races";
+import { load } from "@/utils/storage";
+import { type DbSavedRoute } from "@/lib/database";
+import { toast } from "@/components/ToastHost";
+import { getSavedLocation, detectLocation, saveLocation, ensureLocationLabel } from "@/utils/location";
+import { showImmediateWeatherAlert } from "@/services/weatherNotifications";
+import { useAdaptiveTrainingPlan } from "@/hooks/useAdaptiveTrainingPlan";
+import { PostWorkoutFeedbackModal } from "@/components/PostWorkoutFeedbackModal";
+import { getLogEntries } from "@/lib/database";
+import { completeWorkoutWithFeedback, getCompletionStatusForWeek } from "@/services/workoutCompletionService";
+import type { LogEntry } from "@/types";
+import "./Quest.css";
+
+type SessionNode = {
+  id: string;
+  day: string;
+  dayFull: string;
+  type: string;
+  emoji: string;
+  duration: string;
+  distance?: string;
+  pace?: string;
+  zones?: string;
+  description?: string;
+  weather?: { temp: number; condition: string; icon: string };
+  completed: boolean;
+  isToday: boolean;
+  isAdapted: boolean;
+  x: number;
+  y: number;
+  size: number;
+};
+
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const DAYS_SHORT = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+
+const BUBBLE_POSITIONS = [
+  { x: 25, y: 14, size: 76 },
+  { x: 68, y: 22, size: 94 },
+  { x: 42, y: 33, size: 72 },
+  { x: 75, y: 44, size: 80 },
+  { x: 30, y: 57, size: 68 },
+  { x: 58, y: 70, size: 90 },
+  { x: 22, y: 82, size: 74 },
+];
+
+const WEATHER_ICONS: Record<string, string> = {
+  sun: "☀️",
+  "cloud-sun": "⛅",
+  cloud: "☁️",
+  rain: "🌧️",
+  "rain-heavy": "⛈️",
+  storm: "⛈️",
+  snow: "🌨️",
+  fog: "🌫️",
+};
+
+const SESSION_EMOJIS: Record<string, string> = {
+  rest: "😌",
+  recovery: "🧘",
+  easy: "🏃",
+  tempo: "⚡",
+  intervals: "🔥",
+  long: "🏔️",
+  strength: "💪",
+  workout: "🔥",
+};
+
+
+function getMonday() {
+  const today = new Date();
+  const day = today.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diff);
+  return monday.toISOString().slice(0, 10);
+}
+
+function detectSessionType(title: string, notes?: string): string {
+  const text = `${title} ${notes || ""}`.toLowerCase();
+  if (/rest|off|mobility|recover/i.test(text)) return "rest";
+  if (/recovery/i.test(text)) return "recovery";
+  if (/tempo|quality|threshold/i.test(text)) return "tempo";
+  if (/interval|speed|rep|hill/i.test(text)) return "intervals";
+  if (/long|endurance/i.test(text)) return "long";
+  if (/strength|gym|lift/i.test(text)) return "strength";
+  if (/workout|hard/i.test(text)) return "workout";
+  return "easy";
+}
+
+function estimateDuration(km?: number, type?: string): string {
+  if (!km || km === 0) {
+    if (type === "rest") return "0 min";
+    if (type === "strength") return "40 min";
+    return "30 min";
+  }
+  const baseMinPerKm = type === "intervals" ? 5 : type === "tempo" ? 5.5 : 6;
+  const mins = Math.round(km * baseMinPerKm);
+  return `${mins} min`;
+}
+
+export default function Quest() {
+  const t = useT();
+  const [openQuick, setOpenQuick] = useState(false);
+  const [races, setRaces] = useState<Race[]>([]);
+  const [viewMode, setViewMode] = useState<"bubbles" | "list">("bubbles");
+  const [selectedSession, setSelectedSession] = useState<SessionNode | null>(null);
+  const [weekPlan, setWeekPlan] = useState<WeekPlan>(() => getWeekPlan());
+  const [weatherData, setWeatherData] = useState<DailyWeather[]>([]);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [tempPositions, setTempPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [swappingWith, setSwappingWith] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [draggedListItem, setDraggedListItem] = useState<string | null>(null);
+  const [dragOverListItem, setDragOverListItem] = useState<string | null>(null);
+  const [currentWeather, setCurrentWeather] = useState<CurrentWeather | null>(null);
+
+  // Workout feedback and completion
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [selectedWorkoutForFeedback, setSelectedWorkoutForFeedback] = useState<{
+    session: SessionNode;
+    logEntry: LogEntry;
+  } | null>(null);
+  const [weekLogEntries, setWeekLogEntries] = useState<LogEntry[]>([]);
+  const [completionStatus, setCompletionStatus] = useState<Record<string, boolean>>({});
+
+  const today = todayDayIndex();
+  const profile = loadUserProfile();
+
+  // Module 4: Adaptive Training Plan with automatic triggers
+  const {
+    adjustedPlan,
+    decision: adaptiveDecision,
+    isExecuting: isModule4Running,
+    lastExecuted: module4LastExecuted,
+  } = useAdaptiveTrainingPlan({
+    autoExecute: true,
+    dailyExecution: true,
+    onPlanAdjusted: (decision, plan) => {
+      console.log('[Quest] Module 4 adjusted plan received');
+      setWeekPlan(plan);
+    },
+    onError: (error) => {
+      console.error('[Quest] Module 4 error:', error);
+      toast(`Adaptive intelligence error: ${error.message}`, 'error');
+    },
+  });
+
+  // Use adjusted plan if available, otherwise fall back to base plan
+  useEffect(() => {
+    if (adjustedPlan) {
+      setWeekPlan(adjustedPlan);
+    }
+  }, [adjustedPlan]);
+
+  const todayTarget = useMemo(() => {
+    const todaySession = weekPlan[today];
+    const mainSession = todaySession?.sessions[0];
+
+    if (!mainSession || !mainSession.km || mainSession.km === 0) {
+      return null;
+    }
+
+    return {
+      distance: mainSession.km,
+      elevation: mainSession.notes?.match(/(\d+)m/)?.[1] ? parseInt(mainSession.notes.match(/(\d+)m/)![1]) : undefined,
+      terrain: (mainSession.notes?.toLowerCase().includes('trail') ? 'trail' :
+                mainSession.notes?.toLowerCase().includes('road') ? 'road' :
+                undefined) as 'road' | 'trail' | 'mixed' | undefined,
+    };
+  }, [weekPlan, today]);
+
+  const handleRouteSelected = (route: DbSavedRoute) => {
+    toast(`Selected route: ${route.name}`, 'success');
+    setSelectedSession(null);
+  };
+
+  useEffect(() => {
+    async function loadRaces() {
+      const racesList = await listRaces();
+      setRaces(racesList);
+    }
+    loadRaces();
+  }, []);
+
+  useEffect(() => {
+    async function loadCurrentWeather() {
+      let userLoc = getSavedLocation();
+      console.log('[Quest] Saved location:', userLoc);
+
+      // If no saved location, try to detect it
+      if (!userLoc) {
+        console.log('[Quest] No saved location, detecting...');
+        try {
+          userLoc = await detectLocation(5000);
+          saveLocation(userLoc);
+          console.log('[Quest] Location detected and saved:', userLoc);
+        } catch (error) {
+          console.log('[Quest] Location detection failed, using Chiang Mai default:', error);
+          // Default to Chiang Mai if detection fails
+          userLoc = { lat: 18.7883, lon: 98.9853, label: 'Chiang Mai, Thailand' };
+        }
+      } else if (!userLoc.label) {
+        // If location exists but has no label, add it
+        console.log('[Quest] Updating location with city name...');
+        userLoc = await ensureLocationLabel() || userLoc;
+      }
+
+      try {
+        const weather = await getWeatherForLocation(userLoc.lat, userLoc.lon);
+        console.log('[Quest] Loaded weather:', weather);
+        setCurrentWeather(weather);
+        showImmediateWeatherAlert(weather);
+      } catch (error) {
+        console.error('[Quest] Failed to load weather:', error);
+        setCurrentWeather(null);
+      }
+    }
+    loadCurrentWeather();
+  }, []);
+
+  useEffect(() => {
+    const handlePlanUpdate = () => {
+      setWeekPlan(getWeekPlan());
+    };
+    window.addEventListener("plan:updated", handlePlanUpdate);
+    window.addEventListener("planner:updated", handlePlanUpdate);
+
+    // Listen for plan adaptations from feedback loop
+    const handlePlanAdapted = () => {
+      setWeekPlan(getWeekPlan());
+      loadCompletionStatus();
+      loadLogEntries(); // Refresh log entries when plan adapts
+    };
+    window.addEventListener("plan:adapted", handlePlanAdapted);
+
+    // Listen for new log imports
+    const handleLogImport = () => {
+      console.log('[Quest] Log entries updated - reloading');
+      loadLogEntries();
+    };
+    window.addEventListener("log:import-complete", handleLogImport);
+
+    return () => {
+      window.removeEventListener("plan:updated", handlePlanUpdate);
+      window.removeEventListener("planner:updated", handlePlanUpdate);
+      window.removeEventListener("plan:adapted", handlePlanAdapted);
+      window.removeEventListener("log:import-complete", handleLogImport);
+    };
+  }, []);
+
+  // Load log entries and completion status for the week
+  useEffect(() => {
+    loadLogEntries();
+    loadCompletionStatus();
+  }, []);
+
+  const loadLogEntries = async () => {
+    try {
+      const entries = await getLogEntries(100);
+      console.log('[Quest] Loaded log entries:', entries.length);
+
+      // Filter to current week only
+      const monday = getMonday();
+      const mondayDate = new Date(monday);
+      const sundayDate = new Date(mondayDate);
+      sundayDate.setDate(sundayDate.getDate() + 6);
+      const sunday = sundayDate.toISOString().slice(0, 10);
+
+      const weekEntries = entries.filter(entry => {
+        return entry.dateISO >= monday && entry.dateISO <= sunday;
+      });
+
+      console.log('[Quest] Week entries:', weekEntries.length, 'from', monday, 'to', sunday);
+      weekEntries.forEach(e => console.log('  -', e.dateISO, e.title));
+
+      setWeekLogEntries(weekEntries);
+    } catch (error) {
+      console.error('Failed to load log entries:', error);
+    }
+  };
+
+  const loadCompletionStatus = async () => {
+    try {
+      const monday = getMonday();
+      const status = await getCompletionStatusForWeek(monday);
+      setCompletionStatus(status);
+    } catch (error) {
+      console.error('Failed to load completion status:', error);
+    }
+  };
+
+  useEffect(() => {
+    async function loadWeather() {
+      try {
+        const raw = load<{ lat?: number; lon?: number }>("mizzion:location", {});
+        const lat = raw.lat ?? 40.7128;
+        const lon = raw.lon ?? -74.006;
+        const monday = getMonday();
+        const wx = await fetchDailyWeather(lat, lon, monday, 7);
+        setWeatherData(wx);
+      } catch (err) {
+        console.error("Weather fetch failed:", err);
+      }
+    }
+    loadWeather();
+  }, []);
+
+  const sessions = useMemo<SessionNode[]>(() => {
+    const hasUserPlan = weekPlan.some(day => day.sessions.length > 0);
+    const defaultPlan = hasUserPlan ? null : loadWeekPlan();
+
+    return weekPlan.map((day, idx) => {
+      const mainSession = day.sessions[0];
+      const fallback = defaultPlan ? defaultPlan[idx] : null;
+
+      const title = mainSession?.title || fallback?.title || "Rest";
+      const km = mainSession?.km ?? fallback?.km;
+      const notes = mainSession?.notes || fallback?.notes || "";
+      const sessionType = detectSessionType(title, notes);
+      const emoji = SESSION_EMOJIS[sessionType] || "🏃";
+      const duration = estimateDuration(km, sessionType);
+      const isToday = idx === today;
+      const isAdapted = mainSession?.source === "coach";
+
+      const wx = weatherData[idx];
+      const weather = wx
+        ? {
+            temp: Math.round((wx.tMinC + wx.tMaxC) / 2),
+            condition: wx.desc,
+            icon: WEATHER_ICONS[wx.icon] || "☁️",
+          }
+        : undefined;
+
+      const pos = BUBBLE_POSITIONS[idx];
+
+      let zones = "";
+      if (/z1|zone 1/i.test(notes)) zones = "Zone 1";
+      else if (/z2|zone 2/i.test(notes)) zones = "Zone 2";
+      else if (/z3|zone 3/i.test(notes)) zones = "Zone 3";
+      else if (/z4|zone 4|threshold/i.test(notes)) zones = "Zone 4";
+      else if (/z5|zone 5|vo2/i.test(notes)) zones = "Zone 5";
+
+      const pace = km && km > 0 ? `${(profile.paceBase - 0.5).toFixed(1)} - ${profile.paceBase.toFixed(1)} min/km` : undefined;
+
+      // Check if this workout is completed
+      const monday = getMonday();
+      const workoutDate = new Date(monday);
+      workoutDate.setDate(workoutDate.getDate() + idx);
+      const dateStr = workoutDate.toISOString().slice(0, 10);
+      const isCompleted = completionStatus[dateStr] || false;
+
+      return {
+        id: day.label.toLowerCase(),
+        day: DAYS_SHORT[idx],
+        dayFull: DAYS[idx],
+        type: title,
+        emoji,
+        duration,
+        distance: km && km > 0 ? `${km}K` : undefined,
+        pace,
+        zones,
+        description: notes || `${title} session as planned.`,
+        weather,
+        completed: isCompleted,
+        isToday,
+        isAdapted,
+        x: pos.x,
+        y: pos.y,
+        size: isToday ? 94 : pos.size,
+      };
+    });
+  }, [weekPlan, weatherData, today, profile, completionStatus]);
+
+  async function addRace() {
+    const racesList = await listRaces();
+    setRaces(racesList);
+  }
+
+  const upcoming = useMemo(() => {
+    const now = new Date();
+    return races
+      .map((r) => {
+        const d = new Date(r.dateISO);
+        const days = Math.ceil((d.getTime() - now.getTime()) / (24 * 3600 * 1000));
+        return { ...r, days };
+      })
+      .filter((r) => !Number.isNaN(r.days) && r.days >= 0)
+      .slice(0, 5);
+  }, [races]);
+
+  const handlePointerDown = (e: React.PointerEvent, id: string) => {
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left - rect.width / 2;
+    const offsetY = e.clientY - rect.top - rect.height / 2;
+    setDraggingId(id);
+    setDragOffset({ x: offsetX, y: offsetY });
+    target.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!draggingId || !containerRef.current) return;
+    const container = containerRef.current.getBoundingClientRect();
+    const x = ((e.clientX - container.left - dragOffset.x) / container.width) * 100;
+    const y = ((e.clientY - container.top - dragOffset.y) / container.height) * 100;
+    setTempPositions((prev) => ({ ...prev, [draggingId]: { x, y } }));
+
+    const targetSession = sessions.find((s) => {
+      if (s.id === draggingId) return false;
+      const dx = Math.abs(s.x - x);
+      const dy = Math.abs(s.y - y);
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      return distance < 15;
+    });
+
+    setSwappingWith(targetSession?.id || null);
+  };
+
+  const handlePointerUp = () => {
+    if (draggingId && swappingWith) {
+      console.log("Swapping sessions:", draggingId, swappingWith);
+    }
+    setDraggingId(null);
+    setTempPositions({});
+    setSwappingWith(null);
+  };
+
+  const handleBubbleClick = (session: SessionNode) => {
+    if (draggingId) return;
+    setSelectedSession(session);
+  };
+
+  const handleListDragStart = (e: React.DragEvent, id: string) => {
+    console.log('[Quest] Drag start:', id);
+    setDraggedListItem(id);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", id);
+  };
+
+  const handleListDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (draggedListItem && draggedListItem !== id) {
+      setDragOverListItem(id);
+    }
+  };
+
+  const handleListDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    console.log('[Quest] Drop:', draggedListItem, '->', targetId);
+    if (!draggedListItem || draggedListItem === targetId) {
+      setDraggedListItem(null);
+      setDragOverListItem(null);
+      return;
+    }
+    console.log("Swapping list items:", draggedListItem, targetId);
+    setDraggedListItem(null);
+    setDragOverListItem(null);
+  };
+
+  const handleListDragEnd = () => {
+    console.log('[Quest] Drag end');
+    setDraggedListItem(null);
+    setDragOverListItem(null);
+  };
+
+  // Handle workout completion and trigger feedback modal
+  const handleWorkoutComplete = async (session: SessionNode) => {
+    // Find log entries for this day
+    const monday = getMonday();
+    const sessionIdx = DAYS.findIndex(d => d.toLowerCase().startsWith(session.day.toLowerCase()));
+    const workoutDate = new Date(monday);
+    workoutDate.setDate(workoutDate.getDate() + sessionIdx);
+    const dateStr = workoutDate.toISOString().slice(0, 10);
+
+    console.log('[Quest] Checking for workout on', dateStr);
+    console.log('[Quest] Available week entries:', weekLogEntries.length);
+    weekLogEntries.forEach(e => console.log('  - Entry:', e.dateISO, e.title));
+
+    const todayEntries = weekLogEntries.filter(entry => entry.dateISO === dateStr);
+    console.log('[Quest] Matching entries for', dateStr, ':', todayEntries.length);
+
+    if (todayEntries.length === 0) {
+      toast('No activity logged for this day. Please log your workout first.', 'warning');
+      return;
+    }
+
+    // For now, use the first entry (we'll add multi-activity support later)
+    const logEntry = todayEntries[0];
+
+    console.log('[Quest] Opening feedback modal for:', logEntry.title);
+    console.log('[Quest] Session:', session);
+    console.log('[Quest] Log entry:', logEntry);
+    console.log('[Quest] Log entry ID:', logEntry.id, 'Type:', typeof logEntry.id);
+
+    // Close the session detail modal first
+    setSelectedSession(null);
+
+    // Then open the feedback modal
+    setSelectedWorkoutForFeedback({ session, logEntry });
+    setFeedbackModalOpen(true);
+
+    console.log('[Quest] Modal state set - should be opening now');
+  };
+
+  const handleFeedbackSubmit = async (feedbackData: {
+    rpe: number;
+    feeling: string;
+    painAreas: string[];
+    notes: string;
+  }) => {
+    if (!selectedWorkoutForFeedback) return;
+
+    const { session, logEntry } = selectedWorkoutForFeedback;
+
+    // Calculate date
+    const monday = getMonday();
+    const sessionIdx = DAYS.findIndex(d => d.toLowerCase().startsWith(session.day.toLowerCase()));
+    const workoutDate = new Date(monday);
+    workoutDate.setDate(workoutDate.getDate() + sessionIdx);
+    const dateStr = workoutDate.toISOString().slice(0, 10);
+
+    try {
+      // Validate that log entry has a UUID
+      if (!logEntry.id) {
+        toast('Log entry is missing an ID. Please re-import your activities.', 'error');
+        return;
+      }
+
+      console.log('[Quest] Submitting feedback with log entry ID:', logEntry.id);
+
+      // Complete the workout with feedback
+      await completeWorkoutWithFeedback(
+        {
+          workoutDate: dateStr,
+          plannedWorkoutId: session.id,
+          logEntryId: logEntry.id,
+          matchType: 'manual',
+          notes: `Workout: ${session.type}`
+        },
+        {
+          date: dateStr,
+          logEntryId: logEntry.id,
+          rpe: feedbackData.rpe,
+          feeling: feedbackData.feeling as any,
+          painAreas: feedbackData.painAreas,
+          notes: feedbackData.notes
+        },
+        logEntry
+      );
+
+      // Reload completion status
+      await loadCompletionStatus();
+      await loadLogEntries();
+
+      toast('Feedback saved and plan adapted!', 'success');
+    } catch (error) {
+      console.error('Failed to complete workout:', error);
+      toast('Failed to save feedback', 'error');
+    } finally {
+      setFeedbackModalOpen(false);
+      setSelectedWorkoutForFeedback(null);
+    }
+  };
+
+  return (
+    <div className="quest-container">
+      <div className="quest-bg-orbs">
+        <div className="quest-orb quest-orb-teal"></div>
+        <div className="quest-orb quest-orb-lime"></div>
+        <div className="quest-orb quest-orb-coral"></div>
+      </div>
+
+      <div className="quest-content">
+        {/* Location Debug */}
+        <div style={{
+          marginBottom: 12,
+          maxWidth: 448,
+          width: '100%',
+          margin: '0 auto 12px auto',
+          padding: '8px 12px',
+          background: 'rgba(59, 130, 246, 0.1)',
+          borderRadius: 8,
+          fontSize: 12,
+          color: 'rgba(255, 255, 255, 0.7)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div>
+            📍 Location: {(() => {
+              const loc = getSavedLocation();
+              return loc?.label || (loc ? `${loc.lat.toFixed(4)}, ${loc.lon.toFixed(4)}` : 'Not detected');
+            })()}
+          </div>
+          <button
+            onClick={async () => {
+              try {
+                const loc = await detectLocation(5000);
+                saveLocation(loc);
+                toast(`Location updated: ${loc.label || 'Location detected'}`, 'success');
+                window.location.reload();
+              } catch (error: any) {
+                toast(`Location error: ${error.message}`, 'error');
+              }
+            }}
+            style={{
+              padding: '4px 8px',
+              background: 'rgba(59, 130, 246, 0.3)',
+              border: 'none',
+              borderRadius: 4,
+              color: 'white',
+              fontSize: 11,
+              cursor: 'pointer'
+            }}
+          >
+            Detect Now
+          </button>
+        </div>
+
+        {currentWeather && (
+          <div style={{
+            marginBottom: 24,
+            maxWidth: 448,
+            width: '100%',
+            margin: '0 auto 24px auto',
+            position: 'relative',
+            zIndex: 100
+          }}>
+            <WeatherAlertBanner weather={currentWeather} />
+          </div>
+        )}
+
+        <div style={{
+          marginBottom: 24,
+          maxWidth: 800,
+          width: '100%',
+          margin: '0 auto 24px auto',
+          position: 'relative',
+          zIndex: 200,
+          pointerEvents: 'auto'
+        }}>
+          <AdaptiveCoachPanel
+            onPlanGenerated={(plan) => {
+              console.log('[Quest] Adaptive plan generated:', plan);
+              toast("Adaptive training plan generated! Check your weekly schedule.", "success");
+              window.dispatchEvent(new Event('planner:updated'));
+            }}
+          />
+        </div>
+
+        <div className="quest-training-section">
+          <div className="quest-training-card">
+            <div className="quest-card-header">
+              <h2 className="quest-card-title">This Week</h2>
+              <button
+                className="quest-list-btn"
+                onClick={() => setViewMode(viewMode === "bubbles" ? "list" : "bubbles")}
+              >
+                {viewMode === "bubbles" ? "List View" : "Bubble View"}
+              </button>
+            </div>
+            {viewMode === "bubbles" ? (
+              <>
+                <p className="quest-instruction-text">💡 Tap sessions for details • Drag to reorder</p>
+                {swappingWith && (
+                  <div className="quest-swap-indicator">
+                    <span className="quest-swap-text">✨ Swapping sessions...</span>
+                  </div>
+                )}
+                <div
+                  ref={containerRef}
+                  className="quest-bubble-container"
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                >
+                  {sessions.map((session) => (
+                    <div key={`label-${session.id}`} style={{ position: "absolute", left: `${session.x}%`, top: `${session.y}%` }}>
+                      <div className={`quest-day-label ${session.x > 50 ? "quest-day-right" : "quest-day-left"}`}>
+                        {session.day}
+                      </div>
+                    </div>
+                  ))}
+                  {sessions.map((session) => {
+                    const pos = tempPositions[session.id] || { x: session.x, y: session.y };
+                    const isDragging = draggingId === session.id;
+                    const isSwapTarget = swappingWith === session.id;
+
+                    return (
+                      <div
+                        key={session.id}
+                        className={`quest-bubble ${session.completed ? "quest-bubble-completed" : ""} ${
+                          session.isToday ? "quest-bubble-today" : ""
+                        } ${!session.completed && !session.isToday ? "quest-bubble-upcoming" : ""} ${
+                          isDragging ? "quest-bubble-dragging" : ""
+                        } ${isSwapTarget ? "quest-bubble-swap-target" : ""}`}
+                        style={{
+                          left: `${pos.x}%`,
+                          top: `${pos.y}%`,
+                          width: `${session.size}px`,
+                          height: `${session.size}px`,
+                          cursor: isDragging ? "grabbing" : "grab",
+                        }}
+                        onPointerDown={(e) => handlePointerDown(e, session.id)}
+                        onClick={() => handleBubbleClick(session)}
+                      >
+                        <div className="quest-bubble-content">
+                          <div className="quest-bubble-emoji">{session.emoji}</div>
+                          <div className="quest-bubble-type">{session.type}</div>
+                          <div className="quest-bubble-duration">{session.duration}</div>
+                          {session.weather && (
+                            <div className="quest-bubble-weather">
+                              {session.weather.icon} {session.weather.temp}°
+                            </div>
+                          )}
+                        </div>
+                        {session.completed && <div className="quest-bubble-badge quest-bubble-check">✓</div>}
+                        {session.isToday && <div className="quest-bubble-badge quest-bubble-now">NOW</div>}
+                        {session.isAdapted && <div className="quest-bubble-badge quest-bubble-ai">AI</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <div className="quest-list-view">
+                <p className="quest-instruction-text" style={{ marginBottom: '12px' }}>💡 Drag sessions to reorder</p>
+                {sessions.map((session) => (
+                  <div
+                    key={session.id}
+                    className={`quest-list-item ${session.completed ? "quest-list-completed" : ""} ${
+                      session.isToday ? "quest-list-today" : ""
+                    } ${draggedListItem === session.id ? "quest-list-dragging" : ""} ${
+                      dragOverListItem === session.id ? "quest-list-drag-over" : ""
+                    }`}
+                    onDragOver={(e) => handleListDragOver(e, session.id)}
+                    onDrop={(e) => handleListDrop(e, session.id)}
+                    onDragEnd={handleListDragEnd}
+                    onClick={() => !draggedListItem && setSelectedSession(session)}
+                  >
+                    <div
+                      className="quest-list-drag-handle"
+                      draggable={true}
+                      onDragStart={(e) => {
+                        e.stopPropagation();
+                        handleListDragStart(e, session.id);
+                      }}
+                    >⋮⋮</div>
+                    <div className="quest-list-icon">{session.emoji}</div>
+                    <div className="quest-list-content">
+                      <div className="quest-list-header">
+                        <span className="quest-list-day">{session.dayFull}</span>
+                        {session.isToday && <span className="quest-list-now-badge">NOW</span>}
+                        {session.isAdapted && <span className="quest-list-ai-badge">AI</span>}
+                      </div>
+                      <div className="quest-list-title">{session.type}</div>
+                      <div className="quest-list-details">
+                        <span>{session.duration}</span>
+                        {session.distance && (
+                          <>
+                            <span className="quest-list-separator">•</span>
+                            <span>{session.distance}</span>
+                          </>
+                        )}
+                        {session.pace && (
+                          <>
+                            <span className="quest-list-separator">•</span>
+                            <span>{session.pace}</span>
+                          </>
+                        )}
+                      </div>
+                      {session.isAdapted && <div className="quest-list-adapted-note">Adapted by AI Coach</div>}
+                    </div>
+                    <div className="quest-list-right">
+                      {session.weather && (
+                        <div className="quest-list-weather">
+                          <span className="quest-list-weather-icon">{session.weather.icon}</span>
+                          <span className="quest-list-weather-temp">{session.weather.temp}°</span>
+                        </div>
+                      )}
+                      {session.zones && <div className="quest-list-zones">{session.zones}</div>}
+                    </div>
+                    {session.completed && <div className="quest-list-check">✓</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </div>
+
+        <div className="quest-races-container">
+          {upcoming.map((race) => (
+            <div key={race.id} className="quest-race-item">
+              <div className="quest-race-left">
+                <div className="quest-race-name-row">
+                  <span className="quest-race-trophy">🏆</span>
+                  <span className="quest-race-name">{race.name}</span>
+                  {race.priority === 'A' && <span className="quest-race-goal-badge">GOAL</span>}
+                </div>
+                <div className="quest-race-details-row">
+                  {race.distanceKm && `${race.distanceKm}K`}
+                  {race.distanceKm && race.location && " • "}
+                  {race.location}
+                  {race.priority && ` • Priority ${race.priority}`}
+                </div>
+              </div>
+              <div className="quest-race-right">{race.days} days</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="quest-calendar-button-wrapper" style={{ marginBottom: 12 }}>
+          <Link to="/race-mode" className="quest-calendar-button" style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #2a4a6f 100%)', textDecoration: 'none', display: 'block' }}>
+            <div className="quest-calendar-bg"></div>
+            <div className="quest-calendar-border"></div>
+            <div className="quest-calendar-shimmer"></div>
+            <div className="quest-calendar-content">
+              <div className="quest-calendar-icon-container">
+                <span className="quest-calendar-emoji">🏁</span>
+              </div>
+              <div className="quest-calendar-text-container">
+                <div className="quest-calendar-main-label">RACE MODE SIMULATION</div>
+                <div className="quest-calendar-sub-label">Predict performance & pacing strategy</div>
+              </div>
+              <svg className="quest-calendar-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div className="quest-calendar-corner quest-calendar-corner-tl"></div>
+            <div className="quest-calendar-corner quest-calendar-corner-br"></div>
+          </Link>
+        </div>
+
+        <div className="quest-calendar-button-wrapper" style={{ marginBottom: 12 }}>
+          <Link to="/routes" className="quest-calendar-button" style={{ background: 'linear-gradient(135deg, #047857 0%, #059669 100%)', textDecoration: 'none', display: 'block' }}>
+            <div className="quest-calendar-bg"></div>
+            <div className="quest-calendar-border"></div>
+            <div className="quest-calendar-shimmer"></div>
+            <div className="quest-calendar-content">
+              <div className="quest-calendar-icon-container">
+                <span className="quest-calendar-emoji">🗺️</span>
+              </div>
+              <div className="quest-calendar-text-container">
+                <div className="quest-calendar-main-label">DISCOVER ROUTES</div>
+                <div className="quest-calendar-sub-label">Find popular running routes nearby</div>
+              </div>
+              <svg className="quest-calendar-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div className="quest-calendar-corner quest-calendar-corner-tl"></div>
+            <div className="quest-calendar-corner quest-calendar-corner-br"></div>
+          </Link>
+        </div>
+
+        <div className="quest-calendar-button-wrapper" style={{ marginBottom: 12 }}>
+          <Link to="/calendar" className="quest-calendar-button" style={{ textDecoration: 'none', display: 'block' }}>
+            <div className="quest-calendar-bg"></div>
+            <div className="quest-calendar-border"></div>
+            <div className="quest-calendar-shimmer"></div>
+            <div className="quest-calendar-content">
+              <div className="quest-calendar-icon-container">
+                <span className="quest-calendar-emoji">📅</span>
+              </div>
+              <div className="quest-calendar-text-container">
+                <div className="quest-calendar-main-label">MIZZION CALENDAR</div>
+                <div className="quest-calendar-sub-label">View races & travel dates</div>
+              </div>
+              <svg className="quest-calendar-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div className="quest-calendar-corner quest-calendar-corner-tl"></div>
+            <div className="quest-calendar-corner quest-calendar-corner-br"></div>
+          </Link>
+        </div>
+
+        <div className="quest-calendar-button-wrapper" style={{ marginBottom: 12 }}>
+          <Link to="/routes" className="quest-calendar-button" style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)', textDecoration: 'none', display: 'block' }}>
+            <div className="quest-calendar-bg"></div>
+            <div className="quest-calendar-border"></div>
+            <div className="quest-calendar-shimmer"></div>
+            <div className="quest-calendar-content">
+              <div className="quest-calendar-icon-container">
+                <span className="quest-calendar-emoji">🎯</span>
+              </div>
+              <div className="quest-calendar-text-container">
+                <div className="quest-calendar-main-label">ROUTE SUGGESTIONS</div>
+                <div className="quest-calendar-sub-label">Get personalized route recommendations</div>
+              </div>
+              <svg className="quest-calendar-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div className="quest-calendar-corner quest-calendar-corner-tl"></div>
+            <div className="quest-calendar-corner quest-calendar-corner-br"></div>
+          </Link>
+        </div>
+
+        <div className="quest-calendar-button-wrapper" style={{ marginBottom: 12 }}>
+          <Link to="/environmental" className="quest-calendar-button" style={{ background: 'linear-gradient(135deg, #ea580c 0%, #f97316 100%)', textDecoration: 'none', display: 'block' }}>
+            <div className="quest-calendar-bg"></div>
+            <div className="quest-calendar-border"></div>
+            <div className="quest-calendar-shimmer"></div>
+            <div className="quest-calendar-content">
+              <div className="quest-calendar-icon-container">
+                <span className="quest-calendar-emoji">🌡️</span>
+              </div>
+              <div className="quest-calendar-text-container">
+                <div className="quest-calendar-main-label">CLIMATE INSIGHTS</div>
+                <div className="quest-calendar-sub-label">Understand environmental impact on performance</div>
+              </div>
+              <svg className="quest-calendar-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div className="quest-calendar-corner quest-calendar-corner-tl"></div>
+            <div className="quest-calendar-corner quest-calendar-corner-br"></div>
+          </Link>
+        </div>
+
+        <div className="quest-calendar-button-wrapper">
+          <Link to="/unity" className="quest-calendar-button" style={{ background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)', textDecoration: 'none', display: 'block' }}>
+            <div className="quest-calendar-bg"></div>
+            <div className="quest-calendar-border"></div>
+            <div className="quest-calendar-shimmer"></div>
+            <div className="quest-calendar-content">
+              <div className="quest-calendar-icon-container">
+                <span className="quest-calendar-emoji">👥</span>
+              </div>
+              <div className="quest-calendar-text-container">
+                <div className="quest-calendar-main-label">COMMUNITY ROUTES</div>
+                <div className="quest-calendar-sub-label">Find training partners & shared routes</div>
+              </div>
+              <svg className="quest-calendar-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div className="quest-calendar-corner quest-calendar-corner-tl"></div>
+            <div className="quest-calendar-corner quest-calendar-corner-br"></div>
+          </Link>
+        </div>
+      </div>
+
+      {selectedSession && (
+        <div className="quest-session-modal-backdrop" onClick={() => setSelectedSession(null)}>
+          <div className="quest-session-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="quest-session-modal-close" onClick={() => setSelectedSession(null)}>
+              ✕
+            </button>
+            <div className="quest-session-modal-header">
+              <div className="quest-session-modal-icon">{selectedSession.emoji}</div>
+              <div className="quest-session-modal-title-section">
+                <div className="quest-session-modal-day">{selectedSession.dayFull}</div>
+                <h3 className="quest-session-modal-title">{selectedSession.type}</h3>
+              </div>
+              {selectedSession.isToday && <div className="quest-session-modal-now-badge">NOW</div>}
+              {selectedSession.isAdapted && <div className="quest-session-modal-ai-badge">AI</div>}
+            </div>
+            <div className="quest-session-modal-body">
+              <div className="quest-session-modal-stats">
+                <div className="quest-session-modal-stat">
+                  <div className="quest-session-modal-stat-label">Duration</div>
+                  <div className="quest-session-modal-stat-value">{selectedSession.duration}</div>
+                </div>
+                {selectedSession.distance && (
+                  <div className="quest-session-modal-stat">
+                    <div className="quest-session-modal-stat-label">Distance</div>
+                    <div className="quest-session-modal-stat-value">{selectedSession.distance}</div>
+                  </div>
+                )}
+                {selectedSession.pace && (
+                  <div className="quest-session-modal-stat">
+                    <div className="quest-session-modal-stat-label">Pace</div>
+                    <div className="quest-session-modal-stat-value">{selectedSession.pace}</div>
+                  </div>
+                )}
+                {selectedSession.zones && (
+                  <div className="quest-session-modal-stat">
+                    <div className="quest-session-modal-stat-label">Zones</div>
+                    <div className="quest-session-modal-stat-value">{selectedSession.zones}</div>
+                  </div>
+                )}
+              </div>
+              {selectedSession.weather && (
+                <div className="quest-session-modal-weather">
+                  <span className="quest-session-modal-weather-icon">{selectedSession.weather.icon}</span>
+                  <span className="quest-session-modal-weather-text">
+                    {selectedSession.weather.temp}° • {selectedSession.weather.condition}
+                  </span>
+                </div>
+              )}
+              {selectedSession.description && (
+                <div className="quest-session-modal-description">
+                  <div className="quest-session-modal-description-label">Instructions</div>
+                  <p>{selectedSession.description}</p>
+                </div>
+              )}
+              <div className="quest-session-modal-actions">
+                {!selectedSession.completed ? (
+                  <>
+                    <button
+                      className="quest-session-modal-btn quest-session-modal-btn-primary"
+                      onClick={() => handleWorkoutComplete(selectedSession)}
+                    >
+                      Complete & Feedback
+                    </button>
+                    <button className="quest-session-modal-btn quest-session-modal-btn-secondary">Edit</button>
+                  </>
+                ) : (
+                  <div style={{
+                    padding: '12px',
+                    background: 'var(--success)',
+                    color: 'white',
+                    borderRadius: '8px',
+                    textAlign: 'center',
+                    fontWeight: 600
+                  }}>
+                    ✓ Completed - Feedback submitted
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <QuickAddRace open={openQuick} onClose={() => setOpenQuick(false)} onAdded={addRace} />
+
+      {/* Workout Feedback Modal */}
+      <PostWorkoutFeedbackModal
+        isOpen={feedbackModalOpen}
+        onClose={() => {
+          setFeedbackModalOpen(false);
+          setSelectedWorkoutForFeedback(null);
+        }}
+        workoutTitle={selectedWorkoutForFeedback?.session.type || ''}
+        actualDuration={selectedWorkoutForFeedback?.logEntry.durationMin}
+        onSubmit={handleFeedbackSubmit}
+      />
+    </div>
+  );
+}

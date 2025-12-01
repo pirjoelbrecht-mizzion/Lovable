@@ -1,0 +1,55 @@
+/* ================================
+   VARIABLES — Theme tokens
+   ================================ */
+
+/* ===== Dark theme ===== */
+:root {
+  --bg: #0a0e1a;
+  --card: #151b2d;
+  --text: #e7e7ea;
+  --muted: #8a8e98;
+  --line: #1e2538;
+
+  --primary: #5eb3ff;
+  --accent: #b8ff00;
+  --bad: #ff6b6b;
+  --good: #2ac671;
+  --focus: #5eb3ff33;
+
+  --z1: #6aa7ff;
+  --z2: #4bd2b2;
+  --z3: #ffd166;
+  --z4: #ff8a5b;
+  --z5: #ff5d5d;
+
+  --radius: 12px;
+}
+
+/* ===== Light theme ===== */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f7f7fb;
+    --card: #ffffff;
+    --text: #16171a;
+    --muted: #6c6f77;
+    --line: #e6e7eb;
+
+    --primary: #2f6df6;
+    --accent: #ff7f50;
+    --bad: #e04b5a;
+    --good: #1fa463;
+    --focus: #2f6df622;
+  }
+}
+
+/* ===== Chart / bubble colors ===== */
+:root {
+  --bubble-easy:#7cd2ff;
+  --bubble-long:#a88bff;
+  --bubble-intervals:#ffb86b;
+  --bubble-hills:#7fe29b;
+  --bubble-strength:#ff8a8a;
+  --bubble-cross:#82e0ff;
+  --bubble-recovery:#c0c8ff;
+  --bubble-rest:#bdbdbd;
+}
