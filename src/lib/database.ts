@@ -140,9 +140,9 @@ function fromDbLogEntry(db: any): LogEntry {
     externalId: db.external_id,
     mapPolyline: db.map_polyline,
     mapSummaryPolyline: db.map_summary_polyline,
-    elevationGain: db.elevation_gain,
-    elevationLoss: db.elevation_loss,        // NEW: Read elevation loss from DB
-    elevationLow: db.elevation_low,          // NEW: Read elevation low from DB
+    elevationGain: db.elevation_gain_m,      // Map from elevation_gain_m column
+    elevationLoss: db.elevation_loss_m,      // Map from elevation_loss_m column
+    elevationLow: db.elevation_low_m,        // Map from elevation_low_m column
     elevationStream: db.elevation_stream,
     distanceStream: db.distance_stream,
     temperature: db.temperature,
