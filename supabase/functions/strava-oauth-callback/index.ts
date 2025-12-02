@@ -62,24 +62,25 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Check for user-specific OAuth credentials first, then fall back to defaults
-    let STRAVA_CLIENT_ID = "185151";
-    let STRAVA_CLIENT_SECRET = "a12e0e8ee2dde9aaed44142c5e548e7754a66047";
-
-    const { data: userCreds } = await supabase
+    // MUST use user-specific OAuth credentials - no defaults allowed
+    const { data: userCreds, error: credsError } = await supabase
       .from('oauth_client_credentials')
       .select('client_id, client_secret')
       .eq('provider', 'strava')
       .eq('user_id', userId)
       .maybeSingle();
 
-    if (userCreds?.client_id && userCreds?.client_secret) {
-      STRAVA_CLIENT_ID = userCreds.client_id;
-      STRAVA_CLIENT_SECRET = userCreds.client_secret;
-      console.log('Using user-specific Strava credentials for user:', userId);
-    } else {
-      console.log('Using default Strava credentials for user:', userId);
+    if (credsError || !userCreds?.client_id || !userCreds?.client_secret) {
+      console.error('No Strava credentials found for user:', userId, credsError);
+      return new Response(
+        `<html><body><h3>Configuration Error</h3><p>Strava credentials not configured for this user. Please contact support.</p><script>if(window.opener){window.opener.postMessage({ type: 'strava-error', error: 'No credentials configured' }, '*');}setTimeout(() => window.close(), 3000);</script></body></html>`,
+        { headers: { "Content-Type": "text/html" } }
+      );
     }
+
+    const STRAVA_CLIENT_ID = userCreds.client_id;
+    const STRAVA_CLIENT_SECRET = userCreds.client_secret;
+    console.log('Using user-specific Strava credentials (Client ID:', STRAVA_CLIENT_ID, ') for user:', userId);
 
     console.log('Exchanging code for token... (Client ID:', STRAVA_CLIENT_ID, ')');
 

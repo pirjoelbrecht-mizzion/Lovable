@@ -42,22 +42,24 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Check for user-specific OAuth credentials first
-    let STRAVA_CLIENT_ID = "185151"; // Default
-
-    const { data: userCreds } = await supabase
+    // MUST use user-specific OAuth credentials - no defaults allowed
+    const { data: userCreds, error: credsError } = await supabase
       .from('oauth_client_credentials')
       .select('client_id')
       .eq('provider', 'strava')
       .eq('user_id', user.id)
       .maybeSingle();
 
-    if (userCreds?.client_id) {
-      STRAVA_CLIENT_ID = userCreds.client_id;
-      console.log('Using user-specific Strava Client ID for user:', user.id);
-    } else {
-      console.log('Using default Strava Client ID for user:', user.id);
+    if (credsError || !userCreds?.client_id) {
+      console.error('No Strava credentials found for user:', user.id, credsError);
+      return new Response(
+        JSON.stringify({ error: "Strava credentials not configured for this user. Please contact support." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
+
+    const STRAVA_CLIENT_ID = userCreds.client_id;
+    console.log('Using user-specific Strava Client ID:', STRAVA_CLIENT_ID, 'for user:', user.id);
 
     const origin = new URL(req.url).origin.replace('http://', 'https://');
     const REDIRECT_URI = `${origin}/functions/v1/strava-oauth-callback`;
