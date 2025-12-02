@@ -1,7 +1,7 @@
 /**
- * CRITICAL: 2-Year Data Import Limitation
+ * CRITICAL: 1-Year Data Import Limitation
  *
- * This module enforces a strict 2-year limitation on all data imports
+ * This module enforces a strict 1-year limitation on all data imports
  * to prevent database bloat and maintain system performance.
  *
  * Applied to:
@@ -32,10 +32,10 @@ export interface ImportFilterResult<T> {
 /**
  * Maximum age in years for imported data
  */
-export const MAX_IMPORT_AGE_YEARS = 2;
+export const MAX_IMPORT_AGE_YEARS = 1;
 
 /**
- * Calculate the cutoff date for data imports (2 years ago from today)
+ * Calculate the cutoff date for data imports (1 year ago from today)
  */
 export function getImportCutoffDate(): Date {
   const cutoff = new Date();
@@ -52,7 +52,7 @@ export function getImportCutoffDateISO(): string {
 }
 
 /**
- * Validate if a date is within the 2-year import window
+ * Validate if a date is within the 1-year import window
  *
  * @param dateISO - Date string in ISO format (YYYY-MM-DD)
  * @returns Validation result with cutoff information
@@ -92,7 +92,7 @@ export function validateImportDate(dateISO: string): ImportDateValidation {
 }
 
 /**
- * Filter an array of items by date, keeping only those within 2-year window
+ * Filter an array of items by date, keeping only those within 1-year window
  *
  * @param items - Array of items to filter
  * @param getDate - Function to extract date from each item
@@ -161,7 +161,7 @@ export function getImportLimitMessage(rejectedCount: number, oldestRejected?: st
 }
 
 /**
- * Calculate date range for API requests with 2-year limit
+ * Calculate date range for API requests with 1-year limit
  *
  * @param requestedStartDate - Optional start date requested by user
  * @returns Validated date range for API request

@@ -1,11 +1,11 @@
-# ✅ 2-YEAR DATA IMPORT LIMITATION - IMPLEMENTATION COMPLETE
+# ✅ 1-YEAR DATA IMPORT LIMITATION - IMPLEMENTATION COMPLETE
 
 ## 🎯 **OVERVIEW**
 
-A comprehensive 2-year data import limitation has been implemented across **ALL** data import mechanisms to prevent database bloat, maintain system performance, and ensure consistent data management.
+A comprehensive 1-year data import limitation has been implemented across **ALL** data import mechanisms to prevent database bloat, maintain system performance, and ensure consistent data management.
 
-**Effective Date:** 2025-12-01
-**Cutoff Date:** Activities older than 2 years from current date are automatically filtered out
+**Effective Date:** 2025-12-02
+**Cutoff Date:** Activities older than 1 year from current date are automatically filtered out
 
 ---
 
@@ -42,15 +42,15 @@ A comprehensive 2-year data import limitation has been implemented across **ALL*
 **Key Functions:**
 
 ```typescript
-// Calculate cutoff date (2 years ago from today)
+// Calculate cutoff date (1 year ago from today)
 export function getImportCutoffDate(): Date {
   const cutoff = new Date();
-  cutoff.setFullYear(cutoff.getFullYear() - 2);
+  cutoff.setFullYear(cutoff.getFullYear() - 1);
   cutoff.setHours(0, 0, 0, 0);
   return cutoff;
 }
 
-// Validate if a date is within the 2-year window
+// Validate if a date is within the 1-year window
 export function validateImportDate(dateISO: string): ImportDateValidation {
   const cutoffDate = getImportCutoffDate();
   const activityDate = new Date(dateISO);
@@ -58,7 +58,7 @@ export function validateImportDate(dateISO: string): ImportDateValidation {
     isValid: activityDate >= cutoffDate,
     cutoffDate,
     cutoffDateISO: cutoffDate.toISOString().slice(0, 10),
-    reason: isValid ? undefined : 'Date is older than 2 years'
+    reason: isValid ? undefined : 'Date is older than 1 year'
   };
 }
 
@@ -74,12 +74,12 @@ export function filterByImportDateLimit<T>(
 export function getValidatedAPIDateRange(
   requestedStartDate?: string
 ): { startDate, endDate, wasLimited } {
-  // Ensures API requests don't fetch data older than 2 years
+  // Ensures API requests don't fetch data older than 1 year
 }
 ```
 
 **Features:**
-- Dynamic calculation (always 2 years from current date)
+- Dynamic calculation (always 1 year from current date)
 - Comprehensive validation with error handling
 - Detailed statistics and logging
 - User-friendly error messages
@@ -93,7 +93,7 @@ export function getValidatedAPIDateRange(
 **Location:** Line 239-248
 
 ```typescript
-// CRITICAL: Apply 2-year import limitation
+// CRITICAL: Apply 1-year import limitation
 const filterResult = filterByImportDateLimit(runs, (run) => run.date);
 
 logImportFilterStats('Strava CSV Import', filterResult.stats);
@@ -120,7 +120,7 @@ return filterResult.accepted;
 **Location:** Lines 165-177
 
 ```typescript
-// CRITICAL: Apply 2-year import limitation
+// CRITICAL: Apply 1-year import limitation
 const { filterByImportDateLimit, logImportFilterStats, getImportLimitMessage }
   = await import("@/utils/importDateLimits");
 const filterResult = filterByImportDateLimit(allEntries, (entry) => entry.dateISO);
@@ -150,7 +150,7 @@ const entries = filterResult.accepted;
 **Location:** Lines 270-290
 
 ```typescript
-// CRITICAL: Apply 2-year import limitation
+// CRITICAL: Apply 1-year import limitation
 const { filterByImportDateLimit, logImportFilterStats, getImportLimitMessage }
   = await import("@/utils/importDateLimits");
 const filterResult = filterByImportDateLimit(validEntries, (entry) => entry.dateISO);
@@ -170,7 +170,7 @@ if (filterResult.rejected.length > 0) {
 const filteredEntries = filterResult.accepted;
 
 if (filteredEntries.length === 0) {
-  toast('All entries were older than 2 years and were filtered out', 'error');
+  toast('All entries were older than 1 year and were filtered out', 'error');
   return;
 }
 ```
@@ -191,10 +191,10 @@ if (filteredEntries.length === 0) {
 **Date Range Limitation (Lines 32-36):**
 
 ```typescript
-// CRITICAL: Apply 2-year import limitation
+// CRITICAL: Apply 1-year import limitation
 const validatedRange = getValidatedAPIDateRange(startDate);
 if (validatedRange.wasLimited) {
-  console.warn(`[StravaProvider] Start date limited from ${startDate} to ${validatedRange.startDate} (2-year maximum)`);
+  console.warn(`[StravaProvider] Start date limited from ${startDate} to ${validatedRange.startDate} (1-year maximum)`);
 }
 
 const after = Math.floor(new Date(validatedRange.startDate).getTime() / 1000);
@@ -209,7 +209,7 @@ const filterResult = filterByImportDateLimit(logEntries, (entry) => entry.dateIS
 logImportFilterStats('Strava API Import', filterResult.stats);
 
 if (filterResult.rejected.length > 0) {
-  console.warn(`[StravaProvider] Filtered out ${filterResult.rejected.length} activities older than 2 years`);
+  console.warn(`[StravaProvider] Filtered out ${filterResult.rejected.length} activities older than 1 year`);
 }
 
 return filterResult.accepted;
@@ -255,7 +255,7 @@ Results: {
   }
 }
   ↓
-Console: "⚠️ 2 activities excluded: older than 2 years (cutoff: 2023-12-01)"
+Console: "⚠️ 2 activities excluded: older than 1 year (cutoff: 2024-12-02)"
   ↓
 Database: Only 2 recent activities inserted
 ```
@@ -272,16 +272,16 @@ fetchActivities('2020-01-01', '2024-12-01')
 getValidatedAPIDateRange('2020-01-01')
   ↓
 Returns: {
-  startDate: '2023-12-01',  // Limited to 2 years
+  startDate: '2024-12-02',  // Limited to 1 year
   endDate: '2024-12-01',
   wasLimited: true
 }
   ↓
-Console: "[StravaProvider] Start date limited from 2020-01-01 to 2023-12-01 (2-year maximum)"
+Console: "[StravaProvider] Start date limited from 2020-01-01 to 2024-12-02 (1-year maximum)"
   ↓
 API Call: https://www.strava.com/api/v3/athlete/activities?after=1701388800&before=1733097600
   ↓
-Response: 150 activities from last 2 years
+Response: 150 activities from last 1 year
   ↓
 filterByImportDateLimit() // Double-check
   ↓
@@ -304,7 +304,7 @@ After import, check browser console for:
   accepted: 800,
   rejected: 700,
   acceptanceRate: "53.3%",
-  cutoffDate: "2023-12-01",
+  cutoffDate: "2024-12-02",
   maxAgeYears: 2,
   oldestAccepted: "2023-12-02",
   oldestRejected: "2009-08-28"
@@ -328,7 +328,7 @@ WHERE user_id = auth.uid();
 ```
 oldest_activity  | newest_activity | total_activities | age_of_oldest
 -----------------|-----------------|------------------|----------------
-2023-12-01       | 2024-12-01      | 800              | 1 year 0 days
+2024-12-02       | 2024-12-01      | 800              | 1 year 0 days
 ```
 
 **❌ Should NEVER see:**
@@ -344,13 +344,13 @@ oldest_activity  | age_of_oldest
 
 ### **Changing the Limit**
 
-To modify the 2-year limit, edit `src/utils/importDateLimits.ts`:
+To modify the 1-year limit, edit `src/utils/importDateLimits.ts`:
 
 ```typescript
 /**
  * Maximum age in years for imported data
  */
-export const MAX_IMPORT_AGE_YEARS = 2;  // Change this value
+export const MAX_IMPORT_AGE_YEARS = 1;  // Change this value
 ```
 
 **Example: Change to 3 years**
@@ -389,9 +389,9 @@ return {
 
 **User sees:**
 ```
-ℹ️ 245 activities excluded: older than 2 years
-(cutoff: 2023-12-01) (oldest: 2009-08-28).
-Only activities from the last 2 years are imported.
+ℹ️ 245 activities excluded: older than 1 year
+(cutoff: 2024-12-02) (oldest: 2009-08-28).
+Only activities from the last 1 year are imported.
 
 ✅ Imported 312 runs • 3,245.8 km total
 ```
@@ -400,7 +400,7 @@ Only activities from the last 2 years are imported.
 
 **User sees:**
 ```
-❌ All entries were older than 2 years and were filtered out
+❌ All entries were older than 1 year and were filtered out
 
 Please export more recent data from Strava
 ```
@@ -479,7 +479,7 @@ filterByImportDateLimit([], (item) => item.dateISO)
 - 15 years of running history
 - 3,000 total activities
 - Import without limit: 3,000 activities → 450 MB
-- Import with 2-year limit: 400 activities → 60 MB
+- Import with 1-year limit: 400 activities → 60 MB
 - **Storage savings: 87%**
 
 ### **Query Performance**
@@ -490,7 +490,7 @@ SELECT * FROM log_entries WHERE user_id = 'user123'
 -- Returns: 3,000 rows in 850ms
 ```
 
-**After (2 years of data):**
+**After (1 year of data):**
 ```sql
 SELECT * FROM log_entries WHERE user_id = 'user123'
 -- Returns: 400 rows in 45ms
@@ -546,7 +546,7 @@ To remove pre-existing old data:
 ```sql
 -- CAUTION: This deletes data!
 DELETE FROM log_entries
-WHERE date < CURRENT_DATE - INTERVAL '2 years'
+WHERE date < CURRENT_DATE - INTERVAL '1 year'
   AND user_id = auth.uid();
 ```
 
@@ -573,7 +573,7 @@ WHERE date < CURRENT_DATE - INTERVAL '2 years'
 ## ✅ **VERIFICATION CHECKLIST**
 
 - [x] Centralized date validation utility created
-- [x] CSV imports filter by 2-year limit
+- [x] CSV imports filter by 1-year limit
 - [x] Settings.tsx applies filtering
 - [x] SettingsV2.tsx applies filtering
 - [x] Strava API validates date ranges
@@ -630,11 +630,11 @@ WHERE date < CURRENT_DATE - INTERVAL '2 years'
 
 3. **Graduated Filtering**
    - Full detail for last 1 year
-   - Summary data for 1-2 years old
+   - Summary data for 1-1 year old
    - Aggregated stats for 2+ years
 
 4. **Smart Archiving**
-   - Auto-archive data > 2 years
+   - Auto-archive data > 1 year
    - Keep summary statistics
    - Restore on demand
 
@@ -661,4 +661,4 @@ WHERE date < CURRENT_DATE - INTERVAL '2 years'
 - 95% faster queries
 - 87% storage reduction
 
-**The 2-year data import limitation is now fully operational across all systems!** 🎉
+**The 1-year data import limitation is now fully operational across all systems!** 🎉
