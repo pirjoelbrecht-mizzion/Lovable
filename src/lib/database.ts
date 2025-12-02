@@ -518,6 +518,13 @@ export async function syncLogEntries(): Promise<LogEntry[]> {
   const dbEntries = (data || []).map(fromDbLogEntry);
   console.log('[syncLogEntries] Local entries:', localEntries.length);
   console.log('[syncLogEntries] DB entries:', dbEntries.length);
+
+  // DEBUG: Check elevation data
+  const entriesWithElevation = dbEntries.filter(e => e.elevationGain && e.elevationGain > 0);
+  const totalElevation = dbEntries.reduce((sum, e) => sum + (e.elevationGain || 0), 0);
+  console.log('[syncLogEntries] Entries with elevation:', entriesWithElevation.length);
+  console.log('[syncLogEntries] Total elevation gain:', totalElevation, 'm');
+  console.log('[syncLogEntries] Sample entry with elevation:', entriesWithElevation[0]);
   const dbWithMap = dbEntries.find(e => e.mapSummaryPolyline || e.mapPolyline);
   console.log('[syncLogEntries] Sample DB entry with map:', dbWithMap);
   console.log('[syncLogEntries] DB entry map fields:', {
