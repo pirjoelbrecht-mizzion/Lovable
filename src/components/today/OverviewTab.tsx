@@ -43,7 +43,7 @@ export const OverviewTab: FC<Props> = ({
     : '#6b7280';
 
   return (
-    <div className="p-4 space-y-4 pb-8">
+    <div className="p-4 space-y-4 pb-8" style={{ color: '#e5e7eb' }}>
       <div
         className="p-6 rounded-2xl shadow-elevated relative overflow-hidden"
         style={{
@@ -54,7 +54,7 @@ export const OverviewTab: FC<Props> = ({
         <div className="flex justify-between items-start mb-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-2xl font-bold text-primary-light dark:text-primary-dark">
+              <h1 className="text-2xl font-bold" style={{ color: '#f9fafb' }}>
                 {workoutData.title}
               </h1>
               {workoutData.isAdapted && (
@@ -63,7 +63,7 @@ export const OverviewTab: FC<Props> = ({
                 </span>
               )}
             </div>
-            <p className="text-xs text-muted-light dark:text-muted-dark">{workoutData.type}</p>
+            <p className="text-xs" style={{ color: '#9ca3af' }}>{workoutData.type}</p>
           </div>
           <span className="text-xs bg-success text-black px-3 py-1.5 rounded-full font-bold shadow-lg">
             TODAY
@@ -86,20 +86,20 @@ export const OverviewTab: FC<Props> = ({
                 {readiness.score}
               </div>
               <div>
-                <p className="text-xs font-medium text-primary-light dark:text-primary-dark">
+                <p className="text-xs font-medium" style={{ color: '#f9fafb' }}>
                   Readiness Score
                 </p>
-                <p className="text-[10px] text-muted-light dark:text-muted-dark capitalize">
+                <p className="text-[10px] capitalize" style={{ color: '#9ca3af' }}>
                   {readiness.category}
                 </p>
               </div>
             </div>
             {daysToRace !== null && (
               <div className="text-right">
-                <p className="text-xs font-medium text-primary-light dark:text-primary-dark">
+                <p className="text-xs font-medium" style={{ color: '#f9fafb' }}>
                   {daysToRace}
                 </p>
-                <p className="text-[10px] text-muted-light dark:text-muted-dark">Days to race</p>
+                <p className="text-[10px]" style={{ color: '#9ca3af' }}>Days to race</p>
               </div>
             )}
           </div>
@@ -114,10 +114,10 @@ export const OverviewTab: FC<Props> = ({
         <div className="flex items-start gap-3 mb-3">
           <div className="text-2xl">💬</div>
           <div>
-            <h3 className="text-sm font-semibold text-primary-light dark:text-primary-dark mb-1">
+            <h3 className="text-sm font-semibold mb-1" style={{ color: '#f9fafb' }}>
               Coach's Message
             </h3>
-            <p className="text-sm text-muted-light dark:text-muted-dark leading-relaxed">
+            <p className="text-sm leading-relaxed" style={{ color: '#d1d5db' }}>
               {coachMessage}
             </p>
           </div>
@@ -128,10 +128,10 @@ export const OverviewTab: FC<Props> = ({
         <div className="flex items-center gap-3">
           <div className="text-2xl">🔥</div>
           <div>
-            <p className="text-sm font-semibold text-primary-light dark:text-primary-dark">
+            <p className="text-sm font-semibold" style={{ color: '#f9fafb' }}>
               {streak} day streak
             </p>
-            <p className="text-xs text-muted-light dark:text-muted-dark">+{xpToEarn} XP to earn</p>
+            <p className="text-xs" style={{ color: '#9ca3af' }}>+{xpToEarn} XP to earn</p>
           </div>
         </div>
       </div>
@@ -151,10 +151,10 @@ export const OverviewTab: FC<Props> = ({
 const MetricCard: FC<{ icon: string; label: string; value: string }> = ({ icon, label, value }) => (
   <div className="flex flex-col items-center p-3 rounded-xl bg-surface2-light/50 dark:bg-surface2-dark/50">
     <span className="text-lg mb-1">{icon}</span>
-    <span className="text-[10px] text-muted-light dark:text-muted-dark uppercase tracking-wide mb-1">
+    <span className="text-[10px] uppercase tracking-wide mb-1" style={{ color: '#9ca3af' }}>
       {label}
     </span>
-    <span className="text-sm font-bold text-primary-light dark:text-primary-dark">{value}</span>
+    <span className="text-sm font-bold" style={{ color: '#f9fafb' }}>{value}</span>
   </div>
 );
 
@@ -165,12 +165,13 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData; onRefresh: () => void }
   return (
     <div className="p-4 rounded-2xl bg-surface1-light dark:bg-surface1-dark shadow-elevated">
       <div className="flex justify-between items-center mb-3">
-        <h3 className="text-sm font-semibold text-primary-light dark:text-primary-dark">
+        <h3 className="text-sm font-semibold" style={{ color: '#f9fafb' }}>
           Today's Weather
         </h3>
         <button
           onClick={onRefresh}
-          className="text-xs text-primary-light dark:text-primary-dark hover:underline flex items-center gap-1"
+          className="text-xs hover:underline flex items-center gap-1"
+          style={{ color: '#60a5fa' }}
         >
           <span>🔄</span>
           <span>Refresh</span>
@@ -181,22 +182,22 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData; onRefresh: () => void }
         <div className="flex items-center gap-3">
           <span className="text-3xl">{weather.current.icon}</span>
           <div>
-            <p className="text-2xl font-bold text-primary-light dark:text-primary-dark">
+            <p className="text-2xl font-bold" style={{ color: '#f9fafb' }}>
               {weather.current.temp}°
             </p>
-            <p className="text-xs text-muted-light dark:text-muted-dark">
+            <p className="text-xs" style={{ color: '#9ca3af' }}>
               Feels like {weather.current.feelsLike}°
             </p>
           </div>
         </div>
-        <div className="text-right text-xs text-muted-light dark:text-muted-dark">
+        <div className="text-right text-xs" style={{ color: '#9ca3af' }}>
           <p>{weather.current.conditions}</p>
           <p>💨 {weather.current.wind} km/h</p>
           <p>💧 {weather.current.humidity}%</p>
         </div>
       </div>
 
-      <div className="mb-3 flex items-center justify-between text-xs text-muted-light dark:text-muted-dark">
+      <div className="mb-3 flex items-center justify-between text-xs" style={{ color: '#9ca3af' }}>
         <div className="flex items-center gap-1">
           <span>🌅</span>
           <span>{weather.sun.sunrise}</span>
@@ -212,8 +213,8 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData; onRefresh: () => void }
 
       {weather.bestRunWindow && (
         <div className="p-3 rounded-xl bg-success/10 border border-success/20 mb-3">
-          <p className="text-xs font-semibold text-success mb-1">Best Run Window</p>
-          <p className="text-xs text-muted-light dark:text-muted-dark">
+          <p className="text-xs font-semibold mb-1" style={{ color: '#22c55e' }}>Best Run Window</p>
+          <p className="text-xs" style={{ color: '#d1d5db' }}>
             {weather.bestRunWindow.start} - {weather.bestRunWindow.end} • {weather.bestRunWindow.temp}° •{' '}
             {weather.bestRunWindow.reason}
           </p>
@@ -228,7 +229,7 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData; onRefresh: () => void }
         </div>
       </div>
 
-      <p className="text-[10px] text-muted-light dark:text-muted-dark text-center mt-2">
+      <p className="text-[10px] text-center mt-2" style={{ color: '#9ca3af' }}>
         Updated {new Date(weather.lastUpdated).toLocaleTimeString()}
       </p>
     </div>
@@ -245,7 +246,7 @@ const HourlyWeatherCard: FC<{ hour: any }> = ({ hour }) => {
 
   return (
     <div className="flex flex-col items-center min-w-[50px] p-2 rounded-lg bg-surface2-light/30 dark:bg-surface2-dark/30">
-      <span className="text-[10px] text-muted-light dark:text-muted-dark mb-1">{hour.time}</span>
+      <span className="text-[10px] mb-1" style={{ color: '#9ca3af' }}>{hour.time}</span>
       <span className="text-lg mb-1">{hour.icon}</span>
       <span
         className="text-xs font-bold"

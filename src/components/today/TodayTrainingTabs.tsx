@@ -82,8 +82,8 @@ export const TodayTrainingTabs: FC<Props> = ({ activeTab, onTabChange, children 
   const activeIndex = TABS.findIndex(t => t.id === activeTab);
 
   return (
-    <div className="flex flex-col h-full bg-bg-light dark:bg-bg-dark">
-      <div className="sticky top-0 z-20 bg-bg-light dark:bg-bg-dark border-b border-line-light dark:border-line-dark">
+    <div className="flex flex-col h-full bg-bg-light dark:bg-bg-dark" style={{ backgroundColor: '#1a1b1f', color: '#e5e7eb' }}>
+      <div className="sticky top-0 z-20 bg-bg-light dark:bg-bg-dark border-b border-line-light dark:border-line-dark" style={{ backgroundColor: '#1a1b1f', borderColor: '#374151' }}>
         <div className="flex items-center justify-around relative px-2 pt-2">
           {TABS.map((tab) => (
             <button
