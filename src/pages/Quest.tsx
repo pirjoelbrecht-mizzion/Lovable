@@ -22,6 +22,8 @@ import { PostWorkoutFeedbackModal } from "@/components/PostWorkoutFeedbackModal"
 import { getLogEntries } from "@/lib/database";
 import { completeWorkoutWithFeedback, getCompletionStatusForWeek } from "@/services/workoutCompletionService";
 import type { LogEntry } from "@/types";
+import { TodayTrainingMobile } from "@/components/today/TodayTrainingMobile";
+import { useTodayTrainingData } from "@/hooks/useTodayTrainingData";
 import "./Quest.css";
 
 type SessionNode = {
@@ -116,7 +118,7 @@ export default function Quest() {
   const t = useT();
   const [openQuick, setOpenQuick] = useState(false);
   const [races, setRaces] = useState<Race[]>([]);
-  const [viewMode, setViewMode] = useState<"bubbles" | "list">("bubbles");
+  const [viewMode, setViewMode] = useState<"bubbles" | "list" | "mobile">("bubbles");
   const [selectedSession, setSelectedSession] = useState<SessionNode | null>(null);
   const [weekPlan, setWeekPlan] = useState<WeekPlan>(() => getWeekPlan());
   const [weatherData, setWeatherData] = useState<DailyWeather[]>([]);
@@ -385,6 +387,9 @@ export default function Quest() {
       };
     });
   }, [weekPlan, weatherData, today, profile, completionStatus]);
+
+  // Generate today's training data for mobile view
+  const todayData = useTodayTrainingData(sessions, profile);
 
   async function addRace() {
     const racesList = await listRaces();
@@ -670,12 +675,52 @@ export default function Quest() {
               <h2 className="quest-card-title">This Week</h2>
               <button
                 className="quest-list-btn"
-                onClick={() => setViewMode(viewMode === "bubbles" ? "list" : "bubbles")}
+                onClick={() => {
+                  const modes: Array<"bubbles" | "list" | "mobile"> = ["bubbles", "list", "mobile"];
+                  const currentIndex = modes.indexOf(viewMode);
+                  const nextIndex = (currentIndex + 1) % modes.length;
+                  setViewMode(modes[nextIndex]);
+                }}
               >
-                {viewMode === "bubbles" ? "List View" : "Bubble View"}
+                {viewMode === "bubbles" ? "📋 List" : viewMode === "list" ? "📱 Today" : "🫧 Bubbles"}
               </button>
             </div>
-            {viewMode === "bubbles" ? (
+            {viewMode === "mobile" ? (
+              <>
+                {/* NEW: Mobile Training View */}
+                {todayData ? (
+                  <div style={{ padding: '16px 0' }}>
+                    <TodayTrainingMobile
+                      data={todayData}
+                      onComplete={() => {
+                        const todaySession = sessions.find(s => s.isToday);
+                        if (todaySession) {
+                          const monday = getMonday();
+                          const workoutDate = new Date(monday);
+                          workoutDate.setDate(workoutDate.getDate() + sessions.indexOf(todaySession));
+                          setSelectedWorkoutForFeedback({
+                            date: workoutDate.toISOString().slice(0, 10),
+                            title: todaySession.type,
+                            type: detectSessionType(todaySession.type),
+                            distanceKm: parseFloat(todaySession.distance?.replace('K', '') || '0'),
+                            durationMinutes: parseInt(todaySession.duration.match(/\d+/)?.[0] || '0', 10)
+                          });
+                          setFeedbackModalOpen(true);
+                        }
+                      }}
+                      onEdit={() => {
+                        const todaySession = sessions.find(s => s.isToday);
+                        if (todaySession) setSelectedSession(todaySession);
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ padding: '32px', textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>
+                    No training session scheduled for today
+                  </div>
+                )}
+              </>
+            ) : viewMode === "bubbles" ? (
               <>
                 <p className="quest-instruction-text">💡 Tap sessions for details • Drag to reorder</p>
                 {swappingWith && (
