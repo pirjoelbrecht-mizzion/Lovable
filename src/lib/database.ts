@@ -58,9 +58,9 @@ export type DbLogEntry = {
   data_source?: string;
   map_polyline?: string;
   map_summary_polyline?: string;
-  elevation_gain?: number;
-  elevation_loss?: number;      // NEW: Total elevation loss in meters (Column V)
-  elevation_low?: number;       // NEW: Lowest elevation point in meters (Column W)
+  elevation_gain_m?: number;      // Total elevation gain in meters (Column U)
+  elevation_loss_m?: number;      // Total elevation loss in meters (Column V)
+  elevation_low_m?: number;       // Lowest elevation point in meters (Column W)
   elevation_stream?: number[];
   distance_stream?: number[];
   temperature?: number;
@@ -116,9 +116,9 @@ function toDbLogEntry(entry: LogEntry): DbLogEntry {
     data_source: entry.source === 'Strava' ? 'strava' : undefined,
     map_polyline: entry.mapPolyline,
     map_summary_polyline: entry.mapSummaryPolyline,
-    elevation_gain: entry.elevationGain,
-    elevation_loss: entry.elevationLoss,     // NEW: Map elevation loss (Column V)
-    elevation_low: entry.elevationLow,       // NEW: Map elevation low (Column W)
+    elevation_gain_m: entry.elevationGain,        // Map to elevation_gain_m column
+    elevation_loss_m: entry.elevationLoss,        // Map to elevation_loss_m column
+    elevation_low_m: entry.elevationLow,          // Map to elevation_low_m column
     elevation_stream: entry.elevationStream,
     distance_stream: entry.distanceStream,
     temperature: entry.temperature,
