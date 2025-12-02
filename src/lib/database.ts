@@ -348,6 +348,116 @@ export async function bulkInsertLogEntries(entries: LogEntry[]): Promise<number>
   return insertedCount;
 }
 
+/**
+ * Update existing log entries with missing elevation data
+ * This is useful when re-importing activities that already exist but lack elevation info
+ */
+export async function updateEntriesWithElevationData(entries: LogEntry[]): Promise<number> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    console.warn('[updateEntriesWithElevationData] No Supabase connection');
+    return 0;
+  }
+
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    console.warn('[updateEntriesWithElevationData] No user ID');
+    return 0;
+  }
+
+  console.log(`[updateEntriesWithElevationData] Processing ${entries.length} entries for elevation updates`);
+
+  // Filter to only entries that have elevation data
+  const entriesWithElevation = entries.filter(e =>
+    e.elevationGain !== undefined ||
+    e.elevationLoss !== undefined ||
+    e.elevationLow !== undefined
+  );
+
+  if (entriesWithElevation.length === 0) {
+    console.log('[updateEntriesWithElevationData] No entries with elevation data to update');
+    return 0;
+  }
+
+  console.log(`[updateEntriesWithElevationData] Found ${entriesWithElevation.length} entries with elevation data`);
+
+  let updatedCount = 0;
+
+  // Process each entry
+  for (const entry of entriesWithElevation) {
+    try {
+      // Find existing entry by external_id or date+km
+      let query = supabase
+        .from('log_entries')
+        .select('id, elevation_gain_m, elevation_loss_m, elevation_low_m')
+        .eq('user_id', userId);
+
+      if (entry.externalId && entry.source) {
+        query = query
+          .eq('external_id', entry.externalId)
+          .eq('data_source', entry.source.toLowerCase());
+      } else {
+        query = query
+          .eq('date', entry.dateISO)
+          .eq('km', entry.km);
+      }
+
+      const { data: existing } = await query.maybeSingle();
+
+      if (!existing) {
+        continue; // Entry doesn't exist, skip
+      }
+
+      // Check if elevation data is missing or zero
+      const needsUpdate =
+        existing.elevation_gain_m === null ||
+        existing.elevation_gain_m === 0 ||
+        existing.elevation_loss_m === null ||
+        existing.elevation_low_m === null;
+
+      if (!needsUpdate) {
+        continue; // Already has elevation data, skip
+      }
+
+      // Update with new elevation data
+      const updateData: any = {};
+
+      if (entry.elevationGain !== undefined) {
+        updateData.elevation_gain_m = entry.elevationGain;
+      }
+      if (entry.elevationLoss !== undefined) {
+        updateData.elevation_loss_m = entry.elevationLoss;
+      }
+      if (entry.elevationLow !== undefined) {
+        updateData.elevation_low_m = entry.elevationLow;
+      }
+      if (entry.elevationStream) {
+        updateData.elevation_stream = entry.elevationStream;
+      }
+      if (entry.distanceStream) {
+        updateData.distance_stream = entry.distanceStream;
+      }
+
+      const { error } = await supabase
+        .from('log_entries')
+        .update(updateData)
+        .eq('id', existing.id);
+
+      if (error) {
+        console.error(`[updateEntriesWithElevationData] Error updating entry ${existing.id}:`, error);
+      } else {
+        updatedCount++;
+        console.log(`[updateEntriesWithElevationData] Updated entry ${existing.id} with elevation data`);
+      }
+    } catch (err) {
+      console.error('[updateEntriesWithElevationData] Error processing entry:', err);
+    }
+  }
+
+  console.log(`[updateEntriesWithElevationData] Successfully updated ${updatedCount} entries with elevation data`);
+  return updatedCount;
+}
+
 export async function getLogEntries(limit = 100): Promise<LogEntry[]> {
   const supabase = getSupabase();
   if (!supabase) {

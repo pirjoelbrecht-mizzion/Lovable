@@ -60,7 +60,15 @@ export default function StravaImporter({
       const inserted = await bulkInsertLogEntries(entries);
       console.log('[StravaImporter] bulkInsertLogEntries result:', inserted);
 
-      if (inserted > 0) {
+      // CRITICAL: Update existing entries with missing elevation data
+      console.log('[StravaImporter] Checking for existing entries with missing elevation data...');
+      const { updateEntriesWithElevationData } = await import('@/lib/database');
+      const updated = await updateEntriesWithElevationData(entries);
+      console.log('[StravaImporter] updateEntriesWithElevationData result:', updated);
+
+      const totalProcessed = inserted + updated;
+
+      if (totalProcessed > 0) {
         const uniqueDates = new Set(entries.map(e => {
           const d = new Date(e.dateISO);
           d.setDate(d.getDate() - d.getDay());
@@ -75,14 +83,20 @@ export default function StravaImporter({
         console.log('[StravaImporter] Populating climate performance data...');
         await populateClimatePerformanceFromImport(entries);
 
-        emit("log:import-complete", { count: entries.length });
-        console.log('[StravaImporter] Emitted log:import-complete event with count:', entries.length);
+        emit("log:import-complete", { count: totalProcessed });
+        console.log('[StravaImporter] Emitted log:import-complete event with count:', totalProcessed);
 
-        toast(`Imported and synced ${entries.length} runs to cloud!`, "success");
+        const message = inserted > 0 && updated > 0
+          ? `Imported ${inserted} new runs and updated ${updated} existing runs with elevation data!`
+          : inserted > 0
+          ? `Imported ${inserted} new runs to cloud!`
+          : `Updated ${updated} existing runs with elevation data!`;
+
+        toast(message, "success");
         console.log('[StravaImporter] Import completed successfully');
       } else {
-        toast(`Imported ${entries.length} runs locally (cloud sync failed)`, "warning");
-        console.warn('[StravaImporter] Cloud sync failed, no entries inserted');
+        toast(`No new or updated entries (${entries.length} runs already up-to-date)`, "info");
+        console.warn('[StravaImporter] No entries inserted or updated');
       }
 
       onClose();
