@@ -36,10 +36,52 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const STRAVA_CLIENT_ID = "185151";
-    const STRAVA_CLIENT_SECRET = "a12e0e8ee2dde9aaed44142c5e548e7754a66047";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log('Exchanging code for token...');
+    // Extract user ID from state
+    const stateParam = url.searchParams.get("state");
+    let userId = null;
+
+    if (stateParam) {
+      try {
+        const stateData = JSON.parse(atob(stateParam));
+        userId = stateData.userId;
+        console.log('User ID from state:', userId);
+      } catch (e) {
+        console.error("Failed to parse state:", e);
+      }
+    }
+
+    if (!userId) {
+      console.error('No user ID found in state');
+      return new Response(
+        `<html><body><h3>Authentication Error</h3><p>User ID missing</p><script>if(window.opener){window.opener.postMessage({ type: 'strava-error', error: 'Authentication required' }, '*');}setTimeout(() => window.close(), 2000);</script></body></html>`,
+        { headers: { "Content-Type": "text/html" } }
+      );
+    }
+
+    // Check for user-specific OAuth credentials first, then fall back to defaults
+    let STRAVA_CLIENT_ID = "185151";
+    let STRAVA_CLIENT_SECRET = "a12e0e8ee2dde9aaed44142c5e548e7754a66047";
+
+    const { data: userCreds } = await supabase
+      .from('oauth_client_credentials')
+      .select('client_id, client_secret')
+      .eq('provider', 'strava')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (userCreds?.client_id && userCreds?.client_secret) {
+      STRAVA_CLIENT_ID = userCreds.client_id;
+      STRAVA_CLIENT_SECRET = userCreds.client_secret;
+      console.log('Using user-specific Strava credentials for user:', userId);
+    } else {
+      console.log('Using default Strava credentials for user:', userId);
+    }
+
+    console.log('Exchanging code for token... (Client ID:', STRAVA_CLIENT_ID, ')');
 
     const tokenResponse = await fetch("https://www.strava.com/oauth/token", {
       method: "POST",
@@ -67,32 +109,6 @@ Deno.serve(async (req: Request) => {
     console.log('Token data received:', { hasAccessToken: !!tokenData.access_token, hasRefreshToken: !!tokenData.refresh_token });
     
     const { access_token, refresh_token, expires_at, athlete } = tokenData;
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    const stateParam = url.searchParams.get("state");
-    let userId = null;
-
-    if (stateParam) {
-      try {
-        const stateData = JSON.parse(atob(stateParam));
-        userId = stateData.userId;
-        console.log('User ID from state:', userId);
-      } catch (e) {
-        console.error("Failed to parse state:", e);
-      }
-    }
-
-    if (!userId) {
-      console.error('No user ID found in state');
-      return new Response(
-        `<html><body><h3>Authentication Error</h3><p>User ID missing</p><script>if(window.opener){window.opener.postMessage({ type: 'strava-error', error: 'Authentication required' }, '*');}setTimeout(() => window.close(), 2000);</script></body></html>`,
-        { headers: { "Content-Type": "text/html" } }
-      );
-    }
-
     const expiresAt = new Date(expires_at * 1000).toISOString();
 
     console.log('Saving to database...');
@@ -145,7 +161,6 @@ Deno.serve(async (req: Request) => {
             }, '*');
             console.log('[Strava Callback] Message sent successfully');
           }
-          // Try to auto-close (works if opened via window.open)
           setTimeout(() => window.close(), 1000);
         </script>
       </body>

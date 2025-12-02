@@ -42,7 +42,23 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const STRAVA_CLIENT_ID = "185151";
+    // Check for user-specific OAuth credentials first
+    let STRAVA_CLIENT_ID = "185151"; // Default
+
+    const { data: userCreds } = await supabase
+      .from('oauth_client_credentials')
+      .select('client_id')
+      .eq('provider', 'strava')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (userCreds?.client_id) {
+      STRAVA_CLIENT_ID = userCreds.client_id;
+      console.log('Using user-specific Strava Client ID for user:', user.id);
+    } else {
+      console.log('Using default Strava Client ID for user:', user.id);
+    }
+
     const origin = new URL(req.url).origin.replace('http://', 'https://');
     const REDIRECT_URI = `${origin}/functions/v1/strava-oauth-callback`;
 
