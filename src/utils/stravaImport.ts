@@ -68,9 +68,10 @@ export async function parseStravaCSV(file: File) {
   }
 
   const toNumber = (val: string): number => {
-    if (!val || val === "--" || val === "—") return 0;
+    if (!val || val === "--" || val === "—" || val.trim() === "") return 0;
     // Remove all non-numeric except dots and commas
     const cleaned = val.replace(/[^\d,.]/g, "");
+    if (!cleaned || cleaned === "") return 0;
     // If there's both comma and dot, treat comma as thousands separator
     if (cleaned.includes(",") && cleaned.includes(".")) {
       return parseFloat(cleaned.replace(/,/g, "")) || 0;
@@ -154,9 +155,13 @@ export async function parseStravaCSV(file: File) {
     const activityId = activityIdIdx !== -1 ? cols[activityIdIdx] : undefined;
 
     // Extract elevation data (Columns U, V, W) - CRITICAL FIX
-    const elevationGain = elevGainIdx !== -1 ? toNumber(cols[elevGainIdx]) : undefined;
-    const elevationLoss = elevLossIdx !== -1 ? toNumber(cols[elevLossIdx]) : undefined;
-    const elevationLow = elevLowIdx !== -1 ? toNumber(cols[elevLowIdx]) : undefined;
+    const elevGainRaw = elevGainIdx !== -1 ? cols[elevGainIdx] : "";
+    const elevLossRaw = elevLossIdx !== -1 ? cols[elevLossIdx] : "";
+    const elevLowRaw = elevLowIdx !== -1 ? cols[elevLowIdx] : "";
+
+    const elevationGain = elevGainRaw && elevGainRaw.trim() !== "" ? toNumber(elevGainRaw) : undefined;
+    const elevationLoss = elevLossRaw && elevLossRaw.trim() !== "" ? toNumber(elevLossRaw) : undefined;
+    const elevationLow = elevLowRaw && elevLowRaw.trim() !== "" ? toNumber(elevLowRaw) : undefined;
 
     // Extract environmental data
     const temperature = tempIdx !== -1 ? toNumber(cols[tempIdx]) : undefined;
@@ -170,10 +175,13 @@ export async function parseStravaCSV(file: File) {
         timeSec,
         hr,
         pace: timeSec > 0 && distKm > 0 ? (timeSec / 60) / distKm : 0,
-        activityId,        // NEW: Show Activity ID in debug
-        elevationGain,     // Column U
-        elevationLoss,     // NEW: Column V
-        elevationLow,      // NEW: Column W
+        activityId,
+        elevationGain,
+        elevationLoss,
+        elevationLow,
+        elevGainRaw: JSON.stringify(elevGainRaw),     // SHOW RAW VALUE
+        elevLossRaw: JSON.stringify(elevLossRaw),     // SHOW RAW VALUE
+        elevLowRaw: JSON.stringify(elevLowRaw),       // SHOW RAW VALUE
         temperature,
         weather,
         location,
@@ -208,14 +216,14 @@ export async function parseStravaCSV(file: File) {
       }
 
       // CRITICAL FIX: Include ALL elevation data (Columns U, V, W)
-      if (elevationGain !== undefined && elevationGain > 0) {
+      if (elevationGain !== undefined) {
         run.elevationGain = elevationGain;
       }
-      if (elevationLoss !== undefined && elevationLoss > 0) {
-        run.elevationLoss = elevationLoss;  // NEW: Column V
+      if (elevationLoss !== undefined) {
+        run.elevationLoss = elevationLoss;
       }
       if (elevationLow !== undefined) {
-        run.elevationLow = elevationLow;     // NEW: Column W
+        run.elevationLow = elevationLow;
       }
 
       // Include environmental data

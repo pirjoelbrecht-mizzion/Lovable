@@ -297,18 +297,40 @@ export default function SettingsV2() {
       save("logEntries", merged);
 
       console.log('[SettingsV2] Inserting', filteredEntries.length, 'filtered entries to database...');
-      const { bulkInsertLogEntries } = await import("@/lib/database");
+      const { bulkInsertLogEntries, updateEntriesWithElevationData } = await import("@/lib/database");
       const inserted = await bulkInsertLogEntries(filteredEntries);
       console.log('[SettingsV2] Inserted', inserted, 'entries to database');
 
+      // CRITICAL: Update existing entries with missing elevation data
+      console.log('[SettingsV2] Checking for existing entries with missing elevation data...');
+      const updated = await updateEntriesWithElevationData(filteredEntries);
+      console.log('[SettingsV2] Updated', updated, 'entries with elevation data');
+
+      const totalProcessed = inserted + updated;
+
       const { emit } = await import("@/lib/bus");
-      emit("log:import-complete", { count: inserted });
-      console.log('[SettingsV2] Emitted log:import-complete event');
+      emit("log:import-complete", { count: totalProcessed });
+      console.log('[SettingsV2] Emitted log:import-complete event with count:', totalProcessed);
+
+      const statusMessage = inserted > 0 && updated > 0
+        ? `Imported ${inserted} new + updated ${updated} existing with elevation data`
+        : inserted > 0
+        ? `Imported ${inserted} new runs`
+        : updated > 0
+        ? `Updated ${updated} runs with elevation data`
+        : `All ${filteredEntries.length} runs already up-to-date`;
 
       setImportSummary(
-        `Imported ${filteredEntries.length} (${added} new) • ${totalKm.toFixed(1)} km total • HRmax: ${est?.hrMax ?? "-"} bpm • Threshold: ${est?.hrThreshold ?? "-"} bpm`
+        `${statusMessage} • ${totalKm.toFixed(1)} km total • HRmax: ${est?.hrMax ?? "-"} bpm • Threshold: ${est?.hrThreshold ?? "-"} bpm`
       );
-      toast("Strava import successful!", "success");
+
+      const toastMessage = updated > 0
+        ? `Updated ${updated} runs with elevation data!`
+        : inserted > 0
+        ? "Strava import successful!"
+        : "All runs already imported";
+
+      toast(toastMessage, "success");
     } catch (err: any) {
       console.error("Strava import error:", err);
       toast("Error: " + (err.message || "Unknown error"), "error");
