@@ -1,54 +1,19 @@
-import { FC } from 'react';
-import { TrainingSummaryCard } from './TrainingSummaryCard';
-import { WeatherTimelineCompact } from './WeatherTimelineCompact';
-import { RouteSuggestionCard } from './RouteSuggestionCard';
-import { PaceSuggestionCard } from './PaceSuggestionCard';
-import { GearSuggestionCard } from './GearSuggestionCard';
-import { InstructionsCard } from './InstructionsCard';
-import { TodayActions } from './TodayActions';
-import type { HydrationNeeds, FuelingNeeds } from '@/lib/environmental-learning/hydration';
+import { FC, useState } from 'react';
+import { TodayTrainingTabs } from './TodayTrainingTabs';
+import { OverviewTab } from './OverviewTab';
+import { IntelligenceTab } from './IntelligenceTab';
+import { PreparationTab } from './PreparationTab';
+import { RouteSelectionModal } from './RouteSelectionModal';
+import { useEnhancedTodayTraining } from '@/hooks/useEnhancedTodayTraining';
+import type { DbSavedRoute } from '@/lib/database';
 
 export interface TodayTrainingData {
-  summary: {
-    title: string;
-    duration: string;
-    distance: string;
-    pace: string;
-  };
-  weather: {
-    current: { temp: number; summary: string };
-    hours: Array<{
-      time: string;
-      temp: number;
-      icon: string;
-      precipitation?: number;
-      windSpeed?: number;
-    }>;
-  };
-  route: {
-    id: string;
-    name: string;
-    distance: number;
-    elevation: string;
-    thumbnail?: string;
-    surface?: string;
-  };
-  pace: {
-    suggested: string;
-    explanation: string;
-    confidence: number;
-  };
-  gear: {
-    items: string[];
-    temperature: number;
-    conditions: string;
-  };
-  hydration?: HydrationNeeds;
-  fueling?: FuelingNeeds;
-  instructions: {
-    text: string;
-    coachTip?: string;
-  };
+  type: string;
+  duration: string;
+  distance?: string;
+  pace?: string;
+  isToday: boolean;
+  isAdapted?: boolean;
 }
 
 interface Props {
@@ -56,7 +21,6 @@ interface Props {
   onComplete?: () => void;
   onEdit?: () => void;
   onSkip?: () => void;
-  onRouteChange?: () => void;
 }
 
 export const TodayTrainingMobile: FC<Props> = ({
@@ -64,92 +28,119 @@ export const TodayTrainingMobile: FC<Props> = ({
   onComplete,
   onEdit,
   onSkip,
-  onRouteChange,
 }) => {
-  return (
-    <div className="w-full max-w-md mx-auto p-4 space-y-4 bg-bg-light dark:bg-bg-dark">
-      <TrainingSummaryCard
-        title={data.summary.title}
-        duration={data.summary.duration}
-        distance={data.summary.distance}
-        pace={data.summary.pace}
-        status="today"
-      />
+  const {
+    data: trainingData,
+    loading,
+    error,
+    activeTab,
+    setActiveTab,
+    refreshWeather,
+    refetch,
+  } = useEnhancedTodayTraining(data);
 
-      <WeatherTimelineCompact
-        current={data.weather.current}
-        hours={data.weather.hours}
-      />
+  const [showRouteModal, setShowRouteModal] = useState(false);
+  const [selectedRoute, setSelectedRoute] = useState<DbSavedRoute | null>(null);
+  const [checklistComplete, setChecklistComplete] = useState(false);
 
-      <RouteSuggestionCard
-        route={data.route}
-        onChange={onRouteChange}
-        matchScore={0.85}
-      />
+  const handleRouteSelect = (route: DbSavedRoute) => {
+    setSelectedRoute(route);
+  };
 
-      <PaceSuggestionCard
-        pace={data.pace.suggested}
-        explanation={data.pace.explanation}
-        confidence={data.pace.confidence}
-      />
+  const handleStart = () => {
+    if (onComplete) {
+      onComplete();
+    }
+  };
 
-      {data.hydration && (
-        <div className="p-4 rounded-2xl bg-surface1-light dark:bg-surface1-dark shadow-elevated">
-          <h3 className="text-sm font-semibold text-primary-light dark:text-primary-dark mb-2">
-            Hydration & Fueling
-          </h3>
+  const currentHour = new Date().getHours();
+  const timeOfDay = currentHour < 6 ? 'night'
+    : currentHour < 12 ? 'morning'
+    : currentHour < 18 ? 'afternoon'
+    : currentHour < 21 ? 'evening'
+    : 'night';
 
-          <div className="space-y-2 text-xs">
-            <div className="flex justify-between text-muted-light dark:text-muted-dark">
-              <span>Hydration needed:</span>
-              <span className="font-medium text-primary-light dark:text-primary-dark">
-                {data.hydration.liters}L ({data.hydration.litersPerHour}L/hr)
-              </span>
-            </div>
-
-            {data.fueling && (
-              <div className="flex justify-between text-muted-light dark:text-muted-dark">
-                <span>Carbs needed:</span>
-                <span className="font-medium text-primary-light dark:text-primary-dark">
-                  {data.fueling.totalCarbs}g ({data.fueling.carbsPerHour}g/hr)
-                </span>
-              </div>
-            )}
-
-            <div className="pt-2 border-t border-gray-700 dark:border-gray-600">
-              <p className="text-success font-medium mb-1">💧 Carry:</p>
-              <p className="text-muted-light dark:text-muted-dark">
-                {data.hydration.carryAmount}
-              </p>
-            </div>
-
-            {data.hydration.recommendations.length > 0 && (
-              <div className="pt-2">
-                <p className="text-muted-light dark:text-muted-dark">
-                  {data.hydration.recommendations[0]}
-                </p>
-              </div>
-            )}
-          </div>
+  if (loading) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-bg-light dark:bg-bg-dark">
+        <div className="text-center">
+          <div className="text-4xl mb-4">⏳</div>
+          <p className="text-muted-light dark:text-muted-dark">Loading your training plan...</p>
         </div>
-      )}
+      </div>
+    );
+  }
 
-      <GearSuggestionCard
-        items={data.gear.items}
-        temperature={data.gear.temperature}
-        conditions={data.gear.conditions}
-      />
+  if (error || !trainingData) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-bg-light dark:bg-bg-dark p-4">
+        <div className="text-center">
+          <div className="text-4xl mb-4">⚠️</div>
+          <p className="text-primary-light dark:text-primary-dark mb-2">
+            Unable to load training data
+          </p>
+          <button
+            onClick={() => refetch()}
+            className="text-sm text-primary-light dark:text-primary-dark hover:underline"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-      <InstructionsCard
-        text={data.instructions.text}
-        coachTip={data.instructions.coachTip}
-      />
+  return (
+    <>
+      <div className="w-full max-w-md mx-auto h-screen bg-bg-light dark:bg-bg-dark">
+        <TodayTrainingTabs activeTab={activeTab} onTabChange={setActiveTab}>
+          {activeTab === 'overview' && (
+            <OverviewTab
+              workoutData={trainingData.workout}
+              readiness={trainingData.readiness}
+              weather={trainingData.weather}
+              streak={trainingData.streak}
+              xpToEarn={trainingData.xpToEarn}
+              daysToRace={trainingData.daysToRace}
+              coachMessage={trainingData.coachMessage}
+              onStart={handleStart}
+              onRefreshWeather={refreshWeather}
+            />
+          )}
 
-      <TodayActions
-        onComplete={onComplete}
-        onEdit={onEdit}
-        onSkip={onSkip}
+          {activeTab === 'intelligence' && (
+            <IntelligenceTab
+              paceData={trainingData.paceData}
+              hrZones={trainingData.hrZones}
+              route={selectedRoute || trainingData.route}
+              alternativeRoutes={trainingData.alternativeRoutes}
+              hydration={trainingData.hydration}
+              fueling={trainingData.fueling}
+              onRouteSelect={() => setShowRouteModal(true)}
+            />
+          )}
+
+          {activeTab === 'preparation' && trainingData.weather && (
+            <PreparationTab
+              temperature={trainingData.weather.current.temp}
+              duration={trainingData.workout.durationMin}
+              timeOfDay={timeOfDay}
+              uvIndex={trainingData.weather.uvIndex}
+              workoutType={trainingData.workout.type}
+              onChecklistComplete={setChecklistComplete}
+            />
+          )}
+        </TodayTrainingTabs>
+      </div>
+
+      <RouteSelectionModal
+        isOpen={showRouteModal}
+        onClose={() => setShowRouteModal(false)}
+        onSelect={handleRouteSelect}
+        currentRoute={selectedRoute || trainingData.route}
+        targetDistance={trainingData.workout.distanceKm}
+        location={trainingData.location}
       />
-    </div>
+    </>
   );
 };
