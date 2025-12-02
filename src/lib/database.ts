@@ -58,9 +58,9 @@ export type DbLogEntry = {
   data_source?: string;
   map_polyline?: string;
   map_summary_polyline?: string;
-  elevation_gain_m?: number;      // Total elevation gain in meters (Column U)
-  elevation_loss_m?: number;      // Total elevation loss in meters (Column V)
-  elevation_low_m?: number;       // Lowest elevation point in meters (Column W)
+  elevation_gain?: number;        // Total elevation gain in meters (Column U)
+  elevation_loss?: number;        // Total elevation loss in meters (Column V)
+  elevation_low?: number;         // Lowest elevation point in meters (Column W)
   elevation_stream?: number[];
   distance_stream?: number[];
   temperature?: number;
@@ -116,9 +116,9 @@ function toDbLogEntry(entry: LogEntry): DbLogEntry {
     data_source: entry.source === 'Strava' ? 'strava' : undefined,
     map_polyline: entry.mapPolyline,
     map_summary_polyline: entry.mapSummaryPolyline,
-    elevation_gain_m: entry.elevationGain,        // Map to elevation_gain_m column
-    elevation_loss_m: entry.elevationLoss,        // Map to elevation_loss_m column
-    elevation_low_m: entry.elevationLow,          // Map to elevation_low_m column
+    elevation_gain: entry.elevationGain,        // CRITICAL FIX: Use correct column name
+    elevation_loss: entry.elevationLoss,        // CRITICAL FIX: Use correct column name
+    elevation_low: entry.elevationLow,          // CRITICAL FIX: Use correct column name
     elevation_stream: entry.elevationStream,
     distance_stream: entry.distanceStream,
     temperature: entry.temperature,
@@ -140,9 +140,9 @@ function fromDbLogEntry(db: any): LogEntry {
     externalId: db.external_id,
     mapPolyline: db.map_polyline,
     mapSummaryPolyline: db.map_summary_polyline,
-    elevationGain: db.elevation_gain_m,      // Map from elevation_gain_m column
-    elevationLoss: db.elevation_loss_m,      // Map from elevation_loss_m column
-    elevationLow: db.elevation_low_m,        // Map from elevation_low_m column
+    elevationGain: db.elevation_gain,        // CRITICAL FIX: Use correct column name
+    elevationLoss: db.elevation_loss,        // CRITICAL FIX: Use correct column name
+    elevationLow: db.elevation_low,          // CRITICAL FIX: Use correct column name
     elevationStream: db.elevation_stream,
     distanceStream: db.distance_stream,
     temperature: db.temperature,
@@ -389,7 +389,7 @@ export async function updateEntriesWithElevationData(entries: LogEntry[]): Promi
       // Find existing entry by external_id or date+km
       let query = supabase
         .from('log_entries')
-        .select('id, elevation_gain_m, elevation_loss_m, elevation_low_m')
+        .select('id, elevation_gain, elevation_loss, elevation_low')
         .eq('user_id', userId);
 
       if (entry.externalId && entry.source) {
@@ -410,10 +410,10 @@ export async function updateEntriesWithElevationData(entries: LogEntry[]): Promi
 
       // Check if elevation data is missing or zero
       const needsUpdate =
-        existing.elevation_gain_m === null ||
-        existing.elevation_gain_m === 0 ||
-        existing.elevation_loss_m === null ||
-        existing.elevation_low_m === null;
+        existing.elevation_gain === null ||
+        existing.elevation_gain === 0 ||
+        existing.elevation_loss === null ||
+        existing.elevation_low === null;
 
       if (!needsUpdate) {
         continue; // Already has elevation data, skip
@@ -423,13 +423,13 @@ export async function updateEntriesWithElevationData(entries: LogEntry[]): Promi
       const updateData: any = {};
 
       if (entry.elevationGain !== undefined) {
-        updateData.elevation_gain_m = entry.elevationGain;
+        updateData.elevation_gain = entry.elevationGain;
       }
       if (entry.elevationLoss !== undefined) {
-        updateData.elevation_loss_m = entry.elevationLoss;
+        updateData.elevation_loss = entry.elevationLoss;
       }
       if (entry.elevationLow !== undefined) {
-        updateData.elevation_low_m = entry.elevationLow;
+        updateData.elevation_low = entry.elevationLow;
       }
       if (entry.elevationStream) {
         updateData.elevation_stream = entry.elevationStream;
