@@ -74,8 +74,9 @@ export function useEnhancedTodayTraining(
   }, [todaySession]);
 
   const initializeData = async () => {
-    if (!todaySession) {
+    if (!todaySession || !todaySession.type) {
       setLoading(false);
+      setError('No training session data available');
       return;
     }
 
@@ -89,7 +90,7 @@ export function useEnhancedTodayTraining(
       const today = new Date().toISOString().split('T')[0];
 
       const durationMin = parseDuration(todaySession.duration);
-      const distanceKm = parseDistance(todaySession.distance || '8K');
+      const distanceKm = parseDistance(todaySession.distance);
 
       const [weather, routes] = await Promise.all([
         userLocation
@@ -263,12 +264,14 @@ async function getUserLocation(): Promise<{ lat: number; lon: number }> {
   }
 }
 
-function parseDuration(duration: string): number {
+function parseDuration(duration: string | undefined): number {
+  if (!duration) return 45;
   const match = duration.match(/(\d+)/);
   return match ? parseInt(match[1], 10) : 45;
 }
 
-function parseDistance(distance: string): number {
+function parseDistance(distance: string | undefined): number {
+  if (!distance) return 8;
   const match = distance.match(/(\d+(?:\.\d+)?)/);
   return match ? parseFloat(match[1]) : 8;
 }

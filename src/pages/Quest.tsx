@@ -691,7 +691,14 @@ export default function Quest() {
                 {todayData ? (
                   <div style={{ padding: '16px 0' }}>
                     <TodayTrainingMobile
-                      data={todayData}
+                      data={{
+                        type: todayData.summary.title,
+                        duration: todayData.summary.duration,
+                        distance: todayData.summary.distance,
+                        pace: todayData.summary.pace,
+                        isToday: true,
+                        isAdapted: false
+                      }}
                       onComplete={() => {
                         const todaySession = sessions.find(s => s.isToday);
                         if (todaySession) {
@@ -1019,7 +1026,14 @@ export default function Quest() {
                 overflowY: 'auto'
               }}>
                 <TodayTrainingMobile
-                  data={todayData}
+                  data={{
+                    type: todayData.summary.title,
+                    duration: todayData.summary.duration,
+                    distance: todayData.summary.distance,
+                    pace: todayData.summary.pace,
+                    isToday: true,
+                    isAdapted: false
+                  }}
                   onComplete={() => handleWorkoutComplete(selectedSession)}
                   onEdit={() => {
                     // Edit functionality
