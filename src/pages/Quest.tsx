@@ -1009,79 +1009,102 @@ export default function Quest() {
             <button className="quest-session-modal-close" onClick={() => setSelectedSession(null)}>
               ✕
             </button>
-            <div className="quest-session-modal-header">
-              <div className="quest-session-modal-icon">{selectedSession.emoji}</div>
-              <div className="quest-session-modal-title-section">
-                <div className="quest-session-modal-day">{selectedSession.dayFull}</div>
-                <h3 className="quest-session-modal-title">{selectedSession.type}</h3>
+
+            {/* NEW: Use enhanced mobile UI for today's session */}
+            {selectedSession.isToday && todayData ? (
+              <div style={{
+                maxWidth: '448px',
+                margin: '0 auto',
+                maxHeight: 'calc(100vh - 80px)',
+                overflowY: 'auto'
+              }}>
+                <TodayTrainingMobile
+                  data={todayData}
+                  onComplete={() => handleWorkoutComplete(selectedSession)}
+                  onEdit={() => {
+                    // Edit functionality
+                    setSelectedSession(null);
+                  }}
+                />
               </div>
-              {selectedSession.isToday && <div className="quest-session-modal-now-badge">NOW</div>}
-              {selectedSession.isAdapted && <div className="quest-session-modal-ai-badge">AI</div>}
-            </div>
-            <div className="quest-session-modal-body">
-              <div className="quest-session-modal-stats">
-                <div className="quest-session-modal-stat">
-                  <div className="quest-session-modal-stat-label">Duration</div>
-                  <div className="quest-session-modal-stat-value">{selectedSession.duration}</div>
+            ) : (
+              /* Original modal for non-today sessions */
+              <>
+                <div className="quest-session-modal-header">
+                  <div className="quest-session-modal-icon">{selectedSession.emoji}</div>
+                  <div className="quest-session-modal-title-section">
+                    <div className="quest-session-modal-day">{selectedSession.dayFull}</div>
+                    <h3 className="quest-session-modal-title">{selectedSession.type}</h3>
+                  </div>
+                  {selectedSession.isToday && <div className="quest-session-modal-now-badge">NOW</div>}
+                  {selectedSession.isAdapted && <div className="quest-session-modal-ai-badge">AI</div>}
                 </div>
-                {selectedSession.distance && (
-                  <div className="quest-session-modal-stat">
-                    <div className="quest-session-modal-stat-label">Distance</div>
-                    <div className="quest-session-modal-stat-value">{selectedSession.distance}</div>
+                <div className="quest-session-modal-body">
+                  <div className="quest-session-modal-stats">
+                    <div className="quest-session-modal-stat">
+                      <div className="quest-session-modal-stat-label">Duration</div>
+                      <div className="quest-session-modal-stat-value">{selectedSession.duration}</div>
+                    </div>
+                    {selectedSession.distance && (
+                      <div className="quest-session-modal-stat">
+                        <div className="quest-session-modal-stat-label">Distance</div>
+                        <div className="quest-session-modal-stat-value">{selectedSession.distance}</div>
+                      </div>
+                    )}
+                    {selectedSession.pace && (
+                      <div className="quest-session-modal-stat">
+                        <div className="quest-session-modal-stat-label">Pace</div>
+                        <div className="quest-session-modal-stat-value">{selectedSession.pace}</div>
+                      </div>
+                    )}
+                    {selectedSession.zones && (
+                      <div className="quest-session-modal-stat">
+                        <div className="quest-session-modal-stat-label">Zones</div>
+                        <div className="quest-session-modal-stat-value">{selectedSession.zones}</div>
+                      </div>
+                    )}
                   </div>
-                )}
-                {selectedSession.pace && (
-                  <div className="quest-session-modal-stat">
-                    <div className="quest-session-modal-stat-label">Pace</div>
-                    <div className="quest-session-modal-stat-value">{selectedSession.pace}</div>
+                  {selectedSession.weather && (
+                    <div className="quest-session-modal-weather">
+                      <span className="quest-session-modal-weather-icon">{selectedSession.weather.icon}</span>
+                      <span className="quest-session-modal-weather-text">
+                        {selectedSession.weather.temp}° • {selectedSession.weather.condition}
+                      </span>
+                    </div>
+                  )}
+                  {selectedSession.description && (
+                    <div className="quest-session-modal-description">
+                      <div className="quest-session-modal-description-label">Instructions</div>
+                      <p>{selectedSession.description}</p>
+                    </div>
+                  )}
+                  <div className="quest-session-modal-actions">
+                    {!selectedSession.completed ? (
+                      <>
+                        <button
+                          className="quest-session-modal-btn quest-session-modal-btn-primary"
+                          onClick={() => handleWorkoutComplete(selectedSession)}
+                        >
+                          Complete & Feedback
+                        </button>
+                        <button className="quest-session-modal-btn quest-session-modal-btn-secondary">Edit</button>
+                      </>
+                    ) : (
+                      <div style={{
+                        padding: '12px',
+                        background: 'var(--success)',
+                        color: 'white',
+                        borderRadius: '8px',
+                        textAlign: 'center',
+                        fontWeight: 600
+                      }}>
+                        ✓ Completed - Feedback submitted
+                      </div>
+                    )}
                   </div>
-                )}
-                {selectedSession.zones && (
-                  <div className="quest-session-modal-stat">
-                    <div className="quest-session-modal-stat-label">Zones</div>
-                    <div className="quest-session-modal-stat-value">{selectedSession.zones}</div>
-                  </div>
-                )}
-              </div>
-              {selectedSession.weather && (
-                <div className="quest-session-modal-weather">
-                  <span className="quest-session-modal-weather-icon">{selectedSession.weather.icon}</span>
-                  <span className="quest-session-modal-weather-text">
-                    {selectedSession.weather.temp}° • {selectedSession.weather.condition}
-                  </span>
                 </div>
-              )}
-              {selectedSession.description && (
-                <div className="quest-session-modal-description">
-                  <div className="quest-session-modal-description-label">Instructions</div>
-                  <p>{selectedSession.description}</p>
-                </div>
-              )}
-              <div className="quest-session-modal-actions">
-                {!selectedSession.completed ? (
-                  <>
-                    <button
-                      className="quest-session-modal-btn quest-session-modal-btn-primary"
-                      onClick={() => handleWorkoutComplete(selectedSession)}
-                    >
-                      Complete & Feedback
-                    </button>
-                    <button className="quest-session-modal-btn quest-session-modal-btn-secondary">Edit</button>
-                  </>
-                ) : (
-                  <div style={{
-                    padding: '12px',
-                    background: 'var(--success)',
-                    color: 'white',
-                    borderRadius: '8px',
-                    textAlign: 'center',
-                    fontWeight: 600
-                  }}>
-                    ✓ Completed - Feedback submitted
-                  </div>
-                )}
-              </div>
-            </div>
+              </>
+            )}
           </div>
         </div>
       )}
