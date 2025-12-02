@@ -19,6 +19,8 @@
 
 import type { WeeklyPlan, DailyPlan, Workout, AthleteProfile } from '@/lib/adaptive-coach/types';
 import type { ArchetypeType } from '@/lib/motivationDetection';
+import { fatiguePaceModifier, type FatigueMetrics } from '@/lib/environmental-learning/fatigueModel';
+import type { HydrationNeeds } from '@/lib/environmental-learning/hydration';
 
 //
 // ─────────────────────────────────────────────────────────────
@@ -81,6 +83,18 @@ export interface AdaptiveContext {
     recentElevationGain: number; // Last week
     terrainType: 'road' | 'trail' | 'mixed';
     isTravel: boolean;
+  };
+
+  // Fatigue assessment (NEW)
+  fatigue?: {
+    score: number; // 0-100
+    metrics: FatigueMetrics;
+    paceModifier: number; // multiplier (1.0 = no adjustment)
+  };
+
+  // Environmental needs (NEW)
+  environmental?: {
+    hydration?: HydrationNeeds;
   };
 }
 
@@ -863,6 +877,13 @@ function detectWarnings(context: AdaptiveContext, layers: AdjustmentLayer[]): st
     warnings.push(`Race approaching in ${context.races.daysToMainRace} days. Focus on staying healthy.`);
   }
 
+  // Fatigue warnings (NEW)
+  if (context.fatigue && context.fatigue.score >= 70) {
+    warnings.push(`High fatigue detected (${context.fatigue.score.toFixed(0)}). Prioritize recovery.`);
+  } else if (context.fatigue && context.fatigue.score >= 50) {
+    warnings.push(`Moderate fatigue accumulation. Monitor recovery markers.`);
+  }
+
   return warnings;
 }
 
@@ -879,4 +900,34 @@ function calculateConfidence(context: AdaptiveContext, layers: AdjustmentLayer[]
   if (hasSafetyOverride) confidence = 0.95;
 
   return Math.max(0.5, Math.min(1.0, confidence));
+}
+
+/**
+ * Helper: Apply fatigue-based pace adjustments to workout paces
+ * NEW EXPORT for Today's Training integration
+ */
+export function applyFatigueToPace(
+  basePaceSec: number,
+  fatigueScore: number
+): { adjustedPaceSec: number; adjustmentPct: number; explanation: string } {
+  const modifier = fatiguePaceModifier(fatigueScore);
+  const adjustedPaceSec = basePaceSec * modifier;
+  const adjustmentPct = (modifier - 1) * 100;
+
+  let explanation = '';
+  if (fatigueScore < 30) {
+    explanation = 'No fatigue adjustment needed - training proceeding normally';
+  } else if (fatigueScore < 50) {
+    explanation = `Moderate fatigue detected - reduce target pace by ${adjustmentPct.toFixed(0)}%`;
+  } else if (fatigueScore < 70) {
+    explanation = `High fatigue accumulation - pace reduced by ${adjustmentPct.toFixed(0)}% for recovery`;
+  } else {
+    explanation = `Extreme fatigue - significant pace reduction (${adjustmentPct.toFixed(0)}%) recommended`;
+  }
+
+  return {
+    adjustedPaceSec,
+    adjustmentPct,
+    explanation
+  };
 }
