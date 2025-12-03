@@ -244,10 +244,10 @@ export function PaceProfileCard() {
               onClick={async () => {
                 setRefreshing(true);
                 try {
-                  console.log('[PaceProfileCard] Re-analyzing all activities...');
+                  console.log('[PaceProfileCard] Force re-analyzing all activities...');
                   const { analyzeUserActivities } = await import('@/engine/historicalAnalysis/analyzeActivityTerrain');
-                  const analyzedCount = await analyzeUserActivities();
-                  console.log(`[PaceProfileCard] Analyzed ${analyzedCount} activities`);
+                  const analyzedCount = await analyzeUserActivities(undefined, true);
+                  console.log(`[PaceProfileCard] Re-analyzed ${analyzedCount} activities`);
 
                   console.log('[PaceProfileCard] Recalculating pace profile...');
                   const data = await recalculatePaceProfile();

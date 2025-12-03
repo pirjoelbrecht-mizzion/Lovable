@@ -308,7 +308,7 @@ export async function saveTerrainAnalysis(analysis: ActivityTerrainAnalysis): Pr
 /**
  * Analyze all activities for a user that haven't been analyzed yet
  */
-export async function analyzeUserActivities(userId?: string): Promise<number> {
+export async function analyzeUserActivities(userId?: string, forceReanalyze: boolean = false): Promise<number> {
   try {
     const supabase = getSupabase();
     const uid = userId || await getCurrentUserId();
@@ -316,6 +316,19 @@ export async function analyzeUserActivities(userId?: string): Promise<number> {
     if (!uid) {
       console.error('No user ID available');
       return 0;
+    }
+
+    // If force re-analyze, delete all existing analyses for this user
+    if (forceReanalyze) {
+      console.log('[analyzeUserActivities] Force re-analyzing - deleting existing data...');
+      const { error: deleteError } = await supabase
+        .from('activity_terrain_analysis')
+        .delete()
+        .eq('user_id', uid);
+
+      if (deleteError) {
+        console.error('Error deleting existing analyses:', deleteError);
+      }
     }
 
     // Get all log entries with elevation data that haven't been analyzed
@@ -336,25 +349,32 @@ export async function analyzeUserActivities(userId?: string): Promise<number> {
       return 0;
     }
 
-    // Get already analyzed entries
-    const { data: analyzed, error: analyzedError } = await supabase
-      .from('activity_terrain_analysis')
-      .select('log_entry_id')
-      .eq('user_id', uid);
+    let entriesToAnalyze = entries;
 
-    if (analyzedError) {
-      console.error('Error fetching analyzed entries:', analyzedError);
-      return 0;
+    // If not force re-analyze, filter out already analyzed entries
+    if (!forceReanalyze) {
+      // Get already analyzed entries
+      const { data: analyzed, error: analyzedError } = await supabase
+        .from('activity_terrain_analysis')
+        .select('log_entry_id')
+        .eq('user_id', uid);
+
+      if (analyzedError) {
+        console.error('Error fetching analyzed entries:', analyzedError);
+        return 0;
+      }
+
+      const analyzedIds = new Set((analyzed || []).map(a => a.log_entry_id));
+
+      // Filter to only unanalyzed entries
+      entriesToAnalyze = entries.filter(e => !analyzedIds.has(e.id));
     }
 
-    const analyzedIds = new Set((analyzed || []).map(a => a.log_entry_id));
-
-    // Filter to only unanalyzed entries
-    const unanalyzedEntries = entries.filter(e => !analyzedIds.has(e.id));
+    console.log(`[analyzeUserActivities] Analyzing ${entriesToAnalyze.length} activities...`);
 
     let successCount = 0;
 
-    for (const entry of unanalyzedEntries) {
+    for (const entry of entriesToAnalyze) {
       const logEntry: LogEntry = {
         title: entry.title,
         dateISO: entry.date,
@@ -376,6 +396,8 @@ export async function analyzeUserActivities(userId?: string): Promise<number> {
         }
       }
     }
+
+    console.log(`[analyzeUserActivities] Successfully analyzed ${successCount} activities`);
 
     return successCount;
   } catch (err) {
