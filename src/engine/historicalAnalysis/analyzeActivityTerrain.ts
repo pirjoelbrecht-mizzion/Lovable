@@ -150,6 +150,18 @@ export function analyzeActivityTerrain(
     return null;
   }
 
+  // Calculate total elevation gain/loss to filter flat activities
+  const minElev = Math.min(...elevStream);
+  const maxElev = Math.max(...elevStream);
+  const elevationRange = maxElev - minElev;
+
+  // Skip activities with insufficient elevation variation (likely flat or bad data)
+  // Require at least 10m per km (1% average grade variation)
+  const minElevationRange = Math.max(10, totalDistanceKm * 10);
+  if (elevationRange < minElevationRange) {
+    return null;
+  }
+
   // Helper to estimate pace adjustment factor based on grade
   function getPaceAdjustmentFactor(gradePct: number): number {
     // Base pace factor (1.0 = flat pace)
