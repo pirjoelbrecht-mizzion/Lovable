@@ -175,16 +175,16 @@ export function analyzeActivityTerrain(
   for (let i = 1; i < elevStream.length; i++) {
     const prevElev = elevStream[i - 1];
     const currElev = elevStream[i];
-    const prevDist = distStream[i - 1] / 1000; // Convert meters to km
-    const currDist = distStream[i] / 1000;
+    const prevDist = distStream[i - 1]; // Distance is already in meters
+    const currDist = distStream[i]; // Distance is already in meters
 
     const elevDiff = currElev - prevElev;
     const distDiff = currDist - prevDist;
 
     if (distDiff <= 0) continue; // Skip invalid segments
 
-    // Calculate grade as percentage
-    const gradePct = (elevDiff / (distDiff * 1000)) * 100;
+    // Calculate grade as percentage (both elevation and distance are in meters)
+    const gradePct = (elevDiff / distDiff) * 100;
 
     const terrainType = classifyTerrainType(gradePct);
     const gradeBucket = classifyGradeBucket(gradePct);
@@ -212,7 +212,8 @@ export function analyzeActivityTerrain(
       // Close current segment
       if (currentSegmentType !== null && currentGradeBucket !== null) {
         const endIdx = isLastPoint ? i : i - 1;
-        const segmentDistKm = distStream[endIdx] / 1000 - distStream[segmentStartIdx] / 1000;
+        const segmentDistMeters = distStream[endIdx] - distStream[segmentStartIdx];
+        const segmentDistKm = segmentDistMeters / 1000;
 
         if (segmentDistKm > 0) {
           // Estimate segment duration proportionally
@@ -227,7 +228,7 @@ export function analyzeActivityTerrain(
               durationMin: segmentDurationMin,
               paceMinKm: segmentPace,
               gradeAvgPct: parseFloat(
-                ((elevStream[endIdx] - elevStream[segmentStartIdx]) / (segmentDistKm * 1000) * 100).toFixed(2)
+                ((elevStream[endIdx] - elevStream[segmentStartIdx]) / segmentDistMeters * 100).toFixed(2)
               ),
               elevationGainM: Math.round(segmentElevGain),
               elevationLossM: Math.round(segmentElevLoss),
