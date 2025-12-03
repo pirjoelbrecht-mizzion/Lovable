@@ -41,38 +41,40 @@ export const IntelligenceTab: FC<Props> = ({
   const [showPaceExplanation, setShowPaceExplanation] = useState(false);
 
   return (
-    <div className="p-4 space-y-4 pb-8">
-      <div className="p-4 rounded-2xl bg-surface1-light dark:bg-surface1-dark shadow-elevated">
-        <h3 className="text-sm font-semibold text-primary-light dark:text-primary-dark mb-3">
+    <div className="p-5 space-y-4 pb-8">
+      <div className="p-5 rounded-2xl shadow-xl" style={{ backgroundColor: '#252628' }}>
+        <h3 className="text-sm font-semibold mb-3" style={{ color: '#f9fafb' }}>
           Today's Pace Strategy
         </h3>
 
         <div className="mb-4">
-          <div className="flex items-baseline justify-center gap-2 mb-2">
-            <span className="text-4xl font-bold text-success">{paceData.targetMin}</span>
-            <span className="text-xl text-muted-light dark:text-muted-dark">-</span>
-            <span className="text-4xl font-bold text-success">{paceData.targetMax}</span>
-            <span className="text-sm text-muted-light dark:text-muted-dark">min/km</span>
+          <div className="flex items-baseline justify-center gap-2 mb-1">
+            <span className="text-5xl font-bold" style={{ color: '#22c55e' }}>{paceData.targetMin}</span>
+            <span className="text-2xl" style={{ color: '#9ca3af' }}>–</span>
+            <span className="text-5xl font-bold" style={{ color: '#22c55e' }}>{paceData.targetMax}</span>
           </div>
+          <p className="text-center text-sm" style={{ color: '#9ca3af' }}>min/km</p>
 
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <div className="flex-1 h-2 bg-gray-700 dark:bg-gray-600 rounded-full overflow-hidden">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-xs" style={{ color: '#9ca3af' }}>Confidence</span>
+            <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#374151' }}>
               <div
-                className="h-full bg-success rounded-full transition-all"
-                style={{ width: `${paceData.confidence * 100}%` }}
+                className="h-full rounded-full transition-all"
+                style={{ width: `${paceData.confidence * 100}%`, backgroundColor: '#22c55e' }}
               />
             </div>
-            <span className="text-xs text-muted-light dark:text-muted-dark whitespace-nowrap">
-              {Math.round(paceData.confidence * 100)}% confidence
+            <span className="text-xs font-bold" style={{ color: '#22c55e' }}>
+              {Math.round(paceData.confidence * 100)}%
             </span>
           </div>
 
           {paceData.adjustedFor.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-3">
+            <div className="flex flex-wrap gap-2 mb-3">
               {paceData.adjustedFor.map((factor, idx) => (
                 <span
                   key={idx}
-                  className="text-[10px] bg-primary-light/20 text-primary-light dark:bg-primary-dark/20 dark:text-primary-dark px-2 py-1 rounded-full"
+                  className="text-xs px-3 py-1 rounded-full"
+                  style={{ backgroundColor: 'rgba(96, 165, 250, 0.2)', color: '#60a5fa' }}
                 >
                   {factor}
                 </span>
@@ -82,15 +84,16 @@ export const IntelligenceTab: FC<Props> = ({
 
           <button
             onClick={() => setShowPaceExplanation(!showPaceExplanation)}
-            className="text-xs text-primary-light dark:text-primary-dark hover:underline flex items-center gap-1"
+            className="text-xs hover:underline flex items-center gap-1"
+            style={{ color: '#60a5fa' }}
           >
             <span>{showPaceExplanation ? '▼' : '▶'}</span>
             <span>Why this pace?</span>
           </button>
 
           {showPaceExplanation && (
-            <div className="mt-2 p-3 rounded-xl bg-surface2-light/50 dark:bg-surface2-dark/50">
-              <p className="text-xs text-muted-light dark:text-muted-dark leading-relaxed">
+            <div className="mt-3 p-3 rounded-xl" style={{ backgroundColor: '#1a1b1e' }}>
+              <p className="text-xs leading-relaxed" style={{ color: '#d1d5db' }}>
                 {paceData.explanation}
               </p>
             </div>
@@ -120,29 +123,30 @@ export const IntelligenceTab: FC<Props> = ({
       </div>
 
       {hrZones && (
-        <div className="p-4 rounded-2xl bg-surface1-light dark:bg-surface1-dark shadow-elevated">
-          <h3 className="text-sm font-semibold text-primary-light dark:text-primary-dark mb-3">
+        <div className="p-5 rounded-2xl shadow-xl" style={{ backgroundColor: '#252628' }}>
+          <h3 className="text-sm font-semibold mb-3" style={{ color: '#f9fafb' }}>
             Heart Rate Zones
           </h3>
           <div className="space-y-2">
-            <ZoneBar zone="Zone 5" range={`${hrZones.zone5.min}-${hrZones.zone5.max}`} time={hrZones.zone5.time} color="#ff5d5d" />
-            <ZoneBar zone="Zone 4" range={`${hrZones.zone4.min}-${hrZones.zone4.max}`} time={hrZones.zone4.time} color="#ff8a5b" />
-            <ZoneBar zone="Zone 3" range={`${hrZones.zone3.min}-${hrZones.zone3.max}`} time={hrZones.zone3.time} color="#ffd166" />
-            <ZoneBar zone="Zone 2" range={`${hrZones.zone2.min}-${hrZones.zone2.max}`} time={hrZones.zone2.time} color="#4bd2b2" />
-            <ZoneBar zone="Zone 1" range={`${hrZones.zone1.min}-${hrZones.zone1.max}`} time={hrZones.zone1.time} color="#6aa7ff" />
+            <ZoneBar zone="Zone 5" range={`${hrZones.zone5.min}-${hrZones.zone5.max}`} time={hrZones.zone5.time} color="#ef4444" />
+            <ZoneBar zone="Zone 4" range={`${hrZones.zone4.min}-${hrZones.zone4.max}`} time={hrZones.zone4.time} color="#fb923c" />
+            <ZoneBar zone="Zone 3" range={`${hrZones.zone3.min}-${hrZones.zone3.max}`} time={hrZones.zone3.time} color="#eab308" />
+            <ZoneBar zone="Zone 2" range={`${hrZones.zone2.min}-${hrZones.zone2.max}`} time={hrZones.zone2.time} color="#22c55e" />
+            <ZoneBar zone="Zone 1" range={`${hrZones.zone1.min}-${hrZones.zone1.max}`} time={hrZones.zone1.time} color="#60a5fa" />
           </div>
         </div>
       )}
 
       {route && (
-        <div className="p-4 rounded-2xl bg-surface1-light dark:bg-surface1-dark shadow-elevated">
+        <div className="p-5 rounded-2xl shadow-xl" style={{ backgroundColor: '#252628' }}>
           <div className="flex justify-between items-center mb-3">
-            <h3 className="text-sm font-semibold text-primary-light dark:text-primary-dark">
+            <h3 className="text-sm font-semibold" style={{ color: '#f9fafb' }}>
               Recommended Route
             </h3>
             <button
               onClick={onRouteSelect}
-              className="text-xs text-success hover:underline"
+              className="text-xs hover:underline"
+              style={{ color: '#22c55e' }}
             >
               Change Route
             </button>
@@ -181,13 +185,13 @@ export const IntelligenceTab: FC<Props> = ({
         </div>
       )}
 
-      <div className="p-4 rounded-2xl bg-surface1-light dark:bg-surface1-dark shadow-elevated">
-        <h3 className="text-sm font-semibold text-primary-light dark:text-primary-dark mb-3">
+      <div className="p-5 rounded-2xl shadow-xl" style={{ backgroundColor: '#252628' }}>
+        <h3 className="text-sm font-semibold mb-3" style={{ color: '#f9fafb' }}>
           Hydration & Fueling Strategy
         </h3>
 
         <div className="space-y-3 mb-4">
-          <div className="flex items-center justify-between p-3 rounded-xl bg-surface2-light/50 dark:bg-surface2-dark/50">
+          <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: '#1a1b1e' }}>
             <div className="flex items-center gap-2">
               <span className="text-xl">💧</span>
               <span className="text-xs text-muted-light dark:text-muted-dark">Total Fluids</span>
@@ -198,7 +202,7 @@ export const IntelligenceTab: FC<Props> = ({
           </div>
 
           {fueling && (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-surface2-light/50 dark:bg-surface2-dark/50">
+            <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: '#1a1b1e' }}>
               <div className="flex items-center gap-2">
                 <span className="text-xl">🍫</span>
                 <span className="text-xs text-muted-light dark:text-muted-dark">Carbohydrates</span>
@@ -210,8 +214,8 @@ export const IntelligenceTab: FC<Props> = ({
           )}
         </div>
 
-        <div className="p-3 rounded-xl bg-success/10 border border-success/20 mb-3">
-          <p className="text-xs font-semibold text-success mb-2">💧 Carry Strategy</p>
+        <div className="p-3 rounded-xl mb-3" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+          <p className="text-xs font-semibold mb-2" style={{ color: '#22c55e' }}>💧 Carry Strategy</p>
           <p className="text-xs text-muted-light dark:text-muted-dark">
             {hydration.carryAmount}
           </p>
@@ -245,23 +249,25 @@ const ZoneBar: FC<{ zone: string; range: string; time: number; color: string }> 
   color,
 }) => {
   return (
-    <div>
+    <div className="mb-2">
       <div className="flex justify-between items-center mb-1">
-        <span className="text-xs font-medium text-primary-light dark:text-primary-dark">
+        <span className="text-xs font-medium" style={{ color: '#f9fafb' }}>
           {zone}
         </span>
-        <span className="text-xs text-muted-light dark:text-muted-dark">{range} bpm</span>
+        <span className="text-xs" style={{ color: '#9ca3af' }}>{range} bpm</span>
       </div>
-      <div className="h-6 rounded-lg overflow-hidden bg-surface2-light/50 dark:bg-surface2-dark/50 flex items-center px-2">
-        <div
-          className="h-4 rounded transition-all"
-          style={{
-            width: `${Math.min(time, 100)}%`,
-            backgroundColor: color,
-          }}
-        />
-        <span className="ml-2 text-xs font-medium text-primary-light dark:text-primary-dark">
-          {time}%
+      <div className="flex items-center gap-2">
+        <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#374151' }}>
+          <div
+            className="h-full rounded-full transition-all"
+            style={{
+              width: `${Math.min(time, 100)}%`,
+              backgroundColor: color,
+            }}
+          />
+        </div>
+        <span className="text-xs font-medium min-w-[36px] text-right" style={{ color: '#f9fafb' }}>
+          {time}min
         </span>
       </div>
     </div>

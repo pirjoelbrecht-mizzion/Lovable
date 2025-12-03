@@ -144,14 +144,14 @@ export const PreparationTab: FC<Props> = ({
   }
 
   return (
-    <div className="p-4 space-y-4 pb-8">
+    <div className="p-5 space-y-4 pb-8">
       {requiredMissing.length > 0 && (
-        <div className="p-4 rounded-2xl bg-warning-bg border border-warning">
+        <div className="p-4 rounded-2xl" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444' }}>
           <div className="flex items-start gap-2">
             <span className="text-xl">⚠️</span>
             <div>
-              <p className="text-sm font-semibold text-warning mb-1">Forgot something?</p>
-              <p className="text-xs text-muted-light dark:text-muted-dark">
+              <p className="text-sm font-semibold mb-1" style={{ color: '#ef4444' }}>Forgot something?</p>
+              <p className="text-xs" style={{ color: '#9ca3af' }}>
                 You have {requiredMissing.length} essential item{requiredMissing.length > 1 ? 's' : ''} unchecked
               </p>
             </div>
@@ -159,40 +159,53 @@ export const PreparationTab: FC<Props> = ({
         </div>
       )}
 
-      <div className="p-4 rounded-2xl bg-surface1-light dark:bg-surface1-dark shadow-elevated">
-        <h3 className="text-sm font-semibold text-primary-light dark:text-primary-dark mb-3">
+      <div className="p-5 rounded-2xl shadow-xl" style={{ backgroundColor: '#252628' }}>
+        <h3 className="text-sm font-semibold mb-3" style={{ color: '#f9fafb' }}>
           Pre-Run Checklist
         </h3>
         <div className="space-y-2">
           {preRunTasks.map(task => (
             <label
               key={task.id}
-              className="flex items-center gap-3 p-3 rounded-xl bg-surface2-light/50 dark:bg-surface2-dark/50 cursor-pointer hover:bg-surface2-light dark:hover:bg-surface2-dark transition-colors"
-              style={{ minHeight: '44px' }}
+              className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors"
+              style={{
+                minHeight: '44px',
+                backgroundColor: checkedTasks.has(task.id) ? '#1a1b1e' : 'rgba(255, 255, 255, 0.05)'
+              }}
             >
-              <input
-                type="checkbox"
-                checked={checkedTasks.has(task.id)}
-                onChange={() => toggleTask(task.id)}
-                className="w-5 h-5 rounded border-2 border-primary-light dark:border-primary-dark accent-primary-light dark:accent-primary-dark"
-              />
+              <div
+                className="w-5 h-5 rounded flex items-center justify-center cursor-pointer"
+                style={{
+                  border: checkedTasks.has(task.id) ? 'none' : '2px solid #6b7280',
+                  backgroundColor: checkedTasks.has(task.id) ? '#22c55e' : 'transparent'
+                }}
+                onClick={() => toggleTask(task.id)}
+              >
+                {checkedTasks.has(task.id) && <span style={{ color: '#fff', fontSize: '12px' }}>✓</span>}
+              </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <span>{task.icon}</span>
-                  <span className="text-sm text-primary-light dark:text-primary-dark">
+                  <span
+                    className="text-sm"
+                    style={{
+                      color: checkedTasks.has(task.id) ? '#9ca3af' : '#f9fafb',
+                      textDecoration: checkedTasks.has(task.id) ? 'line-through' : 'none'
+                    }}
+                  >
                     {task.task}
                   </span>
                 </div>
-                <p className="text-xs text-muted-light dark:text-muted-dark mt-0.5">{task.timing}</p>
+                <p className="text-xs mt-0.5" style={{ color: '#9ca3af' }}>{task.timing}</p>
               </div>
             </label>
           ))}
         </div>
       </div>
 
-      <div className="p-4 rounded-2xl bg-surface1-light dark:bg-surface1-dark shadow-elevated">
-        <h3 className="text-sm font-semibold text-primary-light dark:text-primary-dark mb-3">
-          Gear Checklist
+      <div className="p-5 rounded-2xl shadow-xl" style={{ backgroundColor: '#252628' }}>
+        <h3 className="text-sm font-semibold mb-3" style={{ color: '#f9fafb' }}>
+          Essential Gear
         </h3>
 
         {['clothing', 'nutrition', 'safety', 'tech'].map(category => {
@@ -201,28 +214,41 @@ export const PreparationTab: FC<Props> = ({
 
           return (
             <div key={category} className="mb-4 last:mb-0">
-              <p className="text-xs font-medium text-muted-light dark:text-muted-dark uppercase tracking-wide mb-2">
+              <p className="text-xs font-medium uppercase tracking-wide mb-2" style={{ color: '#6b7280' }}>
                 {category}
               </p>
               <div className="space-y-2">
                 {items.map(item => (
                   <label
                     key={item.id}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-surface2-light/50 dark:bg-surface2-dark/50 cursor-pointer hover:bg-surface2-light dark:hover:bg-surface2-dark transition-colors"
-                    style={{ minHeight: '44px' }}
+                    className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors"
+                    style={{
+                      minHeight: '44px',
+                      backgroundColor: checkedItems.has(item.id) ? '#1a1b1e' : 'rgba(255, 255, 255, 0.05)'
+                    }}
                   >
-                    <input
-                      type="checkbox"
-                      checked={checkedItems.has(item.id)}
-                      onChange={() => toggleItem(item.id)}
-                      className="w-5 h-5 rounded border-2 border-primary-light dark:border-primary-dark accent-primary-light dark:accent-primary-dark"
-                    />
-                    <span>{item.icon}</span>
-                    <span className="text-sm text-primary-light dark:text-primary-dark flex-1">
+                    <div
+                      className="w-5 h-5 rounded flex items-center justify-center cursor-pointer"
+                      style={{
+                        border: checkedItems.has(item.id) ? 'none' : '2px solid #6b7280',
+                        backgroundColor: checkedItems.has(item.id) ? '#22c55e' : 'transparent'
+                      }}
+                      onClick={() => toggleItem(item.id)}
+                    >
+                      {checkedItems.has(item.id) && <span style={{ color: '#fff', fontSize: '12px' }}>✓</span>}
+                    </div>
+                    <span className="text-xl">{item.icon}</span>
+                    <span
+                      className="text-sm flex-1"
+                      style={{
+                        color: checkedItems.has(item.id) ? '#9ca3af' : '#f9fafb',
+                        textDecoration: checkedItems.has(item.id) ? 'line-through' : 'none'
+                      }}
+                    >
                       {item.name}
                     </span>
-                    {item.required && (
-                      <span className="text-xs text-bad px-2 py-0.5 rounded-full bg-bad/10">
+                    {item.required && !checkedItems.has(item.id) && (
+                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
                         Required
                       </span>
                     )}
@@ -352,8 +378,8 @@ const WeatherClothingGuide: FC<{ temperature: number; timeOfDay: string }> = ({
   }
 
   return (
-    <div className="p-4 rounded-2xl bg-surface1-light dark:bg-surface1-dark shadow-elevated">
-      <h3 className="text-sm font-semibold text-primary-light dark:text-primary-dark mb-3">
+    <div className="p-5 rounded-2xl shadow-xl" style={{ backgroundColor: '#252628' }}>
+      <h3 className="text-sm font-semibold mb-3" style={{ color: '#f9fafb' }}>
         Clothing Guide
       </h3>
       <div className="flex items-center gap-3 mb-3">
@@ -364,15 +390,15 @@ const WeatherClothingGuide: FC<{ temperature: number; timeOfDay: string }> = ({
           {temperature}°
         </div>
         <div className="flex-1">
-          <p className="text-xs text-muted-light dark:text-muted-dark mb-1">Recommended layers</p>
-          <p className="text-sm text-primary-light dark:text-primary-dark">{layering}</p>
+          <p className="text-xs mb-1" style={{ color: '#9ca3af' }}>Recommended layers</p>
+          <p className="text-sm" style={{ color: '#f9fafb' }}>{layering}</p>
         </div>
       </div>
 
       {timeOfDay === 'night' && (
-        <div className="p-3 rounded-xl bg-warning-bg border border-warning">
-          <p className="text-xs text-warning font-semibold mb-1">🌙 Night Running Safety</p>
-          <p className="text-xs text-muted-light dark:text-muted-dark">
+        <div className="p-3 rounded-xl" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444' }}>
+          <p className="text-xs font-semibold mb-1" style={{ color: '#ef4444' }}>🌙 Night Running Safety</p>
+          <p className="text-xs" style={{ color: '#9ca3af' }}>
             Wear reflective gear and carry a light. Stay on well-lit, familiar routes.
           </p>
         </div>

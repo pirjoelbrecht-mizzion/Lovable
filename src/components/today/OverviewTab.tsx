@@ -43,29 +43,26 @@ export const OverviewTab: FC<Props> = ({
     : '#6b7280';
 
   return (
-    <div className="p-4 space-y-4 pb-8" style={{ color: '#e5e7eb' }}>
+    <div className="p-5 space-y-4 pb-8" style={{ color: '#f9fafb' }}>
       <div
-        className="p-6 rounded-2xl shadow-elevated relative overflow-hidden"
+        className="p-5 rounded-2xl shadow-xl relative overflow-hidden"
         style={{
-          background: 'linear-gradient(135deg, #16171a 0%, #1a1b1f 100%)',
+          background: 'linear-gradient(135deg, #252628 0%, #2a2b2d 100%)',
           borderLeft: `4px solid ${readinessColor}`,
         }}
       >
         <div className="flex justify-between items-start mb-4">
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="mb-1">
               <h1 className="text-2xl font-bold" style={{ color: '#f9fafb' }}>
                 {workoutData.title}
               </h1>
-              {workoutData.isAdapted && (
-                <span className="text-xs bg-primary-light/20 text-primary-light dark:bg-primary-dark/20 dark:text-primary-dark px-2 py-0.5 rounded-full font-medium">
-                  AI
-                </span>
-              )}
             </div>
-            <p className="text-xs" style={{ color: '#9ca3af' }}>{workoutData.type}</p>
+            <p className="text-xs uppercase tracking-wide" style={{ color: '#9ca3af' }}>
+              {workoutData.type}{workoutData.isAdapted && ' • ADAPTED'}
+            </p>
           </div>
-          <span className="text-xs bg-success text-black px-3 py-1.5 rounded-full font-bold shadow-lg">
+          <span className="text-xs px-3 py-1.5 rounded-full font-bold shadow-lg" style={{ backgroundColor: '#22c55e', color: '#000' }}>
             TODAY
           </span>
         </div>
@@ -77,31 +74,24 @@ export const OverviewTab: FC<Props> = ({
         </div>
 
         {readiness && (
-          <div className="flex items-center justify-between p-3 rounded-xl bg-surface1-light/50 dark:bg-surface1-dark/50">
-            <div className="flex items-center gap-2">
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white"
-                style={{ backgroundColor: readinessColor }}
-              >
-                {readiness.score}
-              </div>
-              <div>
-                <p className="text-xs font-medium" style={{ color: '#f9fafb' }}>
-                  Readiness Score
-                </p>
-                <p className="text-[10px] capitalize" style={{ color: '#9ca3af' }}>
+          <div className="flex items-center gap-3 p-4 rounded-xl" style={{ backgroundColor: '#1a1b1e' }}>
+            <div className="text-3xl">⚡</div>
+            <div className="flex-1">
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-3xl font-bold" style={{ color: readinessColor }}>
+                  {readiness.score}
+                </span>
+                <span className="text-sm uppercase font-bold tracking-wide" style={{ color: readinessColor }}>
                   {readiness.category}
-                </p>
+                </span>
+              </div>
+              <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#374151' }}>
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${readiness.score}%`, backgroundColor: readinessColor }}
+                />
               </div>
             </div>
-            {daysToRace !== null && (
-              <div className="text-right">
-                <p className="text-xs font-medium" style={{ color: '#f9fafb' }}>
-                  {daysToRace}
-                </p>
-                <p className="text-[10px]" style={{ color: '#9ca3af' }}>Days to race</p>
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -110,8 +100,8 @@ export const OverviewTab: FC<Props> = ({
         <WeatherSection weather={weather} onRefresh={onRefreshWeather} />
       )}
 
-      <div className="p-4 rounded-2xl bg-surface1-light dark:bg-surface1-dark shadow-elevated">
-        <div className="flex items-start gap-3 mb-3">
+      <div className="p-4 rounded-2xl shadow-xl" style={{ backgroundColor: '#252628' }}>
+        <div className="flex items-start gap-3">
           <div className="text-2xl">💬</div>
           <div>
             <h3 className="text-sm font-semibold mb-1" style={{ color: '#f9fafb' }}>
@@ -124,22 +114,29 @@ export const OverviewTab: FC<Props> = ({
         </div>
       </div>
 
-      <div className="flex items-center justify-between p-4 rounded-2xl bg-surface2-light dark:bg-surface2-dark">
+      <div className="flex items-center justify-between p-4 rounded-2xl shadow-xl" style={{ backgroundColor: '#252628' }}>
         <div className="flex items-center gap-3">
           <div className="text-2xl">🔥</div>
           <div>
             <p className="text-sm font-semibold" style={{ color: '#f9fafb' }}>
               {streak} day streak
             </p>
-            <p className="text-xs" style={{ color: '#9ca3af' }}>+{xpToEarn} XP to earn</p>
+            <p className="text-xs" style={{ color: '#9ca3af' }}>Keep it going!</p>
           </div>
+        </div>
+        <div className="text-right">
+          <p className="text-lg font-bold" style={{ color: '#22c55e' }}>+{xpToEarn}</p>
+          <p className="text-xs" style={{ color: '#9ca3af' }}>XP</p>
         </div>
       </div>
 
       <button
         onClick={onStart}
-        className="w-full py-4 rounded-2xl bg-primary-light dark:bg-primary-dark text-white font-bold text-base shadow-elevated hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-        style={{ minHeight: '56px' }}
+        className="w-full py-5 rounded-2xl text-white font-bold text-base shadow-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2 mt-6"
+        style={{
+          background: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)',
+          minHeight: '64px'
+        }}
       >
         <span>▶️</span>
         <span>Start Workout</span>
@@ -149,8 +146,8 @@ export const OverviewTab: FC<Props> = ({
 };
 
 const MetricCard: FC<{ icon: string; label: string; value: string }> = ({ icon, label, value }) => (
-  <div className="flex flex-col items-center p-3 rounded-xl bg-surface2-light/50 dark:bg-surface2-dark/50">
-    <span className="text-lg mb-1">{icon}</span>
+  <div className="flex flex-col items-center p-3 rounded-xl" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
+    <span className="text-2xl mb-1">{icon}</span>
     <span className="text-[10px] uppercase tracking-wide mb-1" style={{ color: '#9ca3af' }}>
       {label}
     </span>
@@ -163,7 +160,7 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData; onRefresh: () => void }
   onRefresh,
 }) => {
   return (
-    <div className="p-4 rounded-2xl bg-surface1-light dark:bg-surface1-dark shadow-elevated">
+    <div className="p-4 rounded-2xl shadow-xl" style={{ backgroundColor: '#252628' }}>
       <div className="flex justify-between items-center mb-3">
         <h3 className="text-sm font-semibold" style={{ color: '#f9fafb' }}>
           Today's Weather
@@ -178,7 +175,7 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData; onRefresh: () => void }
         </button>
       </div>
 
-      <div className="flex items-center justify-between mb-3 p-3 rounded-xl bg-surface2-light/50 dark:bg-surface2-dark/50">
+      <div className="flex items-center justify-between mb-3 p-3 rounded-xl" style={{ backgroundColor: '#1a1b1e' }}>
         <div className="flex items-center gap-3">
           <span className="text-3xl">{weather.current.icon}</span>
           <div>
@@ -212,11 +209,10 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData; onRefresh: () => void }
       </div>
 
       {weather.bestRunWindow && (
-        <div className="p-3 rounded-xl bg-success/10 border border-success/20 mb-3">
-          <p className="text-xs font-semibold mb-1" style={{ color: '#22c55e' }}>Best Run Window</p>
+        <div className="p-3 rounded-xl mb-3" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+          <p className="text-xs font-semibold mb-1" style={{ color: '#22c55e' }}>Best window: {weather.bestRunWindow.start} – {weather.bestRunWindow.end}</p>
           <p className="text-xs" style={{ color: '#d1d5db' }}>
-            {weather.bestRunWindow.start} - {weather.bestRunWindow.end} • {weather.bestRunWindow.temp}° •{' '}
-            {weather.bestRunWindow.reason}
+            {weather.bestRunWindow.temp}° • {weather.bestRunWindow.reason}
           </p>
         </div>
       )}
@@ -237,20 +233,21 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData; onRefresh: () => void }
 };
 
 const HourlyWeatherCard: FC<{ hour: any }> = ({ hour }) => {
-  const getTempColor = (temp: number) => {
-    if (temp < 10) return '#60a5fa';
-    if (temp < 20) return '#34d399';
-    if (temp < 25) return '#fbbf24';
-    return '#f87171';
-  };
+  const isOptimalTemp = hour.temp >= 16 && hour.temp <= 19;
 
   return (
-    <div className="flex flex-col items-center min-w-[50px] p-2 rounded-lg bg-surface2-light/30 dark:bg-surface2-dark/30">
+    <div
+      className="flex flex-col items-center min-w-[50px] p-2 rounded-lg"
+      style={{
+        backgroundColor: isOptimalTemp ? 'rgba(96, 165, 250, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+        border: isOptimalTemp ? '1px solid rgba(96, 165, 250, 0.3)' : 'none'
+      }}
+    >
       <span className="text-[10px] mb-1" style={{ color: '#9ca3af' }}>{hour.time}</span>
       <span className="text-lg mb-1">{hour.icon}</span>
       <span
         className="text-xs font-bold"
-        style={{ color: getTempColor(hour.temp) }}
+        style={{ color: isOptimalTemp ? '#60a5fa' : '#f9fafb' }}
       >
         {hour.temp}°
       </span>

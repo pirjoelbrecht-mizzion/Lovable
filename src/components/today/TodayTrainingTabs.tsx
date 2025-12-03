@@ -16,9 +16,9 @@ interface Props {
 }
 
 const TABS: Tab[] = [
-  { id: 'overview', label: 'Overview', icon: '📊' },
+  { id: 'overview', label: 'Overview', icon: '🎯' },
   { id: 'intelligence', label: 'Intelligence', icon: '🧠' },
-  { id: 'preparation', label: 'Prep', icon: '🎒' },
+  { id: 'preparation', label: 'Preparation', icon: '🎒' },
 ];
 
 export const TodayTrainingTabs: FC<Props> = ({ activeTab, onTabChange, children }) => {
@@ -82,22 +82,20 @@ export const TodayTrainingTabs: FC<Props> = ({ activeTab, onTabChange, children 
   const activeIndex = TABS.findIndex(t => t.id === activeTab);
 
   return (
-    <div className="flex flex-col h-full bg-bg-light dark:bg-bg-dark" style={{ backgroundColor: '#1a1b1f', color: '#e5e7eb' }}>
-      <div className="sticky top-0 z-20 bg-bg-light dark:bg-bg-dark border-b border-line-light dark:border-line-dark" style={{ backgroundColor: '#1a1b1f', borderColor: '#374151' }}>
+    <div className="flex flex-col h-full" style={{ backgroundColor: '#1a1b1f', color: '#f9fafb' }}>
+      <div className="sticky top-0 z-50 border-b" style={{ backgroundColor: '#1a1b1f', borderColor: '#374151' }}>
         <div className="flex items-center justify-around relative px-2 pt-2">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => handleTabClick(tab.id)}
-              className={`
-                flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-t-xl
-                transition-all duration-200 relative
-                ${activeTab === tab.id
-                  ? 'text-primary-light dark:text-primary-dark'
-                  : 'text-muted-light dark:text-muted-dark hover:text-primary-light dark:hover:text-primary-dark'
-                }
-              `}
-              style={{ minWidth: '44px', minHeight: '44px' }}
+              className="flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-t-xl transition-all duration-200 relative"
+              style={{
+                opacity: activeTab === tab.id ? 1 : 0.6,
+                color: '#f9fafb',
+                minWidth: '44px',
+                minHeight: '44px'
+              }}
             >
               <span className="text-xl">{tab.icon}</span>
               <span className="text-xs font-medium whitespace-nowrap">{tab.label}</span>
@@ -105,7 +103,8 @@ export const TodayTrainingTabs: FC<Props> = ({ activeTab, onTabChange, children 
               {activeTab === tab.id && (
                 <motion.div
                   layoutId="activeTabIndicator"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-light dark:bg-primary-dark rounded-full"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
+                  style={{ backgroundColor: '#22c55e' }}
                   transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                 />
               )}
