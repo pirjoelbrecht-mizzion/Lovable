@@ -112,8 +112,9 @@ function calculatePace(distanceKm: number, durationMin: number): number | null {
   if (distanceKm <= 0 || durationMin <= 0) return null;
   const paceMinKm = durationMin / distanceKm;
 
-  // Filter unrealistic paces (walking pace or impossibly fast)
-  if (paceMinKm < 2.5 || paceMinKm > 15) return null;
+  // Filter unrealistic paces
+  // Allow up to 30 min/km for steep uphill terrain (common in ultra/trail running)
+  if (paceMinKm < 2.5 || paceMinKm > 30) return null;
 
   return paceMinKm;
 }
