@@ -7,6 +7,8 @@ import { getSavedLocation, detectLocation } from '@/utils/location';
 import { load } from '@/utils/storage';
 import type { TabId } from '@/components/today/TodayTrainingTabs';
 import { useWeeklyMetrics } from '@/hooks/useWeeklyMetrics';
+import { getCurrentUserProfile } from '@/lib/userProfile';
+import { loadUserProfile } from '@/state/userData';
 
 export interface EnhancedTodayTrainingData {
   workout: {
@@ -100,8 +102,8 @@ export function useEnhancedTodayTraining(
       const durationMin = parseDuration(todaySession.duration);
       const distanceKm = parseDistance(todaySession.distance);
 
-      // Fetch all data in parallel: weather, routes, and activity history
-      const [weather, routes, logEntries] = await Promise.all([
+      // Fetch all data in parallel: weather, routes, activity history, and user profile
+      const [weather, routes, logEntries, userProfile] = await Promise.all([
         userLocation
           ? getEnhancedWeatherData(userLocation.lat, userLocation.lon, today)
           : null,
@@ -111,6 +113,7 @@ export function useEnhancedTodayTraining(
           radiusKm: 20,
         } : undefined),
         getLogEntries(50),
+        getCurrentUserProfile(),
       ]);
 
       const matchingRoute = routes.find(r =>
@@ -216,7 +219,27 @@ export function useEnhancedTodayTraining(
 
       const recentPaces = runsWithPace.length > 0 ? runsWithPace : [];
 
-      const hrZones = calculateHRZones(165);
+      // Get max HR from multiple sources (priority order):
+      // 1. User settings (localStorage) - manually set by user
+      // 2. Supabase profile device data - from connected devices
+      // 3. Calculate from age if available
+      // 4. Fallback default
+      let maxHR = 165; // fallback default
+
+      const localProfile = loadUserProfile();
+      if (localProfile.hrMax) {
+        maxHR = localProfile.hrMax;
+      } else if (userProfile?.deviceData?.hrMax) {
+        maxHR = userProfile.deviceData.hrMax;
+      } else if (localProfile.age) {
+        // Use age-based formula: 220 - age
+        maxHR = 220 - localProfile.age;
+      } else if (userProfile?.deviceData?.hrAvg) {
+        // Last resort: estimate from average HR
+        maxHR = Math.round(userProfile.deviceData.hrAvg * 1.15);
+      }
+
+      const hrZones = calculateHRZones(maxHR);
 
       const streak = load('streak', 3);
       const xpToEarn = Math.round(durationMin * 1.5);
