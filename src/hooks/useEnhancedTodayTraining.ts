@@ -140,8 +140,25 @@ export function useEnhancedTodayTraining(
         bodyMass: 60,
       }) : null;
 
-      const paceProfile = load('paceProfile', { base: 5.5 });
-      const basePace = paceProfile.base || 5.5;
+      // Calculate base pace from recent run history (last 30 days, moderate effort)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const recentRuns = logEntries
+        .filter(e => {
+          const entryDate = new Date(e.dateISO);
+          return e.km && e.durationMin && e.km > 0 && entryDate >= thirtyDaysAgo;
+        });
+
+      let basePace = 5.5; // fallback default
+      if (recentRuns.length >= 3) {
+        // Calculate average pace from recent runs
+        const totalPace = recentRuns.reduce((sum, e) => sum + (e.durationMin! / e.km!), 0);
+        basePace = totalPace / recentRuns.length;
+      } else {
+        // Try to load from stored profile
+        const paceProfile = load('paceProfile', { base: 5.5 });
+        basePace = paceProfile.base || 5.5;
+      }
 
       let paceAdjustment = 0;
       const adjustedFor: string[] = [];
@@ -167,20 +184,32 @@ export function useEnhancedTodayTraining(
       const targetMin = (basePace + paceAdjustment).toFixed(1);
       const targetMax = (basePace + paceAdjustment + 0.5).toFixed(1);
 
-      // Get recent paces from actual log entries
-      const recentLogEntries = await getLogEntries(14);
+      // Get recent paces from actual log entries (last 14 days)
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const twoWeeksAgo = new Date(now);
+      twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+
+      const recentLogEntries = await getLogEntries(50);
       const runsWithPace = recentLogEntries
-        .filter(entry => entry.km && entry.durationMin && entry.km > 0)
+        .filter(entry => {
+          if (!entry.km || !entry.durationMin || entry.km <= 0) return false;
+          const entryDate = new Date(entry.dateISO);
+          return entryDate >= twoWeeksAgo && entryDate <= now;
+        })
         .map(entry => {
           const paceMinPerKm = entry.durationMin! / entry.km!;
-          const daysAgo = Math.floor((Date.now() - new Date(entry.date).getTime()) / (1000 * 60 * 60 * 24));
+          const entryDate = new Date(entry.dateISO);
+          entryDate.setHours(0, 0, 0, 0);
+          const daysAgo = Math.floor((now.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
           return {
             date: daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1 day ago' : `${daysAgo} days ago`,
             pace: `${paceMinPerKm.toFixed(1)} min/km`,
-            daysAgo
+            daysAgo,
+            dateISO: entry.dateISO
           };
         })
-        .sort((a, b) => a.daysAgo - b.daysAgo)
+        .sort((a, b) => b.daysAgo - a.daysAgo) // Most recent first
         .slice(0, 3);
 
       const recentPaces = runsWithPace.length > 0 ? runsWithPace : [];
