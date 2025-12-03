@@ -186,6 +186,9 @@ export async function calculatePaceProfile(userId?: string): Promise<PaceProfile
     // Group segments by grade bucket
     const segmentsByBucket: Record<string, WeightedSegment[]> = {};
 
+    console.log(`[DEBUG] Total weighted segments: ${allWeightedSegments.length}`);
+    console.log(`[DEBUG] Sample segments:`, allWeightedSegments.slice(0, 5));
+
     for (const segment of allWeightedSegments) {
       const bucketKey = segment.gradeBucket;
       if (!segmentsByBucket[bucketKey]) {
@@ -193,6 +196,8 @@ export async function calculatePaceProfile(userId?: string): Promise<PaceProfile
       }
       segmentsByBucket[bucketKey].push(segment);
     }
+
+    console.log(`[DEBUG] Segments by bucket:`, Object.keys(segmentsByBucket).map(key => `${key}: ${segmentsByBucket[key].length}`));
 
     // Calculate pace for each grade bucket
     const gradeBucketPaces: Record<string, GradeBucketPace> = {};
@@ -202,14 +207,20 @@ export async function calculatePaceProfile(userId?: string): Promise<PaceProfile
         // Only calculate if we have at least 3 segments
         const medianPace = calculateWeightedMedian(segments);
 
+        console.log(`[DEBUG] Bucket ${bucketKey}: ${segments.length} segments, median pace: ${medianPace.toFixed(2)}`);
+
         gradeBucketPaces[bucketKey] = {
           bucket: bucketKey as GradeBucketKey,
           paceMinKm: parseFloat(medianPace.toFixed(2)),
           sampleSize: segments.length,
           confidence: determineConfidence(segments.length),
         };
+      } else {
+        console.log(`[DEBUG] Bucket ${bucketKey}: Only ${segments.length} segments (need 3+), skipping`);
       }
     }
+
+    console.log(`[DEBUG] Final gradeBucketPaces:`, gradeBucketPaces);
 
     // Calculate overall terrain type paces (fallback)
     const uphillPace = segmentsByType.uphill.length > 0
