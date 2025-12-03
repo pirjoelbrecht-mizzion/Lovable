@@ -227,18 +227,53 @@ export function PaceProfileCard() {
             {getDataQualityLabel(profile.dataQuality)}
           </div>
         </div>
-        {refreshing && (
-          <div style={{
-            padding: '8px 16px',
-            backgroundColor: '#f3f4f6',
-            color: '#6b7280',
-            borderRadius: '6px',
-            fontSize: '14px',
-            fontWeight: 500,
-          }}>
-            Analyzing...
-          </div>
-        )}
+        <div>
+          {refreshing ? (
+            <div style={{
+              padding: '8px 16px',
+              backgroundColor: '#f3f4f6',
+              color: '#6b7280',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: 500,
+            }}>
+              Analyzing...
+            </div>
+          ) : (
+            <button
+              onClick={async () => {
+                setRefreshing(true);
+                try {
+                  console.log('[PaceProfileCard] Re-analyzing all activities...');
+                  const { analyzeUserActivities } = await import('@/engine/historicalAnalysis/analyzeActivityTerrain');
+                  const analyzedCount = await analyzeUserActivities();
+                  console.log(`[PaceProfileCard] Analyzed ${analyzedCount} activities`);
+
+                  console.log('[PaceProfileCard] Recalculating pace profile...');
+                  const data = await recalculatePaceProfile();
+                  setProfile(data);
+                  console.log('[PaceProfileCard] Pace profile updated');
+                } catch (err) {
+                  console.error('Failed to recalculate pace profile:', err);
+                } finally {
+                  setRefreshing(false);
+                }
+              }}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 500,
+              }}
+            >
+              Recalculate
+            </button>
+          )}
+        </div>
       </div>
 
       <div style={{
