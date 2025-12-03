@@ -670,8 +670,8 @@ export default function Quest() {
         </div>
 
         <div className="quest-training-section">
-          <div className="quest-training-card">
-            <div className="quest-card-header">
+          <div className="quest-training-card" style={viewMode === "mobile" ? { padding: 0, overflow: 'hidden' } : {}}>
+            <div className="quest-card-header" style={viewMode === "mobile" ? { padding: '24px 24px 0' } : {}}>
               <h2 className="quest-card-title">This Week</h2>
               <button
                 className="quest-list-btn"
@@ -689,38 +689,36 @@ export default function Quest() {
               <>
                 {/* NEW: Mobile Training View */}
                 {todayData ? (
-                  <div style={{ padding: '16px 0' }}>
-                    <TodayTrainingMobile
-                      data={{
-                        type: todayData.summary.title,
-                        duration: todayData.summary.duration,
-                        distance: todayData.summary.distance,
-                        pace: todayData.summary.pace,
-                        isToday: true,
-                        isAdapted: false
-                      }}
-                      onComplete={() => {
-                        const todaySession = sessions.find(s => s.isToday);
-                        if (todaySession) {
-                          const monday = getMonday();
-                          const workoutDate = new Date(monday);
-                          workoutDate.setDate(workoutDate.getDate() + sessions.indexOf(todaySession));
-                          setSelectedWorkoutForFeedback({
-                            date: workoutDate.toISOString().slice(0, 10),
-                            title: todaySession.type,
-                            type: detectSessionType(todaySession.type),
-                            distanceKm: parseFloat(todaySession.distance?.replace('K', '') || '0'),
-                            durationMinutes: parseInt(todaySession.duration.match(/\d+/)?.[0] || '0', 10)
-                          });
-                          setFeedbackModalOpen(true);
-                        }
-                      }}
-                      onEdit={() => {
-                        const todaySession = sessions.find(s => s.isToday);
-                        if (todaySession) setSelectedSession(todaySession);
-                      }}
-                    />
-                  </div>
+                  <TodayTrainingMobile
+                    data={{
+                      type: todayData.summary.title,
+                      duration: todayData.summary.duration,
+                      distance: todayData.summary.distance,
+                      pace: todayData.summary.pace,
+                      isToday: true,
+                      isAdapted: false
+                    }}
+                    onComplete={() => {
+                      const todaySession = sessions.find(s => s.isToday);
+                      if (todaySession) {
+                        const monday = getMonday();
+                        const workoutDate = new Date(monday);
+                        workoutDate.setDate(workoutDate.getDate() + sessions.indexOf(todaySession));
+                        setSelectedWorkoutForFeedback({
+                          date: workoutDate.toISOString().slice(0, 10),
+                          title: todaySession.type,
+                          type: detectSessionType(todaySession.type),
+                          distanceKm: parseFloat(todaySession.distance?.replace('K', '') || '0'),
+                          durationMinutes: parseInt(todaySession.duration.match(/\d+/)?.[0] || '0', 10)
+                        });
+                        setFeedbackModalOpen(true);
+                      }
+                    }}
+                    onEdit={() => {
+                      const todaySession = sessions.find(s => s.isToday);
+                      if (todaySession) setSelectedSession(todaySession);
+                    }}
+                  />
                 ) : (
                   <div style={{ padding: '32px', textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>
                     No training session scheduled for today

@@ -95,9 +95,7 @@ export const TodayTrainingMobile: FC<Props> = ({
     <>
       <div style={{
         width: '100%',
-        maxWidth: '448px',
-        margin: '0 auto',
-        height: '100vh',
+        height: '600px',
         backgroundColor: '#0f1014',
         overflow: 'hidden'
       }}>
