@@ -55,122 +55,220 @@ export const OverviewTab: FC<Props> = ({
     : '#6b7280';
 
   return (
-    <div className="relative" style={{ backgroundColor: '#1a1b1f', minHeight: '100vh' }}>
+    <div style={{
+      backgroundColor: '#0f1014',
+      minHeight: '100%',
+      paddingBottom: '80px'
+    }}>
       {/* Coach Message */}
       <div
-        className="px-4 py-3 flex items-start gap-2"
-        style={{ backgroundColor: '#2a2b2f', borderBottom: '1px solid #374151' }}
+        style={{
+          padding: '12px 16px',
+          backgroundColor: '#1a1c24',
+          borderBottom: '1px solid #2a2d3a',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '8px'
+        }}
       >
-        <div className="text-lg">💬</div>
-        <div className="flex-1">
-          <p className="text-xs leading-relaxed" style={{ color: '#d1d5db' }}>
+        <div style={{ fontSize: '16px' }}>💬</div>
+        <div style={{ flex: 1 }}>
+          <p style={{
+            fontSize: '12px',
+            lineHeight: '1.5',
+            color: '#d1d5db',
+            margin: 0
+          }}>
             {coachMessage}
           </p>
         </div>
       </div>
 
-      {/* Streak */}
-      <div
-        className="px-4 py-2 flex items-center justify-between"
-        style={{ backgroundColor: '#1a1b1f', borderBottom: '1px solid #374151' }}
-      >
-        <div className="flex items-center gap-2">
-          <span className="text-base">🔥</span>
-          <span className="text-sm font-semibold" style={{ color: '#f9fafb' }}>
-            {streak} day streak
-          </span>
-          <span className="text-xs" style={{ color: '#9ca3af' }}>
-            Keep it going!
+      {/* Streak Banner */}
+      {daysToRace !== null && (
+        <div
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#0f1014',
+            borderBottom: '1px solid #2a2d3a',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '14px' }}>🔥</span>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#f9fafb' }}>
+              {streak} day streak
+            </span>
+            <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+              Keep it going!
+            </span>
+          </div>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#22c55e' }}>
+            +{xpToEarn} XP
           </span>
         </div>
-        <span className="text-sm font-bold" style={{ color: '#22c55e' }}>
-          +{xpToEarn} XP
-        </span>
-      </div>
+      )}
 
       {/* Workout Card */}
-      <div className="p-4">
+      <div style={{ padding: '16px' }}>
         <div
-          className="p-4 rounded-xl relative"
           style={{
-            background: 'linear-gradient(135deg, #1e3a2f 0%, #1a2e26 100%)',
+            padding: '16px',
+            borderRadius: '16px',
+            background: 'linear-gradient(135deg, #1a2e26 0%, #152620 100%)',
             border: '2px solid #22c55e',
+            position: 'relative'
           }}
         >
           {daysToRace !== null && (
             <div
-              className="absolute top-3 right-3 px-2.5 py-1 rounded-md text-xs font-bold"
-              style={{ backgroundColor: '#22c55e', color: '#000' }}
+              style={{
+                position: 'absolute',
+                top: '12px',
+                right: '12px',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 700,
+                backgroundColor: '#22c55e',
+                color: '#000'
+              }}
             >
               {daysToRace} days
             </div>
           )}
 
-          <h1 className="text-xl font-bold mb-0.5" style={{ color: '#f9fafb' }}>
+          <h1 style={{
+            fontSize: '20px',
+            fontWeight: 700,
+            color: '#f9fafb',
+            margin: '0 0 4px 0'
+          }}>
             {workoutData.title}
           </h1>
-          <p className="text-[11px] uppercase tracking-wide mb-3" style={{ color: '#9ca3af' }}>
+          <p style={{
+            fontSize: '10px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            color: '#9ca3af',
+            margin: '0 0 12px 0'
+          }}>
             {workoutData.type} • {workoutData.isAdapted ? 'ADAPTED' : 'STANDARD'}
           </p>
 
-          <div className="grid grid-cols-3 gap-2 mb-3">
-            <div
-              className="text-center py-2 px-1 rounded"
-              style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
-            >
-              <div className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: '#9ca3af' }}>
+          {/* Metrics Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '8px',
+            marginBottom: '12px'
+          }}>
+            <div style={{
+              textAlign: 'center',
+              padding: '8px 4px',
+              borderRadius: '8px',
+              backgroundColor: 'rgba(0, 0, 0, 0.3)'
+            }}>
+              <div style={{
+                fontSize: '9px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: '#9ca3af',
+                marginBottom: '4px'
+              }}>
                 DURATION
               </div>
-              <div className="text-base font-bold" style={{ color: '#f9fafb' }}>
+              <div style={{ fontSize: '16px', fontWeight: 700, color: '#f9fafb' }}>
                 {workoutData.duration}
               </div>
             </div>
-            <div
-              className="text-center py-2 px-1 rounded"
-              style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
-            >
-              <div className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: '#9ca3af' }}>
+            <div style={{
+              textAlign: 'center',
+              padding: '8px 4px',
+              borderRadius: '8px',
+              backgroundColor: 'rgba(0, 0, 0, 0.3)'
+            }}>
+              <div style={{
+                fontSize: '9px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: '#9ca3af',
+                marginBottom: '4px'
+              }}>
                 DISTANCE
               </div>
-              <div className="text-base font-bold" style={{ color: '#f9fafb' }}>
+              <div style={{ fontSize: '16px', fontWeight: 700, color: '#f9fafb' }}>
                 {workoutData.distance}
               </div>
             </div>
-            <div
-              className="text-center py-2 px-1 rounded"
-              style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
-            >
-              <div className="text-[9px] uppercase tracking-wider mb-0.5" style={{ color: '#9ca3af' }}>
+            <div style={{
+              textAlign: 'center',
+              padding: '8px 4px',
+              borderRadius: '8px',
+              backgroundColor: 'rgba(0, 0, 0, 0.3)'
+            }}>
+              <div style={{
+                fontSize: '9px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: '#9ca3af',
+                marginBottom: '4px'
+              }}>
                 PACE
               </div>
-              <div className="text-base font-bold" style={{ color: '#f9fafb' }}>
+              <div style={{ fontSize: '16px', fontWeight: 700, color: '#f9fafb' }}>
                 {workoutData.pace}
               </div>
             </div>
           </div>
 
+          {/* Readiness */}
           {readiness && (
-            <div
-              className="p-2.5 rounded flex items-center gap-2"
-              style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
-            >
-              <div className="text-xl">⚡</div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-xs font-semibold" style={{ color: '#f9fafb' }}>
+            <div style={{
+              padding: '10px',
+              borderRadius: '8px',
+              backgroundColor: 'rgba(0, 0, 0, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <div style={{ fontSize: '20px' }}>⚡</div>
+              <div style={{ flex: 1 }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '4px'
+                }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#f9fafb' }}>
                     Readiness
                   </span>
-                  <span className="text-base font-bold" style={{ color: readinessColor }}>
+                  <span style={{ fontSize: '16px', fontWeight: 700, color: readinessColor }}>
                     {readiness.score}
                   </span>
                 </div>
-                <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: '#374151' }}>
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${readiness.score}%`, backgroundColor: readinessColor }}
-                  />
+                <div style={{
+                  height: '4px',
+                  borderRadius: '2px',
+                  backgroundColor: '#374151',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${readiness.score}%`,
+                    backgroundColor: readinessColor,
+                    transition: 'width 0.3s ease'
+                  }} />
                 </div>
-                <div className="text-[10px] uppercase tracking-wide mt-0.5" style={{ color: readinessColor }}>
+                <div style={{
+                  fontSize: '9px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  color: readinessColor,
+                  marginTop: '4px'
+                }}>
                   {readiness.category}
                 </div>
               </div>
@@ -179,20 +277,33 @@ export const OverviewTab: FC<Props> = ({
         </div>
       </div>
 
-      {/* Weather */}
+      {/* Weather Section */}
       {weather && <WeatherSection weather={weather} />}
 
       {/* Start Button */}
-      <div className="px-4 py-3 mt-4">
+      <div style={{ padding: '0 16px 16px 16px' }}>
         <button
           onClick={onStart}
-          className="w-full py-3.5 rounded-xl font-bold text-base shadow-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
           style={{
+            width: '100%',
+            padding: '14px',
+            borderRadius: '12px',
+            fontSize: '15px',
+            fontWeight: 700,
             background: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)',
             color: '#fff',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            transition: 'opacity 0.2s'
           }}
+          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
         >
-          <span className="text-lg">▶</span>
+          <span style={{ fontSize: '18px' }}>▶</span>
           <span>Start Workout</span>
         </button>
       </div>
@@ -231,34 +342,34 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData }> = ({ weather }) => {
     ],
   };
 
-  const chartOptions = {
+  const chartOptions: any = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
       tooltip: {
         enabled: true,
-        backgroundColor: '#252628',
+        backgroundColor: '#1a1c24',
         titleColor: '#f9fafb',
         bodyColor: '#d1d5db',
-        borderColor: '#374151',
+        borderColor: '#2a2d3a',
         borderWidth: 1,
-        padding: 6,
+        padding: 8,
         displayColors: false,
         callbacks: {
-          label: (context: any) => `${context.parsed.y}°C`,
+          label: (context: any) => `${context.parsed.y}°`,
         },
       },
     },
     scales: {
       x: {
         grid: {
-          color: '#374151',
+          color: '#2a2d3a',
           drawBorder: false,
         },
         ticks: {
           color: '#9ca3af',
-          font: { size: 9 },
+          font: { size: 10 },
           maxRotation: 0,
           autoSkip: true,
           maxTicksLimit: 6,
@@ -266,12 +377,12 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData }> = ({ weather }) => {
       },
       y: {
         grid: {
-          color: '#374151',
+          color: '#2a2d3a',
           drawBorder: false,
         },
         ticks: {
           color: '#9ca3af',
-          font: { size: 9 },
+          font: { size: 10 },
           callback: (value: any) => `${value}°`,
         },
         position: 'right',
@@ -280,24 +391,26 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData }> = ({ weather }) => {
   };
 
   return (
-    <div className="px-4 mt-2">
-      <div
-        className="rounded-xl overflow-hidden"
-        style={{ backgroundColor: '#252628', border: '1px solid #374151' }}
-      >
+    <div style={{ padding: '0 16px 16px 16px' }}>
+      <div style={{
+        borderRadius: '16px',
+        backgroundColor: '#1a1c24',
+        border: '1px solid #2a2d3a',
+        overflow: 'hidden'
+      }}>
         {/* Header */}
-        <div className="p-3">
-          <div className="text-xs font-semibold mb-1" style={{ color: '#f9fafb' }}>
+        <div style={{ padding: '12px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: '#f9fafb', marginBottom: '8px' }}>
             {dateStr}
           </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="text-4xl">{weather.current.icon}</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ fontSize: '40px' }}>{weather.current.icon}</div>
               <div>
-                <div className="text-3xl font-bold" style={{ color: '#f9fafb' }}>
+                <div style={{ fontSize: '32px', fontWeight: 700, color: '#f9fafb' }}>
                   {weather.current.temp}°
                 </div>
-                <div className="text-xs" style={{ color: '#9ca3af' }}>
+                <div style={{ fontSize: '11px', color: '#9ca3af' }}>
                   H:{weather.current.high || weather.current.temp + 5}° L:
                   {weather.current.low || weather.current.temp - 5}°
                 </div>
@@ -305,8 +418,15 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData }> = ({ weather }) => {
             </div>
             <button
               onClick={() => setExpanded(!expanded)}
-              className="p-1.5 rounded-lg text-base"
-              style={{ color: '#9ca3af' }}
+              style={{
+                padding: '6px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                color: '#9ca3af',
+                backgroundColor: 'transparent',
+                border: 'none',
+                cursor: 'pointer'
+              }}
             >
               {expanded ? '▲' : '▼'}
             </button>
@@ -314,15 +434,24 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData }> = ({ weather }) => {
         </div>
 
         {/* Hourly Icons Strip */}
-        <div className="px-3 pb-2 overflow-x-auto scrollbar-hide">
-          <div className="flex gap-2" style={{ minWidth: 'max-content' }}>
+        <div style={{
+          padding: '0 12px 12px 12px',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch'
+        }} className="scrollbar-hide">
+          <div style={{ display: 'flex', gap: '8px', minWidth: 'max-content' }}>
             {hours.slice(0, 12).map((hour, idx) => (
-              <div key={idx} className="flex flex-col items-center" style={{ minWidth: '36px' }}>
-                <div className="text-[10px] mb-0.5" style={{ color: '#9ca3af' }}>
+              <div key={idx} style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                minWidth: '40px'
+              }}>
+                <div style={{ fontSize: '10px', color: '#9ca3af', marginBottom: '4px' }}>
                   {hour.time.split(':')[0]}
                 </div>
-                <div className="text-xl mb-0.5">{hour.icon}</div>
-                <div className="text-xs font-semibold" style={{ color: '#f9fafb' }}>
+                <div style={{ fontSize: '20px', marginBottom: '4px' }}>{hour.icon}</div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#f9fafb' }}>
                   {hour.temp}°
                 </div>
               </div>
@@ -331,58 +460,43 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData }> = ({ weather }) => {
         </div>
 
         {/* Chart */}
-        <div className="px-3 pb-2" style={{ height: '140px' }}>
+        <div style={{ padding: '0 12px 12px 12px', height: '140px' }}>
           <Line data={chartData} options={chartOptions} />
         </div>
 
         {/* Best Window */}
         {weather.bestRunWindow && (
-          <div className="px-3 pb-3">
-            <div
-              className="p-2 rounded flex items-center gap-2"
-              style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)' }}
-            >
-              <span className="text-xs" style={{ color: '#22c55e' }}>⏰ {weather.bestRunWindow.start}</span>
-              <span className="text-[10px]" style={{ color: '#9ca3af' }}>
+          <div style={{ padding: '0 12px 12px 12px' }}>
+            <div style={{
+              padding: '8px 12px',
+              borderRadius: '8px',
+              backgroundColor: 'rgba(34, 197, 94, 0.1)',
+              border: '1px solid rgba(34, 197, 94, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flexWrap: 'wrap'
+            }}>
+              <span style={{ fontSize: '11px', fontWeight: 600, color: '#22c55e' }}>
+                ⏰ {weather.bestRunWindow.start}
+              </span>
+              <span style={{ fontSize: '10px', color: '#9ca3af' }}>
                 Best window: {weather.bestRunWindow.start} – {weather.bestRunWindow.end}
               </span>
             </div>
-            <div className="text-[10px] mt-1 px-1" style={{ color: '#9ca3af' }}>
+            <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '6px', paddingLeft: '4px' }}>
               {weather.bestRunWindow.temp}° • Low wind • {weather.bestRunWindow.reason}
             </div>
           </div>
         )}
 
-        {/* Details */}
-        {expanded && (
-          <div
-            className="px-3 pb-3 pt-2 grid grid-cols-3 gap-2 text-[10px]"
-            style={{ borderTop: '1px solid #374151' }}
-          >
-            <div className="text-center">
-              <div style={{ color: '#9ca3af' }}>🌅 Sunrise</div>
-              <div className="font-semibold" style={{ color: '#f9fafb' }}>
-                {weather.sun.sunrise}
-              </div>
-            </div>
-            <div className="text-center">
-              <div style={{ color: '#9ca3af' }}>☀️ UV {weather.uvIndex}</div>
-              <div className="font-semibold" style={{ color: '#f9fafb' }}>
-                Index {weather.uvIndex}
-              </div>
-            </div>
-            <div className="text-center">
-              <div style={{ color: '#9ca3af' }}>🌇 Sunset</div>
-              <div className="font-semibold" style={{ color: '#f9fafb' }}>
-                {weather.sun.sunset}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Hourly Scroll */}
-        <div className="px-3 pb-3 overflow-x-auto scrollbar-hide">
-          <div className="flex gap-1.5" style={{ minWidth: 'max-content' }}>
+        {/* Hourly Forecast */}
+        <div style={{
+          padding: '0 12px 12px 12px',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch'
+        }} className="scrollbar-hide">
+          <div style={{ display: 'flex', gap: '6px', minWidth: 'max-content' }}>
             {hours.map((hour, idx) => {
               const isOptimal =
                 weather.bestRunWindow &&
@@ -392,23 +506,28 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData }> = ({ weather }) => {
               return (
                 <div
                   key={idx}
-                  className="flex flex-col items-center p-1.5 rounded"
                   style={{
-                    minWidth: '46px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    padding: '8px 6px',
+                    borderRadius: '8px',
+                    minWidth: '50px',
                     backgroundColor: isOptimal
                       ? 'rgba(96, 165, 250, 0.15)'
                       : 'rgba(255, 255, 255, 0.03)',
                     border: isOptimal ? '1px solid rgba(96, 165, 250, 0.3)' : 'none',
                   }}
                 >
-                  <div className="text-[10px] mb-0.5" style={{ color: '#9ca3af' }}>
+                  <div style={{ fontSize: '10px', color: '#9ca3af', marginBottom: '4px' }}>
                     {hour.time.split(':')[0]}:00
                   </div>
-                  <div className="text-base mb-0.5">{hour.icon}</div>
-                  <div
-                    className="text-xs font-bold"
-                    style={{ color: isOptimal ? '#60a5fa' : '#f9fafb' }}
-                  >
+                  <div style={{ fontSize: '16px', marginBottom: '4px' }}>{hour.icon}</div>
+                  <div style={{
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: isOptimal ? '#60a5fa' : '#f9fafb'
+                  }}>
                     {hour.temp}°
                   </div>
                 </div>
