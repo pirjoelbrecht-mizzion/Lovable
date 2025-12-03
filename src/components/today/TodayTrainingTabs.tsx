@@ -16,7 +16,7 @@ interface Props {
 }
 
 const TABS: Tab[] = [
-  { id: 'overview', label: 'Overview', icon: '🎯' },
+  { id: 'overview', label: 'Overview', icon: '⚡' },
   { id: 'intelligence', label: 'Intelligence', icon: '🧠' },
   { id: 'preparation', label: 'Preparation', icon: '🎒' },
 ];
@@ -82,44 +82,95 @@ export const TodayTrainingTabs: FC<Props> = ({ activeTab, onTabChange, children 
   const activeIndex = TABS.findIndex(t => t.id === activeTab);
 
   return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: '#1a1b1f', color: '#f9fafb' }}>
-      <div className="sticky top-0 z-50 border-b" style={{ backgroundColor: '#1a1b1f', borderColor: '#374151' }}>
-        <div className="flex items-center justify-around relative px-2 pt-2">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => handleTabClick(tab.id)}
-              className="flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-t-xl transition-all duration-200 relative"
-              style={{
-                opacity: activeTab === tab.id ? 1 : 0.6,
-                color: '#f9fafb',
-                minWidth: '44px',
-                minHeight: '44px'
-              }}
-            >
-              <span className="text-xl">{tab.icon}</span>
-              <span className="text-xs font-medium whitespace-nowrap">{tab.label}</span>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      backgroundColor: '#0f1014',
+      color: '#f9fafb'
+    }}>
+      {/* Tab Header */}
+      <div style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        backgroundColor: '#1e2228',
+        borderBottom: '1px solid #2a2d3a',
+        borderRadius: '12px 12px 0 0',
+        margin: '0',
+        padding: '4px 8px'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-around',
+          position: 'relative',
+          gap: '4px'
+        }}>
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabClick(tab.id)}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  transition: 'all 0.2s',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  minWidth: '44px',
+                  minHeight: '44px',
+                  color: isActive ? '#f9fafb' : '#9ca3af'
+                }}
+              >
+                <span style={{ fontSize: '18px' }}>{tab.icon}</span>
+                <span style={{
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  whiteSpace: 'nowrap'
+                }}>
+                  {tab.label}
+                </span>
 
-              {activeTab === tab.id && (
-                <motion.div
-                  layoutId="activeTabIndicator"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-                  style={{ backgroundColor: '#22c55e' }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                />
-              )}
-            </button>
-          ))}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTabIndicator"
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: '10%',
+                      right: '10%',
+                      height: '2px',
+                      borderRadius: '2px',
+                      backgroundColor: '#22c55e'
+                    }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                  />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
+      {/* Tab Content */}
       <div
         ref={contentRef}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        className="flex-1 overflow-y-auto overscroll-contain"
         style={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
           WebkitOverflowScrolling: 'touch',
           touchAction: 'pan-y'
         }}

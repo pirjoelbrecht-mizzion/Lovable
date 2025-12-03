@@ -137,118 +137,103 @@ export const PreparationTab: FC<Props> = ({
 
   if (loading) {
     return (
-      <div className="p-4 flex items-center justify-center h-64">
-        <div className="text-muted-light dark:text-muted-dark">Loading checklist...</div>
+      <div style={{
+        padding: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '240px',
+        backgroundColor: '#0f1014'
+      }}>
+        <div style={{ color: '#9ca3af' }}>Loading checklist...</div>
       </div>
     );
   }
 
   return (
-    <div className="p-5 space-y-4 pb-8">
-      {requiredMissing.length > 0 && (
-        <div className="p-4 rounded-2xl" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444' }}>
-          <div className="flex items-start gap-2">
-            <span className="text-xl">⚠️</span>
-            <div>
-              <p className="text-sm font-semibold mb-1" style={{ color: '#ef4444' }}>Forgot something?</p>
-              <p className="text-xs" style={{ color: '#9ca3af' }}>
-                You have {requiredMissing.length} essential item{requiredMissing.length > 1 ? 's' : ''} unchecked
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="p-5 rounded-2xl shadow-xl" style={{ backgroundColor: '#252628' }}>
-        <h3 className="text-sm font-semibold mb-3" style={{ color: '#f9fafb' }}>
-          Pre-Run Checklist
-        </h3>
-        <div className="space-y-2">
-          {preRunTasks.map(task => (
-            <label
-              key={task.id}
-              className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors"
-              style={{
-                minHeight: '44px',
-                backgroundColor: checkedTasks.has(task.id) ? '#1a1b1e' : 'rgba(255, 255, 255, 0.05)'
-              }}
-            >
-              <div
-                className="w-5 h-5 rounded flex items-center justify-center cursor-pointer"
-                style={{
-                  border: checkedTasks.has(task.id) ? 'none' : '2px solid #6b7280',
-                  backgroundColor: checkedTasks.has(task.id) ? '#22c55e' : 'transparent'
-                }}
-                onClick={() => toggleTask(task.id)}
-              >
-                {checkedTasks.has(task.id) && <span style={{ color: '#fff', fontSize: '12px' }}>✓</span>}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span>{task.icon}</span>
-                  <span
-                    className="text-sm"
-                    style={{
-                      color: checkedTasks.has(task.id) ? '#9ca3af' : '#f9fafb',
-                      textDecoration: checkedTasks.has(task.id) ? 'line-through' : 'none'
-                    }}
-                  >
-                    {task.task}
-                  </span>
-                </div>
-                <p className="text-xs mt-0.5" style={{ color: '#9ca3af' }}>{task.timing}</p>
-              </div>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      <div className="p-5 rounded-2xl shadow-xl" style={{ backgroundColor: '#252628' }}>
-        <h3 className="text-sm font-semibold mb-3" style={{ color: '#f9fafb' }}>
+    <div style={{
+      backgroundColor: '#0f1014',
+      minHeight: '100%',
+      padding: '16px',
+      paddingBottom: '80px'
+    }}>
+      {/* Essential Gear Header */}
+      <div style={{
+        padding: '16px',
+        borderRadius: '16px',
+        backgroundColor: '#1a1c24',
+        border: '1px solid #2a2d3a',
+        marginBottom: '16px'
+      }}>
+        <h3 style={{
+          fontSize: '13px',
+          fontWeight: 600,
+          color: '#f9fafb',
+          marginBottom: '12px'
+        }}>
           Essential Gear
         </h3>
 
-        {['clothing', 'nutrition', 'safety', 'tech'].map(category => {
+        {['clothing', 'nutrition', 'safety'].map(category => {
           const items = gearItems.filter(item => item.category === category);
           if (items.length === 0) return null;
 
           return (
-            <div key={category} className="mb-4 last:mb-0">
-              <p className="text-xs font-medium uppercase tracking-wide mb-2" style={{ color: '#6b7280' }}>
-                {category}
-              </p>
-              <div className="space-y-2">
+            <div key={category} style={{ marginBottom: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {items.map(item => (
                   <label
                     key={item.id}
-                    className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors"
                     style={{
-                      minHeight: '44px',
-                      backgroundColor: checkedItems.has(item.id) ? '#1a1b1e' : 'rgba(255, 255, 255, 0.05)'
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s',
+                      backgroundColor: checkedItems.has(item.id) ? '#0f1014' : 'rgba(255, 255, 255, 0.03)',
+                      minHeight: '44px'
                     }}
                   >
                     <div
-                      className="w-5 h-5 rounded flex items-center justify-center cursor-pointer"
-                      style={{
-                        border: checkedItems.has(item.id) ? 'none' : '2px solid #6b7280',
-                        backgroundColor: checkedItems.has(item.id) ? '#22c55e' : 'transparent'
-                      }}
                       onClick={() => toggleItem(item.id)}
-                    >
-                      {checkedItems.has(item.id) && <span style={{ color: '#fff', fontSize: '12px' }}>✓</span>}
-                    </div>
-                    <span className="text-xl">{item.icon}</span>
-                    <span
-                      className="text-sm flex-1"
                       style={{
-                        color: checkedItems.has(item.id) ? '#9ca3af' : '#f9fafb',
-                        textDecoration: checkedItems.has(item.id) ? 'line-through' : 'none'
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        border: checkedItems.has(item.id) ? 'none' : '2px solid #6b7280',
+                        backgroundColor: checkedItems.has(item.id) ? '#22c55e' : 'transparent',
+                        flexShrink: 0
                       }}
                     >
+                      {checkedItems.has(item.id) && (
+                        <span style={{ color: '#000', fontSize: '12px', fontWeight: 700 }}>✓</span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '18px' }}>{item.icon}</span>
+                    <span style={{
+                      fontSize: '13px',
+                      flex: 1,
+                      color: checkedItems.has(item.id) ? '#9ca3af' : '#f9fafb',
+                      textDecoration: checkedItems.has(item.id) ? 'line-through' : 'none'
+                    }}>
                       {item.name}
                     </span>
                     {item.required && !checkedItems.has(item.id) && (
-                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
+                      <span style={{
+                        fontSize: '10px',
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                        color: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                        fontWeight: 600
+                      }}>
                         Required
                       </span>
                     )}
@@ -258,6 +243,153 @@ export const PreparationTab: FC<Props> = ({
             </div>
           );
         })}
+      </div>
+
+      {/* Pre-Run Checklist */}
+      <div style={{
+        padding: '16px',
+        borderRadius: '16px',
+        backgroundColor: '#1a1c24',
+        border: '1px solid #2a2d3a',
+        marginBottom: '16px'
+      }}>
+        <h3 style={{
+          fontSize: '13px',
+          fontWeight: 600,
+          color: '#f9fafb',
+          marginBottom: '12px'
+        }}>
+          Pre-Run Checklist
+        </h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {preRunTasks.map(task => (
+            <label
+              key={task.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '10px 12px',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+                backgroundColor: checkedTasks.has(task.id) ? '#0f1014' : 'rgba(255, 255, 255, 0.03)',
+                minHeight: '44px'
+              }}
+            >
+              <div
+                onClick={() => toggleTask(task.id)}
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  border: checkedTasks.has(task.id) ? 'none' : '2px solid #6b7280',
+                  backgroundColor: checkedTasks.has(task.id) ? '#22c55e' : 'transparent',
+                  flexShrink: 0
+                }}
+              >
+                {checkedTasks.has(task.id) && (
+                  <span style={{ color: '#000', fontSize: '12px', fontWeight: 700 }}>✓</span>
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '16px' }}>{task.icon}</span>
+                  <span style={{
+                    fontSize: '13px',
+                    color: checkedTasks.has(task.id) ? '#9ca3af' : '#f9fafb',
+                    textDecoration: checkedTasks.has(task.id) ? 'line-through' : 'none'
+                  }}>
+                    {task.task}
+                  </span>
+                </div>
+                <p style={{
+                  fontSize: '10px',
+                  color: '#6b7280',
+                  margin: '2px 0 0 24px'
+                }}>
+                  {task.timing}
+                </p>
+              </div>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Safety Check */}
+      <div style={{
+        padding: '16px',
+        borderRadius: '16px',
+        backgroundColor: '#1a1c24',
+        border: '1px solid #2a2d3a',
+        marginBottom: '16px'
+      }}>
+        <h3 style={{
+          fontSize: '13px',
+          fontWeight: 600,
+          color: '#f9fafb',
+          marginBottom: '12px'
+        }}>
+          Safety Check
+        </h3>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '10px'
+        }}>
+          <div style={{
+            padding: '12px',
+            borderRadius: '10px',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '24px', marginBottom: '4px' }}>📱</div>
+            <div style={{ fontSize: '10px', fontWeight: 600, color: '#ef4444' }}>
+              Phone charged
+            </div>
+          </div>
+          <div style={{
+            padding: '12px',
+            borderRadius: '10px',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '24px', marginBottom: '4px' }}>📍</div>
+            <div style={{ fontSize: '10px', fontWeight: 600, color: '#ef4444' }}>
+              Share location with someone
+            </div>
+          </div>
+          <div style={{
+            padding: '12px',
+            borderRadius: '10px',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '24px', marginBottom: '4px' }}>🚨</div>
+            <div style={{ fontSize: '10px', fontWeight: 600, color: '#ef4444' }}>
+              Emergency contact set
+            </div>
+          </div>
+          <div style={{
+            padding: '12px',
+            borderRadius: '10px',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '24px', marginBottom: '4px' }}>🌤️</div>
+            <div style={{ fontSize: '10px', fontWeight: 600, color: '#ef4444' }}>
+              Check weather alerts
+            </div>
+          </div>
+        </div>
       </div>
 
       <WeatherClothingGuide temperature={temperature} timeOfDay={timeOfDay} />
@@ -275,55 +407,45 @@ function generateGearList(
 
   if (temp < 10) {
     items.push(
-      { id: 'thermal-top', name: 'Thermal base layer', icon: '🧥', category: 'clothing', required: true },
-      { id: 'windproof', name: 'Windproof jacket', icon: '🧥', category: 'clothing', required: true },
-      { id: 'gloves', name: 'Running gloves', icon: '🧤', category: 'clothing', required: true },
-      { id: 'hat', name: 'Warm hat/beanie', icon: '🎩', category: 'clothing', required: true }
+      { id: 'thermal-top', name: 'Moisture-wicking shirt', icon: '👕', category: 'clothing', required: true },
+      { id: 'windproof', name: 'Hydration Vest', icon: '🎒', category: 'clothing', required: true },
+      { id: 'gloves', name: 'Cap', icon: '🧢', category: 'clothing', required: true }
     );
   } else if (temp < 18) {
     items.push(
-      { id: 'long-sleeve', name: 'Long sleeve top', icon: '👕', category: 'clothing', required: true },
-      { id: 'light-jacket', name: 'Light jacket', icon: '🧥', category: 'clothing', required: false },
-      { id: 'gloves-opt', name: 'Light gloves (optional)', icon: '🧤', category: 'clothing', required: false }
+      { id: 'long-sleeve', name: 'Moisture-wicking shirt', icon: '👕', category: 'clothing', required: true },
+      { id: 'light-jacket', name: 'Hydration Vest', icon: '🎒', category: 'clothing', required: true },
+      { id: 'gloves-opt', name: 'Cap', icon: '🧢', category: 'clothing', required: false }
     );
   } else if (temp < 25) {
     items.push(
-      { id: 'short-sleeve', name: 'Breathable shirt', icon: '👕', category: 'clothing', required: true },
-      { id: 'sun-protection', name: 'Sunscreen (optional)', icon: '🧴', category: 'safety', required: false }
+      { id: 'short-sleeve', name: 'Moisture-wicking shirt', icon: '👕', category: 'clothing', required: true },
+      { id: 'hydration-vest', name: 'Hydration Vest', icon: '🎒', category: 'clothing', required: true },
+      { id: 'cap', name: 'Cap', icon: '🧢', category: 'clothing', required: true }
     );
   } else {
     items.push(
-      { id: 'light-top', name: 'Light, breathable top', icon: '👕', category: 'clothing', required: true },
-      { id: 'sunglasses', name: 'Sunglasses', icon: '🕶️', category: 'safety', required: true },
-      { id: 'cap', name: 'Running cap/visor', icon: '🧢', category: 'clothing', required: true },
-      { id: 'sunscreen', name: 'Sunscreen SPF 50+', icon: '🧴', category: 'safety', required: true }
+      { id: 'light-top', name: 'Moisture-wicking shirt', icon: '👕', category: 'clothing', required: true },
+      { id: 'hydration-vest', name: 'Hydration Vest', icon: '🎒', category: 'clothing', required: true },
+      { id: 'cap', name: 'Cap', icon: '🧢', category: 'clothing', required: true }
     );
   }
 
   if (duration > 60) {
     items.push(
-      { id: 'hydration', name: `${Math.ceil(duration / 30) * 250}ml water`, icon: '💧', category: 'nutrition', required: true }
+      { id: 'hydration', name: `400ml`, icon: '💧', category: 'nutrition', required: true }
     );
   }
 
   if (duration > 90) {
     items.push(
-      { id: 'energy-gels', name: 'Energy gels/chews', icon: '🍫', category: 'nutrition', required: true },
-      { id: 'electrolytes', name: 'Electrolyte tablets', icon: '💊', category: 'nutrition', required: false }
-    );
-  }
-
-  if (timeOfDay === 'night' || timeOfDay === 'evening') {
-    items.push(
-      { id: 'headlamp', name: 'Headlamp/light', icon: '🔦', category: 'safety', required: true },
-      { id: 'reflective', name: 'Reflective vest', icon: '🦺', category: 'safety', required: true }
+      { id: 'energy-gels', name: '300ml', icon: '💧', category: 'nutrition', required: true },
+      { id: 'carbs', name: '30g', icon: '🍫', category: 'nutrition', required: true }
     );
   }
 
   items.push(
-    { id: 'phone', name: 'Phone (charged)', icon: '📱', category: 'tech', required: true },
-    { id: 'id', name: 'ID/emergency contact', icon: '🪪', category: 'safety', required: true },
-    { id: 'watch', name: 'GPS watch (charged)', icon: '⌚', category: 'tech', required: false }
+    { id: 'phone', name: 'Optional motivation', icon: '🎵', category: 'safety', required: false }
   );
 
   return items;
@@ -331,25 +453,17 @@ function generateGearList(
 
 function generatePreRunTasks(workoutType: string, duration: number): PreRunTask[] {
   const tasks: PreRunTask[] = [
-    { id: 'hydration', task: 'Pre-hydrate (500ml)', icon: '💧', timing: '2 hours before' },
-    { id: 'fuel', task: 'Light meal/snack', icon: '🍌', timing: '2-3 hours before' },
-    { id: 'bathroom', task: 'Bathroom break', icon: '🚽', timing: 'Just before' },
+    { id: 'hydration', task: 'Eat 2-3 hours before', icon: '🍽️', timing: '2-3 hours before' },
+    { id: 'meal', task: 'Light meal around 6:00 AM', icon: '🌅', timing: 'Light meal around 6:00 AM' },
+    { id: 'bathroom', task: 'Hydrate 30 min before', icon: '💧', timing: '30 min before' },
+    { id: 'water', task: '300-500ml of water', icon: '💦', timing: '300-500ml of water' },
   ];
 
   if (workoutType.toLowerCase().includes('tempo') || workoutType.toLowerCase().includes('interval')) {
     tasks.push(
-      { id: 'warmup', task: 'Dynamic warm-up routine', icon: '🤸', timing: '10 min before' },
-      { id: 'mental', task: 'Mental preparation', icon: '🧘', timing: '5 min before' }
-    );
-  } else {
-    tasks.push(
-      { id: 'stretch', task: 'Light dynamic stretching', icon: '🤸', timing: '5 min before' }
-    );
-  }
-
-  if (duration > 60) {
-    tasks.push(
-      { id: 'route', task: 'Download route for offline use', icon: '🗺️', timing: 'Before leaving' }
+      { id: 'warmup', task: 'Warm-up routine', icon: '🏃', timing: '10 minutes before start' },
+      { id: 'mental', task: 'Prepare playlist', icon: '🎵', timing: 'Optional' },
+      { id: 'music', task: 'Warm-Up Routine (10 min)', icon: '🤸', timing: 'Warm-Up Routine (10 min)' }
     );
   }
 
@@ -378,27 +492,61 @@ const WeatherClothingGuide: FC<{ temperature: number; timeOfDay: string }> = ({
   }
 
   return (
-    <div className="p-5 rounded-2xl shadow-xl" style={{ backgroundColor: '#252628' }}>
-      <h3 className="text-sm font-semibold mb-3" style={{ color: '#f9fafb' }}>
+    <div style={{
+      padding: '16px',
+      borderRadius: '16px',
+      backgroundColor: '#1a1c24',
+      border: '1px solid #2a2d3a'
+    }}>
+      <h3 style={{
+        fontSize: '13px',
+        fontWeight: 600,
+        color: '#f9fafb',
+        marginBottom: '12px'
+      }}>
         Clothing Guide
       </h3>
-      <div className="flex items-center gap-3 mb-3">
-        <div
-          className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"
-          style={{ backgroundColor: color }}
-        >
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        marginBottom: '12px'
+      }}>
+        <div style={{
+          width: '48px',
+          height: '48px',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#fff',
+          fontWeight: 700,
+          fontSize: '16px',
+          backgroundColor: color
+        }}>
           {temperature}°
         </div>
-        <div className="flex-1">
-          <p className="text-xs mb-1" style={{ color: '#9ca3af' }}>Recommended layers</p>
-          <p className="text-sm" style={{ color: '#f9fafb' }}>{layering}</p>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: '10px', color: '#9ca3af', marginBottom: '4px' }}>
+            Recommended layers
+          </p>
+          <p style={{ fontSize: '12px', color: '#f9fafb', margin: 0 }}>
+            {layering}
+          </p>
         </div>
       </div>
 
       {timeOfDay === 'night' && (
-        <div className="p-3 rounded-xl" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444' }}>
-          <p className="text-xs font-semibold mb-1" style={{ color: '#ef4444' }}>🌙 Night Running Safety</p>
-          <p className="text-xs" style={{ color: '#9ca3af' }}>
+        <div style={{
+          padding: '12px',
+          borderRadius: '8px',
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.2)'
+        }}>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#ef4444', marginBottom: '4px' }}>
+            🌙 Night Running Safety
+          </p>
+          <p style={{ fontSize: '10px', color: '#9ca3af', margin: 0 }}>
             Wear reflective gear and carry a light. Stay on well-lit, familiar routes.
           </p>
         </div>

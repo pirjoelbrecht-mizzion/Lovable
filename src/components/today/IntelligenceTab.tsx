@@ -33,7 +33,6 @@ export const IntelligenceTab: FC<Props> = ({
   paceData,
   hrZones,
   route,
-  alternativeRoutes,
   hydration,
   fueling,
   onRouteSelect,
@@ -41,80 +40,163 @@ export const IntelligenceTab: FC<Props> = ({
   const [showPaceExplanation, setShowPaceExplanation] = useState(false);
 
   return (
-    <div className="p-5 space-y-4 pb-8">
-      <div className="p-5 rounded-2xl shadow-xl" style={{ backgroundColor: '#252628' }}>
-        <h3 className="text-sm font-semibold mb-3" style={{ color: '#f9fafb' }}>
-          Today's Pace Strategy
-        </h3>
+    <div style={{
+      backgroundColor: '#0f1014',
+      minHeight: '100%',
+      padding: '16px',
+      paddingBottom: '80px'
+    }}>
+      {/* Pace Strategy Card */}
+      <div style={{
+        padding: '16px',
+        borderRadius: '16px',
+        backgroundColor: '#1a1c24',
+        border: '1px solid #2a2d3a',
+        marginBottom: '16px'
+      }}>
+        {/* Large Pace Display */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'baseline',
+          justifyContent: 'center',
+          gap: '12px',
+          marginBottom: '8px'
+        }}>
+          <span style={{ fontSize: '48px', fontWeight: 700, color: '#22c55e' }}>
+            {paceData.targetMin}
+          </span>
+          <span style={{ fontSize: '24px', color: '#9ca3af' }}>–</span>
+          <span style={{ fontSize: '48px', fontWeight: 700, color: '#22c55e' }}>
+            {paceData.targetMax}
+          </span>
+        </div>
+        <p style={{
+          textAlign: 'center',
+          fontSize: '12px',
+          color: '#9ca3af',
+          marginBottom: '12px'
+        }}>
+          min/km
+        </p>
 
-        <div className="mb-4">
-          <div className="flex items-baseline justify-center gap-2 mb-1">
-            <span className="text-5xl font-bold" style={{ color: '#22c55e' }}>{paceData.targetMin}</span>
-            <span className="text-2xl" style={{ color: '#9ca3af' }}>–</span>
-            <span className="text-5xl font-bold" style={{ color: '#22c55e' }}>{paceData.targetMax}</span>
+        {/* Confidence Bar */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginBottom: '12px'
+        }}>
+          <span style={{ fontSize: '11px', color: '#9ca3af' }}>Confidence</span>
+          <div style={{
+            flex: 1,
+            height: '4px',
+            borderRadius: '2px',
+            backgroundColor: '#374151',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              height: '100%',
+              width: `${paceData.confidence * 100}%`,
+              backgroundColor: '#22c55e',
+              transition: 'width 0.3s'
+            }} />
           </div>
-          <p className="text-center text-sm" style={{ color: '#9ca3af' }}>min/km</p>
-
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-xs" style={{ color: '#9ca3af' }}>Confidence</span>
-            <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#374151' }}>
-              <div
-                className="h-full rounded-full transition-all"
-                style={{ width: `${paceData.confidence * 100}%`, backgroundColor: '#22c55e' }}
-              />
-            </div>
-            <span className="text-xs font-bold" style={{ color: '#22c55e' }}>
-              {Math.round(paceData.confidence * 100)}%
-            </span>
-          </div>
-
-          {paceData.adjustedFor.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-3">
-              {paceData.adjustedFor.map((factor, idx) => (
-                <span
-                  key={idx}
-                  className="text-xs px-3 py-1 rounded-full"
-                  style={{ backgroundColor: 'rgba(96, 165, 250, 0.2)', color: '#60a5fa' }}
-                >
-                  {factor}
-                </span>
-              ))}
-            </div>
-          )}
-
-          <button
-            onClick={() => setShowPaceExplanation(!showPaceExplanation)}
-            className="text-xs hover:underline flex items-center gap-1"
-            style={{ color: '#60a5fa' }}
-          >
-            <span>{showPaceExplanation ? '▼' : '▶'}</span>
-            <span>Why this pace?</span>
-          </button>
-
-          {showPaceExplanation && (
-            <div className="mt-3 p-3 rounded-xl" style={{ backgroundColor: '#1a1b1e' }}>
-              <p className="text-xs leading-relaxed" style={{ color: '#d1d5db' }}>
-                {paceData.explanation}
-              </p>
-            </div>
-          )}
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#22c55e' }}>
+            {Math.round(paceData.confidence * 100)}%
+          </span>
         </div>
 
-        {paceData.recentPaces.length > 0 && (
-          <div>
-            <p className="text-xs font-medium text-primary-light dark:text-primary-dark mb-2">
-              Recent Similar Runs
+        {/* Adjusted For Tags */}
+        {paceData.adjustedFor.length > 0 && (
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '6px',
+            marginBottom: '12px'
+          }}>
+            {paceData.adjustedFor.map((factor, idx) => (
+              <span
+                key={idx}
+                style={{
+                  fontSize: '10px',
+                  padding: '4px 10px',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(96, 165, 250, 0.15)',
+                  color: '#60a5fa',
+                  border: '1px solid rgba(96, 165, 250, 0.3)'
+                }}
+              >
+                {factor}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Why this pace? */}
+        <button
+          onClick={() => setShowPaceExplanation(!showPaceExplanation)}
+          style={{
+            fontSize: '11px',
+            color: '#60a5fa',
+            backgroundColor: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: 0
+          }}
+        >
+          <span>{showPaceExplanation ? '▼' : '▶'}</span>
+          <span>Why this pace?</span>
+        </button>
+
+        {showPaceExplanation && (
+          <div style={{
+            marginTop: '12px',
+            padding: '12px',
+            borderRadius: '12px',
+            backgroundColor: '#0f1014',
+            border: '1px solid #2a2d3a'
+          }}>
+            <p style={{
+              fontSize: '11px',
+              lineHeight: '1.6',
+              color: '#d1d5db',
+              margin: 0
+            }}>
+              {paceData.explanation}
             </p>
-            <div className="space-y-1">
+          </div>
+        )}
+
+        {/* Recent Paces */}
+        {paceData.recentPaces.length > 0 && (
+          <div style={{ marginTop: '16px' }}>
+            <p style={{
+              fontSize: '11px',
+              fontWeight: 600,
+              color: '#9ca3af',
+              marginBottom: '8px'
+            }}>
+              Recent Fatigue
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {paceData.recentPaces.map((run, idx) => (
                 <div
                   key={idx}
-                  className="flex justify-between items-center text-xs p-2 rounded bg-surface2-light/30 dark:bg-surface2-dark/30"
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '11px',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.03)'
+                  }}
                 >
-                  <span className="text-muted-light dark:text-muted-dark">{run.date}</span>
-                  <span className="font-medium text-primary-light dark:text-primary-dark">
-                    {run.pace}
-                  </span>
+                  <span style={{ color: '#9ca3af' }}>{run.date}</span>
+                  <span style={{ fontWeight: 600, color: '#f9fafb' }}>{run.pace}</span>
                 </div>
               ))}
             </div>
@@ -122,62 +204,112 @@ export const IntelligenceTab: FC<Props> = ({
         )}
       </div>
 
+      {/* Heart Rate Zones */}
       {hrZones && (
-        <div className="p-5 rounded-2xl shadow-xl" style={{ backgroundColor: '#252628' }}>
-          <h3 className="text-sm font-semibold mb-3" style={{ color: '#f9fafb' }}>
+        <div style={{
+          padding: '16px',
+          borderRadius: '16px',
+          backgroundColor: '#1a1c24',
+          border: '1px solid #2a2d3a',
+          marginBottom: '16px'
+        }}>
+          <h3 style={{
+            fontSize: '13px',
+            fontWeight: 600,
+            color: '#f9fafb',
+            marginBottom: '12px'
+          }}>
             Heart Rate Zones
           </h3>
-          <div className="space-y-2">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <ZoneBar zone="Zone 5" range={`${hrZones.zone5.min}-${hrZones.zone5.max}`} time={hrZones.zone5.time} color="#ef4444" />
             <ZoneBar zone="Zone 4" range={`${hrZones.zone4.min}-${hrZones.zone4.max}`} time={hrZones.zone4.time} color="#fb923c" />
             <ZoneBar zone="Zone 3" range={`${hrZones.zone3.min}-${hrZones.zone3.max}`} time={hrZones.zone3.time} color="#eab308" />
             <ZoneBar zone="Zone 2" range={`${hrZones.zone2.min}-${hrZones.zone2.max}`} time={hrZones.zone2.time} color="#22c55e" />
             <ZoneBar zone="Zone 1" range={`${hrZones.zone1.min}-${hrZones.zone1.max}`} time={hrZones.zone1.time} color="#60a5fa" />
           </div>
+          <div style={{
+            marginTop: '12px',
+            padding: '10px',
+            borderRadius: '8px',
+            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            border: '1px solid rgba(34, 197, 94, 0.2)'
+          }}>
+            <p style={{ fontSize: '10px', color: '#22c55e', margin: 0 }}>
+              ✓ Maintain 80% of time in Zone 2 for optimal recovery
+            </p>
+          </div>
         </div>
       )}
 
+      {/* Route */}
       {route && (
-        <div className="p-5 rounded-2xl shadow-xl" style={{ backgroundColor: '#252628' }}>
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-sm font-semibold" style={{ color: '#f9fafb' }}>
+        <div style={{
+          padding: '16px',
+          borderRadius: '16px',
+          backgroundColor: '#1a1c24',
+          border: '1px solid #2a2d3a',
+          marginBottom: '16px'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '12px'
+          }}>
+            <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#f9fafb', margin: 0 }}>
               Recommended Route
             </h3>
             <button
               onClick={onRouteSelect}
-              className="text-xs hover:underline"
-              style={{ color: '#22c55e' }}
+              style={{
+                fontSize: '11px',
+                color: '#22c55e',
+                backgroundColor: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                textDecoration: 'underline'
+              }}
             >
               Change Route
             </button>
           </div>
 
-          <div className="mb-3">
-            <p className="text-base font-medium text-primary-light dark:text-primary-dark mb-1">
-              {route.name}
-            </p>
-            <div className="flex items-center gap-3 text-xs text-muted-light dark:text-muted-dark">
-              <span>📏 {route.distance_km}km</span>
-              <span>📈 +{route.elevation_gain_m}m</span>
-              {route.surface_type && <span>🏃 {route.surface_type}</span>}
-            </div>
+          <p style={{
+            fontSize: '14px',
+            fontWeight: 600,
+            color: '#f9fafb',
+            marginBottom: '8px'
+          }}>
+            {route.name}
+          </p>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            fontSize: '11px',
+            color: '#9ca3af',
+            marginBottom: '12px'
+          }}>
+            <span>📏 {route.distance_km}km</span>
+            <span>⛰️ +{route.elevation_gain_m}m</span>
+            {route.surface_type && <span>🏃 {route.surface_type}</span>}
           </div>
 
-          {route.elevation_profile && (
-            <div className="mb-3 p-3 rounded-xl bg-surface2-light/50 dark:bg-surface2-dark/50">
-              <p className="text-xs font-medium text-primary-light dark:text-primary-dark mb-2">
-                Elevation Profile
-              </p>
-              <ElevationProfile data={route.elevation_profile as number[]} />
-            </div>
-          )}
-
           {route.avg_completion_time_min && (
-            <div className="flex justify-between items-center p-3 rounded-xl bg-success/10">
-              <span className="text-xs text-muted-light dark:text-muted-dark">
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '10px 12px',
+              borderRadius: '8px',
+              backgroundColor: 'rgba(34, 197, 94, 0.1)',
+              border: '1px solid rgba(34, 197, 94, 0.2)'
+            }}>
+              <span style={{ fontSize: '11px', color: '#9ca3af' }}>
                 Your average time
               </span>
-              <span className="text-sm font-bold text-success">
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#22c55e' }}>
                 {Math.floor(route.avg_completion_time_min)} min
               </span>
             </div>
@@ -185,51 +317,94 @@ export const IntelligenceTab: FC<Props> = ({
         </div>
       )}
 
-      <div className="p-5 rounded-2xl shadow-xl" style={{ backgroundColor: '#252628' }}>
-        <h3 className="text-sm font-semibold mb-3" style={{ color: '#f9fafb' }}>
-          Hydration & Fueling Strategy
+      {/* Hydration & Fueling */}
+      <div style={{
+        padding: '16px',
+        borderRadius: '16px',
+        backgroundColor: '#1a1c24',
+        border: '1px solid #2a2d3a',
+        marginBottom: '16px'
+      }}>
+        <h3 style={{
+          fontSize: '13px',
+          fontWeight: 600,
+          color: '#f9fafb',
+          marginBottom: '12px'
+        }}>
+          Hydration Needs
         </h3>
 
-        <div className="space-y-3 mb-4">
-          <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: '#1a1b1e' }}>
-            <div className="flex items-center gap-2">
-              <span className="text-xl">💧</span>
-              <span className="text-xs text-muted-light dark:text-muted-dark">Total Fluids</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px',
+            borderRadius: '8px',
+            backgroundColor: '#0f1014',
+            border: '1px solid #2a2d3a'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '20px' }}>💧</span>
+              <span style={{ fontSize: '11px', color: '#9ca3af' }}>Total Fluids</span>
             </div>
-            <span className="text-sm font-bold text-primary-light dark:text-primary-dark">
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#f9fafb' }}>
               {hydration.liters}L ({hydration.litersPerHour}L/hr)
             </span>
           </div>
 
           {fueling && (
-            <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: '#1a1b1e' }}>
-              <div className="flex items-center gap-2">
-                <span className="text-xl">🍫</span>
-                <span className="text-xs text-muted-light dark:text-muted-dark">Carbohydrates</span>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px',
+              borderRadius: '8px',
+              backgroundColor: '#0f1014',
+              border: '1px solid #2a2d3a'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '20px' }}>🍫</span>
+                <span style={{ fontSize: '11px', color: '#9ca3af' }}>Carbohydrates</span>
               </div>
-              <span className="text-sm font-bold text-primary-light dark:text-primary-dark">
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#f9fafb' }}>
                 {fueling.totalCarbs}g ({fueling.carbsPerHour}g/hr)
               </span>
             </div>
           )}
         </div>
 
-        <div className="p-3 rounded-xl mb-3" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
-          <p className="text-xs font-semibold mb-2" style={{ color: '#22c55e' }}>💧 Carry Strategy</p>
-          <p className="text-xs text-muted-light dark:text-muted-dark">
+        <div style={{
+          padding: '12px',
+          borderRadius: '8px',
+          backgroundColor: 'rgba(34, 197, 94, 0.1)',
+          border: '1px solid rgba(34, 197, 94, 0.2)',
+          marginBottom: '12px'
+        }}>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: '#22c55e', marginBottom: '6px' }}>
+            💧 CARRY STRATEGY
+          </p>
+          <p style={{ fontSize: '11px', color: '#d1d5db', margin: 0 }}>
             {hydration.carryAmount}
           </p>
         </div>
 
         {hydration.recommendations.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-primary-light dark:text-primary-dark">
-              Timing Guide
-            </p>
+          <div>
             {hydration.recommendations.map((rec, idx) => (
               <div
                 key={idx}
-                className="flex items-start gap-2 text-xs text-muted-light dark:text-muted-dark p-2 rounded bg-surface2-light/30 dark:bg-surface2-dark/30"
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '8px',
+                  fontSize: '11px',
+                  color: '#d1d5db',
+                  padding: '8px 10px',
+                  borderRadius: '6px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                  marginBottom: '6px'
+                }}
               >
                 <span>•</span>
                 <span>{rec}</span>
@@ -249,51 +424,43 @@ const ZoneBar: FC<{ zone: string; range: string; time: number; color: string }> 
   color,
 }) => {
   return (
-    <div className="mb-2">
-      <div className="flex justify-between items-center mb-1">
-        <span className="text-xs font-medium" style={{ color: '#f9fafb' }}>
+    <div>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '4px'
+      }}>
+        <span style={{ fontSize: '11px', fontWeight: 600, color: '#f9fafb' }}>
           {zone}
         </span>
-        <span className="text-xs" style={{ color: '#9ca3af' }}>{range} bpm</span>
+        <span style={{ fontSize: '10px', color: '#9ca3af' }}>{range} bpm</span>
       </div>
-      <div className="flex items-center gap-2">
-        <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#374151' }}>
-          <div
-            className="h-full rounded-full transition-all"
-            style={{
-              width: `${Math.min(time, 100)}%`,
-              backgroundColor: color,
-            }}
-          />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{
+          flex: 1,
+          height: '6px',
+          borderRadius: '3px',
+          backgroundColor: '#374151',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            height: '100%',
+            width: `${Math.min(time, 100)}%`,
+            backgroundColor: color,
+            transition: 'width 0.3s'
+          }} />
         </div>
-        <span className="text-xs font-medium min-w-[36px] text-right" style={{ color: '#f9fafb' }}>
+        <span style={{
+          fontSize: '11px',
+          fontWeight: 600,
+          minWidth: '36px',
+          textAlign: 'right',
+          color: '#f9fafb'
+        }}>
           {time}min
         </span>
       </div>
     </div>
-  );
-};
-
-const ElevationProfile: FC<{ data: number[] }> = ({ data }) => {
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const range = max - min;
-
-  return (
-    <svg width="100%" height="60" className="overflow-visible">
-      <polyline
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        className="text-success"
-        points={data
-          .map((point, idx) => {
-            const x = (idx / (data.length - 1)) * 100;
-            const y = 60 - ((point - min) / range) * 50;
-            return `${x},${y}`;
-          })
-          .join(' ')}
-      />
-    </svg>
   );
 };
