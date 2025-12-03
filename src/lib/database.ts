@@ -502,9 +502,20 @@ export async function syncLogEntries(): Promise<LogEntry[]> {
     return cleaned;
   }
 
+  // Select only essential fields to avoid JSON size limits with large polylines
   const { data, error } = await supabase
     .from('log_entries')
-    .select('*')
+    .select(`
+      id, user_id, date, type, duration, distance, distance_unit,
+      avg_pace, elevation_gain, elevation_gain_unit, elevation_loss, elevation_loss_unit,
+      elevation_high, elevation_low, avg_hr, max_hr, calories,
+      notes, avg_cadence, avg_power, normalized_power, intensity_factor,
+      training_stress_score, aerobic_tss, anaerobic_tss, vo2max_estimate,
+      location, temperature, humidity, weather, trail_type, terrain_difficulty,
+      perceived_exertion, readiness_score, mood, fatigue_level, stress_level,
+      sleep_hours, sleep_quality, soreness_level, pain_level, injury_risk,
+      external_activity_id, external_tracking_provider
+    `)
     .eq('user_id', userId)
     .order('date', { ascending: false });
 
