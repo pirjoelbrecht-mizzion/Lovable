@@ -205,6 +205,14 @@ export async function calculatePaceProfile(userId?: string): Promise<PaceProfile
     for (const [bucketKey, segments] of Object.entries(segmentsByBucket)) {
       if (segments.length >= 3) {
         // Only calculate if we have at least 3 segments
+
+        // Debug: show sample pace values
+        const samplePaces = segments.slice(0, 10).map(s => s.paceMinKm.toFixed(2));
+        const sortedPaces = [...segments].sort((a, b) => a.paceMinKm - b.paceMinKm);
+        const min = sortedPaces[0]?.paceMinKm.toFixed(2);
+        const max = sortedPaces[sortedPaces.length - 1]?.paceMinKm.toFixed(2);
+        console.log(`[DEBUG] Bucket ${bucketKey}: Range ${min}-${max} min/km, sample paces:`, samplePaces.join(', '));
+
         const medianPace = calculateWeightedMedian(segments);
 
         console.log(`[DEBUG] Bucket ${bucketKey}: ${segments.length} segments, median pace: ${medianPace.toFixed(2)}`);
