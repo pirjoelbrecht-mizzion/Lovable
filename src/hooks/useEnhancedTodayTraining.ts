@@ -167,11 +167,23 @@ export function useEnhancedTodayTraining(
       const targetMin = (basePace + paceAdjustment).toFixed(1);
       const targetMax = (basePace + paceAdjustment + 0.5).toFixed(1);
 
-      const recentPaces = [
-        { date: '2 days ago', pace: `${basePace.toFixed(1)} min/km` },
-        { date: '5 days ago', pace: `${(basePace - 0.2).toFixed(1)} min/km` },
-        { date: '8 days ago', pace: `${(basePace + 0.1).toFixed(1)} min/km` },
-      ];
+      // Get recent paces from actual log entries
+      const recentLogEntries = await getLogEntries(14);
+      const runsWithPace = recentLogEntries
+        .filter(entry => entry.km && entry.durationMin && entry.km > 0)
+        .map(entry => {
+          const paceMinPerKm = entry.durationMin! / entry.km!;
+          const daysAgo = Math.floor((Date.now() - new Date(entry.date).getTime()) / (1000 * 60 * 60 * 24));
+          return {
+            date: daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1 day ago' : `${daysAgo} days ago`,
+            pace: `${paceMinPerKm.toFixed(1)} min/km`,
+            daysAgo
+          };
+        })
+        .sort((a, b) => a.daysAgo - b.daysAgo)
+        .slice(0, 3);
+
+      const recentPaces = runsWithPace.length > 0 ? runsWithPace : [];
 
       const hrZones = calculateHRZones(165);
 

@@ -189,7 +189,7 @@ export const IntelligenceTab: FC<Props> = ({
               color: '#9ca3af',
               marginBottom: '8px'
             }}>
-              Recent Fatigue
+              Recent Paces
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {paceData.recentPaces.map((run, idx) => (
