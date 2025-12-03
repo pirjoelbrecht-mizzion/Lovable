@@ -77,7 +77,10 @@ export function classifyTerrainType(gradePct: number): TerrainType {
  */
 export function classifyGradeBucket(gradePct: number): GradeBucketKey {
   for (const [key, bucket] of Object.entries(GRADE_BUCKETS)) {
-    if (gradePct >= bucket.min && gradePct < bucket.max) {
+    const minVal = Math.min(bucket.min, bucket.max);
+    const maxVal = Math.max(bucket.min, bucket.max);
+
+    if (gradePct >= minVal && gradePct < maxVal) {
       return key as GradeBucketKey;
     }
   }
