@@ -196,6 +196,7 @@ export function useEnhancedTodayTraining(
         .filter(entry => {
           if (!entry.km || !entry.durationMin || entry.km <= 0) return false;
           const entryDate = new Date(entry.dateISO);
+          entryDate.setHours(0, 0, 0, 0);
           return entryDate >= twoWeeksAgo && entryDate <= now;
         })
         .map(entry => {
@@ -210,7 +211,7 @@ export function useEnhancedTodayTraining(
             dateISO: entry.dateISO
           };
         })
-        .sort((a, b) => b.daysAgo - a.daysAgo) // Most recent first
+        .sort((a, b) => a.daysAgo - b.daysAgo) // Sort ascending: most recent (0) first
         .slice(0, 3);
 
       const recentPaces = runsWithPace.length > 0 ? runsWithPace : [];
