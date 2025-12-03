@@ -149,43 +149,66 @@ export function analyzeActivityTerrain(
     return null;
   }
 
-  const segments: TerrainSegment[] = [];
+  // Helper to estimate pace adjustment factor based on grade
+  function getPaceAdjustmentFactor(gradePct: number): number {
+    // Base pace factor (1.0 = flat pace)
+    // Uphill: slower (higher factor)
+    // Downhill: faster (lower factor) but not too fast on steep descents
+
+    if (gradePct >= 20) return 2.5;  // Extreme climbing
+    if (gradePct >= 15) return 2.2;
+    if (gradePct >= 12) return 1.9;
+    if (gradePct >= 10) return 1.7;
+    if (gradePct >= 8) return 1.5;
+    if (gradePct >= 6) return 1.3;
+    if (gradePct >= 4) return 1.15;
+    if (gradePct >= 2) return 1.05;
+
+    if (gradePct <= -15) return 1.3;  // Very steep descent - need to slow down
+    if (gradePct <= -12) return 1.2;
+    if (gradePct <= -10) return 1.1;
+    if (gradePct <= -8) return 0.95;
+    if (gradePct <= -6) return 0.9;
+    if (gradePct <= -4) return 0.88;
+    if (gradePct <= -2) return 0.92;
+
+    return 1.0; // Flat
+  }
+
+  // First pass: collect segments with terrain-adjusted "effort"
+  interface SegmentData {
+    type: TerrainType;
+    gradeBucket: GradeBucketKey;
+    distanceKm: number;
+    gradeAvgPct: number;
+    elevationGainM: number;
+    elevationLossM: number;
+    adjustmentFactor: number;
+    effort: number; // distance * adjustment factor
+  }
+
+  const segmentData: SegmentData[] = [];
   let currentSegmentType: TerrainType | null = null;
   let currentGradeBucket: GradeBucketKey | null = null;
   let segmentStartIdx = 0;
   let segmentElevGain = 0;
   let segmentElevLoss = 0;
 
-  // Track overall terrain distances for summary
-  let totalUphillDist = 0;
-  let totalDownhillDist = 0;
-  let totalFlatDist = 0;
-  let totalUphillTime = 0;
-  let totalDownhillTime = 0;
-  let totalFlatTime = 0;
-
   // Process each point
   for (let i = 1; i < elevStream.length; i++) {
     const prevElev = elevStream[i - 1];
     const currElev = elevStream[i];
-    const prevDist = distStream[i - 1]; // Distance is already in meters
-    const currDist = distStream[i]; // Distance is already in meters
+    const prevDist = distStream[i - 1];
+    const currDist = distStream[i];
 
     const elevDiff = currElev - prevElev;
     const distDiff = currDist - prevDist;
 
-    if (distDiff <= 0) continue; // Skip invalid segments
+    if (distDiff <= 0) continue;
 
-    // Calculate grade as percentage (both elevation and distance are in meters)
     const gradePct = (elevDiff / distDiff) * 100;
-
     const terrainType = classifyTerrainType(gradePct);
     const gradeBucket = classifyGradeBucket(gradePct);
-
-    // Debug: log ONLY first 3 points of FIRST activity to diagnose
-    if (i <= 3 && totalDistanceKm < 10 && distStream.length < 100) {
-      console.log(`[Point ${i}] dist gap: ${distDiff.toFixed(0)}m, elev: ${elevDiff.toFixed(1)}m, grade: ${gradePct.toFixed(1)}%`);
-    }
 
     // Track elevation changes
     if (elevDiff > 0) {
@@ -194,7 +217,6 @@ export function analyzeActivityTerrain(
       segmentElevLoss += Math.abs(elevDiff);
     }
 
-    // Check if segment type or bucket changed
     const segmentChanged =
       currentSegmentType !== terrainType ||
       currentGradeBucket !== gradeBucket;
@@ -209,48 +231,72 @@ export function analyzeActivityTerrain(
         const segmentDistKm = segmentDistMeters / 1000;
 
         if (segmentDistKm > 0) {
-          // Estimate segment duration proportionally
-          const segmentDurationMin = (segmentDistKm / totalDistanceKm) * totalDurationMin;
-          const segmentPace = calculatePace(segmentDistKm, segmentDurationMin);
+          const gradeAvgPct = (elevStream[endIdx] - elevStream[segmentStartIdx]) / segmentDistMeters * 100;
+          const adjustmentFactor = getPaceAdjustmentFactor(gradeAvgPct);
+          const effort = segmentDistKm * adjustmentFactor;
 
-          if (segmentPace !== null) {
-            const segment: TerrainSegment = {
-              type: currentSegmentType,
-              gradeBucket: currentGradeBucket,
-              distanceKm: segmentDistKm,
-              durationMin: segmentDurationMin,
-              paceMinKm: segmentPace,
-              gradeAvgPct: parseFloat(
-                ((elevStream[endIdx] - elevStream[segmentStartIdx]) / segmentDistMeters * 100).toFixed(2)
-              ),
-              elevationGainM: Math.round(segmentElevGain),
-              elevationLossM: Math.round(segmentElevLoss),
-            };
-
-            segments.push(segment);
-
-            // Update summary stats
-            if (currentSegmentType === 'uphill') {
-              totalUphillDist += segmentDistKm;
-              totalUphillTime += segmentDurationMin;
-            } else if (currentSegmentType === 'downhill') {
-              totalDownhillDist += segmentDistKm;
-              totalDownhillTime += segmentDurationMin;
-            } else {
-              totalFlatDist += segmentDistKm;
-              totalFlatTime += segmentDurationMin;
-            }
-          }
+          segmentData.push({
+            type: currentSegmentType,
+            gradeBucket: currentGradeBucket,
+            distanceKm: segmentDistKm,
+            gradeAvgPct: parseFloat(gradeAvgPct.toFixed(2)),
+            elevationGainM: Math.round(segmentElevGain),
+            elevationLossM: Math.round(segmentElevLoss),
+            adjustmentFactor,
+            effort,
+          });
         }
       }
 
-      // Start new segment if not at the end
+      // Start new segment
       if (segmentChanged && !isLastPoint) {
         segmentStartIdx = i;
         currentSegmentType = terrainType;
         currentGradeBucket = gradeBucket;
         segmentElevGain = 0;
         segmentElevLoss = 0;
+      }
+    }
+  }
+
+  // Second pass: allocate time based on effort, then create final segments
+  const totalEffort = segmentData.reduce((sum, seg) => sum + seg.effort, 0);
+
+  const segments: TerrainSegment[] = [];
+  let totalUphillDist = 0;
+  let totalDownhillDist = 0;
+  let totalFlatDist = 0;
+  let totalUphillTime = 0;
+  let totalDownhillTime = 0;
+  let totalFlatTime = 0;
+
+  for (const seg of segmentData) {
+    // Allocate time proportional to effort
+    const segmentDurationMin = (seg.effort / totalEffort) * totalDurationMin;
+    const segmentPace = calculatePace(seg.distanceKm, segmentDurationMin);
+
+    if (segmentPace !== null) {
+      segments.push({
+        type: seg.type,
+        gradeBucket: seg.gradeBucket,
+        distanceKm: seg.distanceKm,
+        durationMin: segmentDurationMin,
+        paceMinKm: segmentPace,
+        gradeAvgPct: seg.gradeAvgPct,
+        elevationGainM: seg.elevationGainM,
+        elevationLossM: seg.elevationLossM,
+      });
+
+      // Update summary stats
+      if (seg.type === 'uphill') {
+        totalUphillDist += seg.distanceKm;
+        totalUphillTime += segmentDurationMin;
+      } else if (seg.type === 'downhill') {
+        totalDownhillDist += seg.distanceKm;
+        totalDownhillTime += segmentDurationMin;
+      } else {
+        totalFlatDist += seg.distanceKm;
+        totalFlatTime += segmentDurationMin;
       }
     }
   }
