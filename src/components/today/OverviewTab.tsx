@@ -58,7 +58,7 @@ export const OverviewTab: FC<Props> = ({
     <div style={{
       backgroundColor: '#0f1014',
       minHeight: '100%',
-      paddingBottom: '80px'
+      paddingBottom: '24px'
     }}>
       {/* Coach Message */}
       <div

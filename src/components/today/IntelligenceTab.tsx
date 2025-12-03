@@ -44,7 +44,7 @@ export const IntelligenceTab: FC<Props> = ({
       backgroundColor: '#0f1014',
       minHeight: '100%',
       padding: '16px',
-      paddingBottom: '80px'
+      paddingBottom: '24px'
     }}>
       {/* Pace Strategy Card */}
       <div style={{
@@ -242,80 +242,94 @@ export const IntelligenceTab: FC<Props> = ({
         </div>
       )}
 
-      {/* Route */}
-      {route && (
+      {/* Recommended Route - Always show */}
+      <div style={{
+        padding: '16px',
+        borderRadius: '16px',
+        backgroundColor: '#1a1c24',
+        border: '1px solid #2a2d3a',
+        marginBottom: '16px'
+      }}>
         <div style={{
-          padding: '16px',
-          borderRadius: '16px',
-          backgroundColor: '#1a1c24',
-          border: '1px solid #2a2d3a',
-          marginBottom: '16px'
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '12px'
         }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '12px'
-          }}>
-            <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#f9fafb', margin: 0 }}>
-              Recommended Route
-            </h3>
-            <button
-              onClick={onRouteSelect}
-              style={{
-                fontSize: '11px',
-                color: '#22c55e',
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                textDecoration: 'underline'
-              }}
-            >
-              Change Route
-            </button>
-          </div>
+          <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#f9fafb', margin: 0 }}>
+            Recommended Route
+          </h3>
+          <button
+            onClick={onRouteSelect}
+            style={{
+              fontSize: '11px',
+              color: '#22c55e',
+              backgroundColor: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              textDecoration: 'underline'
+            }}
+          >
+            Change Route
+          </button>
+        </div>
 
-          <p style={{
-            fontSize: '14px',
-            fontWeight: 600,
-            color: '#f9fafb',
-            marginBottom: '8px'
-          }}>
-            {route.name}
-          </p>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            fontSize: '11px',
-            color: '#9ca3af',
-            marginBottom: '12px'
-          }}>
-            <span>📏 {route.distance_km}km</span>
-            <span>⛰️ +{route.elevation_gain_m}m</span>
-            {route.surface_type && <span>🏃 {route.surface_type}</span>}
-          </div>
-
-          {route.avg_completion_time_min && (
+        {route ? (
+          <>
+            <p style={{
+              fontSize: '14px',
+              fontWeight: 600,
+              color: '#f9fafb',
+              marginBottom: '8px'
+            }}>
+              {route.name}
+            </p>
             <div style={{
               display: 'flex',
-              justifyContent: 'space-between',
               alignItems: 'center',
-              padding: '10px 12px',
-              borderRadius: '8px',
-              backgroundColor: 'rgba(34, 197, 94, 0.1)',
-              border: '1px solid rgba(34, 197, 94, 0.2)'
+              gap: '12px',
+              fontSize: '11px',
+              color: '#9ca3af',
+              marginBottom: '12px'
             }}>
-              <span style={{ fontSize: '11px', color: '#9ca3af' }}>
-                Your average time
-              </span>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#22c55e' }}>
-                {Math.floor(route.avg_completion_time_min)} min
-              </span>
+              <span>📏 {route.distance_km}km</span>
+              <span>⛰️ +{route.elevation_gain_m}m</span>
+              {route.surface_type && <span>🏃 {route.surface_type}</span>}
             </div>
-          )}
-        </div>
-      )}
+
+            {route.avg_completion_time_min && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                border: '1px solid rgba(34, 197, 94, 0.2)'
+              }}>
+                <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                  Your average time
+                </span>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#22c55e' }}>
+                  {Math.floor(route.avg_completion_time_min)} min
+                </span>
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={{
+            padding: '16px',
+            borderRadius: '8px',
+            backgroundColor: '#0f1014',
+            border: '1px solid #2a2d3a',
+            textAlign: 'center'
+          }}>
+            <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>
+              No route selected. Tap "Change Route" to select one.
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Hydration & Fueling */}
       <div style={{

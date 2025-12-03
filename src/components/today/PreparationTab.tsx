@@ -155,7 +155,7 @@ export const PreparationTab: FC<Props> = ({
       backgroundColor: '#0f1014',
       minHeight: '100%',
       padding: '16px',
-      paddingBottom: '80px'
+      paddingBottom: '24px'
     }}>
       {/* Essential Gear Header */}
       <div style={{

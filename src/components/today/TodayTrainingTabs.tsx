@@ -87,7 +87,8 @@ export const TodayTrainingTabs: FC<Props> = ({ activeTab, onTabChange, children 
       flexDirection: 'column',
       height: '100%',
       backgroundColor: '#0f1014',
-      color: '#f9fafb'
+      color: '#f9fafb',
+      overflow: 'hidden'
     }}>
       {/* Tab Header */}
       <div style={{
@@ -98,7 +99,8 @@ export const TodayTrainingTabs: FC<Props> = ({ activeTab, onTabChange, children 
         borderBottom: '1px solid #2a2d3a',
         borderRadius: '12px 12px 0 0',
         margin: '0',
-        padding: '4px 8px'
+        padding: '4px 8px',
+        flexShrink: 0
       }}>
         <div style={{
           display: 'flex',
@@ -172,7 +174,8 @@ export const TodayTrainingTabs: FC<Props> = ({ activeTab, onTabChange, children 
           overflowY: 'auto',
           overflowX: 'hidden',
           WebkitOverflowScrolling: 'touch',
-          touchAction: 'pan-y'
+          touchAction: 'pan-y',
+          position: 'relative'
         }}
       >
         <AnimatePresence mode="wait">
@@ -182,6 +185,7 @@ export const TodayTrainingTabs: FC<Props> = ({ activeTab, onTabChange, children 
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: activeIndex < TABS.findIndex(t => t.id === activeTab) ? 20 : -20 }}
             transition={{ duration: 0.2, ease: 'easeInOut' }}
+            style={{ minHeight: '100%' }}
           >
             {children}
           </motion.div>
