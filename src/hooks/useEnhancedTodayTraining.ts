@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getEnhancedWeatherData, refreshWeatherData, type EnhancedWeatherData } from '@/services/realtimeWeather';
-import { getSavedRoutes, type DbSavedRoute, getLogEntries } from '@/lib/database';
+import { getSavedRoutes, type DbSavedRoute, getLogEntries, getReadinessHistory } from '@/lib/database';
 import { calculateHydrationNeeds, calculateFuelingNeeds } from '@/lib/environmental-learning/hydration';
 import { useReadinessScore } from '@/hooks/useReadinessScore';
 import { getSavedLocation, detectLocation } from '@/utils/location';
@@ -399,29 +399,50 @@ async function calculateFatigueData(
       : acuteLoad < previousLoad * 0.9 ? 'decreasing'
       : 'stable';
 
-    // Get readiness history for last 7 days
+    // Get readiness history for last 7 days from database
+    const dbReadinessHistory = await getReadinessHistory(7);
+
+    // Create a map of date -> readiness score
+    const readinessMap = new Map<string, number>();
+    dbReadinessHistory.forEach(r => {
+      readinessMap.set(r.date, r.value);
+    });
+
+    // Build the last 7 days array
     const readinessHistory: Array<{ date: string; score: number }> = [];
     for (let i = 6; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
 
-      // Try to get actual readiness from storage or use estimated based on training load
-      const dayEntries = logEntries.filter(e => e.date === dateStr);
-      const dayLoad = dayEntries.reduce((sum, e) => sum + (e.km || 0), 0);
+      // Use actual readiness score from DB if available
+      const actualScore = readinessMap.get(dateStr);
 
-      // Estimate readiness: higher load = lower readiness
-      const estimatedScore = Math.max(40, Math.min(95, 80 - (dayLoad * 2)));
+      if (actualScore !== undefined) {
+        readinessHistory.push({
+          date: dateStr,
+          score: actualScore
+        });
+      } else {
+        // If no readiness data, estimate based on training load
+        const dayEntries = logEntries.filter(e => e.date === dateStr);
+        const dayLoad = dayEntries.reduce((sum, e) => sum + (e.km || 0), 0);
+        const estimatedScore = Math.max(40, Math.min(95, 80 - (dayLoad * 2)));
 
-      readinessHistory.push({
-        date: dateStr,
-        score: Math.round(estimatedScore)
-      });
+        readinessHistory.push({
+          date: dateStr,
+          score: Math.round(estimatedScore)
+        });
+      }
     }
 
-    // If we have current readiness, use it for today
+    // If we have current readiness and it's for today, update today's value
     if (readiness && readinessHistory.length > 0) {
-      readinessHistory[readinessHistory.length - 1].score = readiness.value;
+      const today = new Date().toISOString().split('T')[0];
+      const lastEntry = readinessHistory[readinessHistory.length - 1];
+      if (lastEntry.date === today) {
+        lastEntry.score = readiness.value;
+      }
     }
 
     // Generate recommendation
