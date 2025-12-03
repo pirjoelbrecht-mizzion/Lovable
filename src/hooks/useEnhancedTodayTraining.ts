@@ -353,15 +353,32 @@ async function calculateFatigueData(
       return null;
     }
 
-    // Calculate weekly loads
+    // Calculate weekly loads - always from today going back 7 days
     const now = new Date();
+    now.setHours(0, 0, 0, 0); // Reset to start of day for consistent comparison
+
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const fourteenDaysAgo = new Date(now);
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+    const twentyEightDaysAgo = new Date(now);
+    twentyEightDaysAgo.setDate(twentyEightDaysAgo.getDate() - 28);
+
+    // Last 7 days (today minus 6 days through today)
     const last7Days = logEntries.filter(entry => {
       const entryDate = new Date(entry.date);
-      const daysDiff = Math.floor((now.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
-      return daysDiff < 7;
+      entryDate.setHours(0, 0, 0, 0);
+      return entryDate >= sevenDaysAgo && entryDate <= now;
     });
 
-    const last28Days = logEntries;
+    // Last 28 days for chronic load
+    const last28Days = logEntries.filter(entry => {
+      const entryDate = new Date(entry.date);
+      entryDate.setHours(0, 0, 0, 0);
+      return entryDate >= twentyEightDaysAgo && entryDate <= now;
+    });
 
     const acuteLoad = last7Days.reduce((sum, entry) => sum + (entry.km || 0), 0);
     const chronicLoad = last28Days.reduce((sum, entry) => sum + (entry.km || 0), 0) / 4;
@@ -369,11 +386,11 @@ async function calculateFatigueData(
     const acwr = chronicLoad > 0 ? acuteLoad / chronicLoad : 1.0;
     const weeklyLoad = Math.round(acuteLoad);
 
-    // Determine trend by comparing last 7 days vs previous 7 days
+    // Determine trend by comparing last 7 days vs previous 7 days (days 8-14)
     const previous7Days = logEntries.filter(entry => {
       const entryDate = new Date(entry.date);
-      const daysDiff = Math.floor((now.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
-      return daysDiff >= 7 && daysDiff < 14;
+      entryDate.setHours(0, 0, 0, 0);
+      return entryDate >= fourteenDaysAgo && entryDate < sevenDaysAgo;
     });
 
     const previousLoad = previous7Days.reduce((sum, entry) => sum + (entry.km || 0), 0);
