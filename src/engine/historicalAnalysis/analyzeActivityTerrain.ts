@@ -186,6 +186,11 @@ export function analyzeActivityTerrain(
     // Calculate grade as percentage (both elevation and distance are in meters)
     const gradePct = (elevDiff / distDiff) * 100;
 
+    // Debug verification: log actual values for extreme grades
+    if (Math.abs(gradePct) > 50 && i < 10) {
+      console.log(`🔧 NEW CODE: i=${i}, elevDiff=${elevDiff}m, distDiff=${distDiff}m, grade=${gradePct.toFixed(1)}%`);
+    }
+
     const terrainType = classifyTerrainType(gradePct);
     const gradeBucket = classifyGradeBucket(gradePct);
 
