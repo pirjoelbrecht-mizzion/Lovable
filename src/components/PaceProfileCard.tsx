@@ -2,8 +2,16 @@ import { useEffect, useState } from 'react';
 import { getPaceProfile, recalculatePaceProfile, type PaceProfile } from '@/engine/historicalAnalysis/calculateUserPaceProfile';
 import { GRADE_BUCKETS, type GradeBucketKey } from '@/engine/historicalAnalysis/analyzeActivityTerrain';
 import * as bus from '@/lib/bus';
+import { supabase } from '@/lib/supabase';
 
 export function PaceProfileCard() {
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id || null);
+    });
+  }, []);
   const [profile, setProfile] = useState<PaceProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -242,6 +250,11 @@ export function PaceProfileCard() {
           ) : (
             <button
               onClick={async () => {
+                if (!userId) {
+                  console.error('[PaceProfileCard] No user ID available');
+                  return;
+                }
+
                 setRefreshing(true);
                 try {
                   console.log('[PaceProfileCard] Force re-analyzing all activities...');
