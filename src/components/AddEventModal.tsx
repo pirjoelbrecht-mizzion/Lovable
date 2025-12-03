@@ -391,7 +391,7 @@ export default function AddEventModal({ onClose, onEventAdded, editEvent }: AddE
                   placeholder="Distance"
                   value={customDistance}
                   onChange={(e) => setCustomDistance(e.target.value)}
-                  step="0.1"
+                  step="0.01"
                   min="0"
                 />
                 <span className="event-custom-distance-unit">km</span>
