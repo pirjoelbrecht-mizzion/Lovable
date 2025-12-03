@@ -250,9 +250,21 @@ export function PaceProfileCard() {
                   console.log(`[PaceProfileCard] Re-analyzed ${analyzedCount} activities`);
 
                   console.log('[PaceProfileCard] Recalculating pace profile...');
+
+                  // DEBUG: Check database contents
+                  const { data: terrainSamples } = await supabase
+                    .from('activity_terrain_analysis')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .limit(3);
+
+                  if (terrainSamples && terrainSamples.length > 0) {
+                    console.log('[DEBUG] Sample terrain data:', terrainSamples[0]);
+                  }
+
                   const data = await recalculatePaceProfile();
+                  console.log('[PaceProfileCard] Pace profile result:', data);
                   setProfile(data);
-                  console.log('[PaceProfileCard] Pace profile updated');
                 } catch (err) {
                   console.error('Failed to recalculate pace profile:', err);
                 } finally {
