@@ -139,6 +139,18 @@ export function analyzeActivityTerrain(
   const totalDurationMin = logEntry.durationMin;
   const totalDistanceKm = logEntry.km;
 
+  // Debug: check data format
+  if (elevStream.length > 5) {
+    console.log('[analyzeActivityTerrain] Sample data:', {
+      totalDistanceKm,
+      firstElev: elevStream[0],
+      lastElev: elevStream[elevStream.length - 1],
+      firstDist: distStream[0],
+      lastDist: distStream[distStream.length - 1],
+      elevStreamLength: elevStream.length
+    });
+  }
+
   // Need at least 2 points to calculate grades
   if (elevStream.length < 2 || distStream.length < 2 || elevStream.length !== distStream.length) {
     return null;
