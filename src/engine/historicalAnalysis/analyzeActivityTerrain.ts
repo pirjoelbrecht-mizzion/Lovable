@@ -177,6 +177,11 @@ export function analyzeActivityTerrain(
     const terrainType = classifyTerrainType(gradePct);
     const gradeBucket = classifyGradeBucket(gradePct);
 
+    // Debug: log some samples
+    if (i === 1 || (i % 100 === 0 && Math.abs(gradePct) > 5)) {
+      console.log(`[Segment ${i}] grade: ${gradePct.toFixed(1)}% -> bucket: ${gradeBucket}, type: ${terrainType}`);
+    }
+
     // Track elevation changes
     if (elevDiff > 0) {
       segmentElevGain += elevDiff;

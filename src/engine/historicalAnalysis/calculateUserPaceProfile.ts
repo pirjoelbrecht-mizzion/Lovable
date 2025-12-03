@@ -6,8 +6,8 @@
  */
 
 import { getSupabase, getCurrentUserId } from '@/lib/supabase';
-import type { GradeBucketKey, TerrainType, TerrainSegment } from './terrainAnalysis';
-import { GRADE_BUCKETS, classifyTerrainType } from './terrainAnalysis';
+import type { GradeBucketKey, TerrainType, TerrainSegment } from './analyzeActivityTerrain';
+import { GRADE_BUCKETS, classifyTerrainType } from './analyzeActivityTerrain';
 
 // Configuration based on user requirements
 const RECENCY_CONFIG = {
