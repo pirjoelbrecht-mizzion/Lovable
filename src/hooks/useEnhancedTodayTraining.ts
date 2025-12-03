@@ -100,6 +100,7 @@ export function useEnhancedTodayTraining(
       const durationMin = parseDuration(todaySession.duration);
       const distanceKm = parseDistance(todaySession.distance);
 
+      // Fetch all data in parallel: weather, routes, and activity history
       const [weather, routes, logEntries] = await Promise.all([
         userLocation
           ? getEnhancedWeatherData(userLocation.lat, userLocation.lon, today)
@@ -109,7 +110,7 @@ export function useEnhancedTodayTraining(
           lon: userLocation.lon,
           radiusKm: 20,
         } : undefined),
-        getLogEntries(50), // Fetch recent log entries for pace calculation
+        getLogEntries(50),
       ]);
 
       const matchingRoute = routes.find(r =>
