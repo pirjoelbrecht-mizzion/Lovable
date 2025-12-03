@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getEnhancedWeatherData, refreshWeatherData, type EnhancedWeatherData } from '@/services/realtimeWeather';
-import { getSavedRoutes, type DbSavedRoute } from '@/lib/database';
+import { getSavedRoutes, type DbSavedRoute, getLogEntries } from '@/lib/database';
 import { calculateHydrationNeeds, calculateFuelingNeeds } from '@/lib/environmental-learning/hydration';
 import { useReadinessScore } from '@/hooks/useReadinessScore';
 import { getSavedLocation, detectLocation } from '@/utils/location';
 import { load } from '@/utils/storage';
 import type { TabId } from '@/components/today/TodayTrainingTabs';
+import { useWeeklyMetrics } from '@/hooks/useWeeklyMetrics';
 
 export interface EnhancedTodayTrainingData {
   workout: {
@@ -42,6 +43,13 @@ export interface EnhancedTodayTrainingData {
   alternativeRoutes: DbSavedRoute[];
   hydration: any;
   fueling: any;
+  fatigue: {
+    acwr: number;
+    weeklyLoad: number;
+    trend: 'increasing' | 'stable' | 'decreasing';
+    readinessHistory: Array<{ date: string; score: number }>;
+    recommendation: string;
+  } | null;
   streak: number;
   xpToEarn: number;
   daysToRace: number | null;
@@ -181,6 +189,9 @@ export function useEnhancedTodayTraining(
         weather?.current.temp || 20
       );
 
+      // Calculate fatigue data
+      const fatigueData = await calculateFatigueData(readiness);
+
       setData({
         workout: {
           title: todaySession.type,
@@ -210,6 +221,7 @@ export function useEnhancedTodayTraining(
         alternativeRoutes,
         hydration,
         fueling,
+        fatigue: fatigueData,
         streak,
         xpToEarn,
         daysToRace,
@@ -322,4 +334,102 @@ function generateCoachMessage(
   }
 
   return message;
+}
+
+async function calculateFatigueData(
+  readiness: { value: number; category: string } | null
+): Promise<{
+  acwr: number;
+  weeklyLoad: number;
+  trend: 'increasing' | 'stable' | 'decreasing';
+  readinessHistory: Array<{ date: string; score: number }>;
+  recommendation: string;
+} | null> {
+  try {
+    // Get last 28 days of log entries for ACWR calculation
+    const logEntries = await getLogEntries(28);
+
+    if (logEntries.length === 0) {
+      return null;
+    }
+
+    // Calculate weekly loads
+    const now = new Date();
+    const last7Days = logEntries.filter(entry => {
+      const entryDate = new Date(entry.date);
+      const daysDiff = Math.floor((now.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
+      return daysDiff < 7;
+    });
+
+    const last28Days = logEntries;
+
+    const acuteLoad = last7Days.reduce((sum, entry) => sum + (entry.km || 0), 0);
+    const chronicLoad = last28Days.reduce((sum, entry) => sum + (entry.km || 0), 0) / 4;
+
+    const acwr = chronicLoad > 0 ? acuteLoad / chronicLoad : 1.0;
+    const weeklyLoad = Math.round(acuteLoad);
+
+    // Determine trend by comparing last 7 days vs previous 7 days
+    const previous7Days = logEntries.filter(entry => {
+      const entryDate = new Date(entry.date);
+      const daysDiff = Math.floor((now.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
+      return daysDiff >= 7 && daysDiff < 14;
+    });
+
+    const previousLoad = previous7Days.reduce((sum, entry) => sum + (entry.km || 0), 0);
+    const trend: 'increasing' | 'stable' | 'decreasing' =
+      acuteLoad > previousLoad * 1.1 ? 'increasing'
+      : acuteLoad < previousLoad * 0.9 ? 'decreasing'
+      : 'stable';
+
+    // Get readiness history for last 7 days
+    const readinessHistory: Array<{ date: string; score: number }> = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+
+      // Try to get actual readiness from storage or use estimated based on training load
+      const dayEntries = logEntries.filter(e => e.date === dateStr);
+      const dayLoad = dayEntries.reduce((sum, e) => sum + (e.km || 0), 0);
+
+      // Estimate readiness: higher load = lower readiness
+      const estimatedScore = Math.max(40, Math.min(95, 80 - (dayLoad * 2)));
+
+      readinessHistory.push({
+        date: dateStr,
+        score: Math.round(estimatedScore)
+      });
+    }
+
+    // If we have current readiness, use it for today
+    if (readiness && readinessHistory.length > 0) {
+      readinessHistory[readinessHistory.length - 1].score = readiness.value;
+    }
+
+    // Generate recommendation
+    let recommendation = '';
+    if (acwr >= 0.8 && acwr <= 1.3) {
+      recommendation = 'Your training load is in the optimal range. Continue as planned.';
+    } else if (acwr > 1.3) {
+      recommendation = 'Training load is high. Consider adding an extra recovery day this week.';
+    } else {
+      recommendation = 'Training load is low. You can safely increase volume if feeling good.';
+    }
+
+    if (readiness && readiness.category === 'low' && acwr > 1.2) {
+      recommendation = 'Low readiness + high load. Prioritize recovery today.';
+    }
+
+    return {
+      acwr: Math.round(acwr * 100) / 100,
+      weeklyLoad,
+      trend,
+      readinessHistory,
+      recommendation
+    };
+  } catch (error) {
+    console.error('Failed to calculate fatigue data:', error);
+    return null;
+  }
 }

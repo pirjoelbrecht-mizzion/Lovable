@@ -122,6 +122,7 @@ export const TodayTrainingMobile: FC<Props> = ({
               alternativeRoutes={trainingData.alternativeRoutes}
               hydration={trainingData.hydration}
               fueling={trainingData.fueling}
+              fatigue={trainingData.fatigue}
               onRouteSelect={() => setShowRouteModal(true)}
             />
           )}

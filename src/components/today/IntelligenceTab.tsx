@@ -19,6 +19,14 @@ interface HeartRateZones {
   zone5: { min: number; max: number; time: number };
 }
 
+interface FatigueData {
+  acwr: number;
+  weeklyLoad: number;
+  trend: 'increasing' | 'stable' | 'decreasing';
+  readinessHistory: Array<{ date: string; score: number }>;
+  recommendation: string;
+}
+
 interface Props {
   paceData: PaceData;
   hrZones: HeartRateZones | null;
@@ -26,6 +34,7 @@ interface Props {
   alternativeRoutes: DbSavedRoute[];
   hydration: HydrationNeeds;
   fueling: FuelingNeeds | null;
+  fatigue?: FatigueData | null;
   onRouteSelect: () => void;
 }
 
@@ -35,6 +44,7 @@ export const IntelligenceTab: FC<Props> = ({
   route,
   hydration,
   fueling,
+  fatigue,
   onRouteSelect,
 }) => {
   const [showPaceExplanation, setShowPaceExplanation] = useState(false);
@@ -203,6 +213,140 @@ export const IntelligenceTab: FC<Props> = ({
           </div>
         )}
       </div>
+
+      {/* Recent Fatigue */}
+      {fatigue && (
+        <div style={{
+          padding: '16px',
+          borderRadius: '16px',
+          backgroundColor: '#1a1c24',
+          border: '1px solid #2a2d3a',
+          marginBottom: '16px'
+        }}>
+          <h3 style={{
+            fontSize: '13px',
+            fontWeight: 600,
+            color: '#f9fafb',
+            marginBottom: '12px'
+          }}>
+            Recent Fatigue
+          </h3>
+
+          {/* ACWR & Weekly Load */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+            <div style={{
+              padding: '12px',
+              borderRadius: '8px',
+              backgroundColor: '#0f1014',
+              border: '1px solid #2a2d3a'
+            }}>
+              <div style={{ fontSize: '10px', color: '#9ca3af', marginBottom: '4px' }}>
+                ACWR
+              </div>
+              <div style={{
+                fontSize: '20px',
+                fontWeight: 700,
+                color: fatigue.acwr >= 0.8 && fatigue.acwr <= 1.3
+                  ? '#22c55e'
+                  : fatigue.acwr > 1.3
+                  ? '#ef4444'
+                  : '#eab308'
+              }}>
+                {fatigue.acwr.toFixed(2)}
+              </div>
+              <div style={{
+                fontSize: '9px',
+                color: fatigue.acwr >= 0.8 && fatigue.acwr <= 1.3
+                  ? '#22c55e'
+                  : fatigue.acwr > 1.3
+                  ? '#ef4444'
+                  : '#eab308',
+                marginTop: '2px'
+              }}>
+                {fatigue.acwr >= 0.8 && fatigue.acwr <= 1.3
+                  ? '✓ Optimal'
+                  : fatigue.acwr > 1.3
+                  ? '⚠ High risk'
+                  : '⚠ Low load'}
+              </div>
+            </div>
+
+            <div style={{
+              padding: '12px',
+              borderRadius: '8px',
+              backgroundColor: '#0f1014',
+              border: '1px solid #2a2d3a'
+            }}>
+              <div style={{ fontSize: '10px', color: '#9ca3af', marginBottom: '4px' }}>
+                Weekly Load
+              </div>
+              <div style={{ fontSize: '20px', fontWeight: 700, color: '#f9fafb' }}>
+                {fatigue.weeklyLoad}
+              </div>
+              <div style={{
+                fontSize: '9px',
+                color: fatigue.trend === 'increasing' ? '#eab308' : '#22c55e',
+                marginTop: '2px'
+              }}>
+                {fatigue.trend === 'increasing' ? '↗ Increasing' : fatigue.trend === 'decreasing' ? '↘ Decreasing' : '→ Stable'}
+              </div>
+            </div>
+          </div>
+
+          {/* Readiness Trend - Mini Chart */}
+          {fatigue.readinessHistory.length > 0 && (
+            <div style={{
+              padding: '12px',
+              borderRadius: '8px',
+              backgroundColor: '#0f1014',
+              border: '1px solid #2a2d3a',
+              marginBottom: '12px'
+            }}>
+              <div style={{ fontSize: '10px', color: '#9ca3af', marginBottom: '8px' }}>
+                Readiness Trend (Last 7 days)
+              </div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-end',
+                justifyContent: 'space-between',
+                height: '40px',
+                gap: '2px'
+              }}>
+                {fatigue.readinessHistory.map((item, idx) => {
+                  const heightPercent = (item.score / 100) * 100;
+                  const color = item.score >= 70 ? '#22c55e' : item.score >= 50 ? '#eab308' : '#ef4444';
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        flex: 1,
+                        height: `${heightPercent}%`,
+                        backgroundColor: color,
+                        borderRadius: '2px',
+                        opacity: 0.8,
+                        transition: 'all 0.3s ease'
+                      }}
+                      title={`${item.date}: ${item.score}`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Recommendation */}
+          <div style={{
+            padding: '10px 12px',
+            borderRadius: '8px',
+            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            border: '1px solid rgba(34, 197, 94, 0.2)'
+          }}>
+            <p style={{ fontSize: '11px', color: '#22c55e', margin: 0 }}>
+              💡 {fatigue.recommendation}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Heart Rate Zones */}
       {hrZones && (
