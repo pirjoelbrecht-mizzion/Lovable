@@ -45,6 +45,7 @@ export const TodayTrainingMobile: FC<Props> = ({
 
   const handleRouteSelect = (route: DbSavedRoute) => {
     setSelectedRoute(route);
+    setShowRouteModal(false);
   };
 
   const handleStart = () => {
@@ -92,7 +93,14 @@ export const TodayTrainingMobile: FC<Props> = ({
 
   return (
     <>
-      <div className="w-full max-w-md mx-auto h-screen bg-bg-light dark:bg-bg-dark">
+      <div style={{
+        width: '100%',
+        maxWidth: '448px',
+        margin: '0 auto',
+        height: '100vh',
+        backgroundColor: '#0f1014',
+        overflow: 'hidden'
+      }}>
         <TodayTrainingTabs activeTab={activeTab} onTabChange={setActiveTab}>
           {activeTab === 'overview' && (
             <OverviewTab
