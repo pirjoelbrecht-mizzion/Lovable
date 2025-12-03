@@ -76,15 +76,32 @@ export function classifyTerrainType(gradePct: number): TerrainType {
  * Classify grade into a specific bucket
  */
 export function classifyGradeBucket(gradePct: number): GradeBucketKey {
-  for (const [key, bucket] of Object.entries(GRADE_BUCKETS)) {
-    const minVal = Math.min(bucket.min, bucket.max);
-    const maxVal = Math.max(bucket.min, bucket.max);
+  // Check buckets in order from most extreme to least extreme
+  // This ensures proper classification at boundaries
 
-    if (gradePct >= minVal && gradePct < maxVal) {
-      return key as GradeBucketKey;
-    }
-  }
-  // Fallback
+  // Extreme grades
+  if (gradePct >= 20) return 'climbing';
+  if (gradePct <= -20) return 'technical_descent';
+
+  // Uphill buckets
+  if (gradePct >= 15 && gradePct < 20) return 'extreme_uphill';
+  if (gradePct >= 12 && gradePct < 15) return 'very_steep_uphill';
+  if (gradePct >= 10 && gradePct < 12) return 'steep_uphill';
+  if (gradePct >= 8 && gradePct < 10) return 'hard_uphill';
+  if (gradePct >= 6 && gradePct < 8) return 'moderate_uphill';
+  if (gradePct >= 4 && gradePct < 6) return 'easy_uphill';
+  if (gradePct >= 2 && gradePct < 4) return 'gentle_uphill';
+
+  // Downhill buckets
+  if (gradePct <= -15 && gradePct > -20) return 'extreme_downhill';
+  if (gradePct <= -12 && gradePct > -15) return 'very_steep_downhill';
+  if (gradePct <= -10 && gradePct > -12) return 'steep_downhill';
+  if (gradePct <= -8 && gradePct > -10) return 'hard_downhill';
+  if (gradePct <= -6 && gradePct > -8) return 'moderate_downhill';
+  if (gradePct <= -4 && gradePct > -6) return 'easy_downhill';
+  if (gradePct <= -2 && gradePct > -4) return 'gentle_downhill';
+
+  // Flat
   return 'flat';
 }
 
