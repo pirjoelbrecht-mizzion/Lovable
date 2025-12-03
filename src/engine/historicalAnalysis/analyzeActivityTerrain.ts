@@ -139,16 +139,9 @@ export function analyzeActivityTerrain(
   const totalDurationMin = logEntry.durationMin;
   const totalDistanceKm = logEntry.km;
 
-  // Debug: check data format
-  if (elevStream.length > 5) {
-    console.log('[analyzeActivityTerrain] Sample data:', {
-      totalDistanceKm,
-      firstElev: elevStream[0],
-      lastElev: elevStream[elevStream.length - 1],
-      firstDist: distStream[0],
-      lastDist: distStream[distStream.length - 1],
-      elevStreamLength: elevStream.length
-    });
+  // Minimal logging - only warn if data looks wrong
+  if (distStream[0] !== 0) {
+    console.warn('[analyzeActivityTerrain] Warning: first distance is not 0:', distStream[0]);
   }
 
   // Need at least 2 points to calculate grades
@@ -189,9 +182,9 @@ export function analyzeActivityTerrain(
     const terrainType = classifyTerrainType(gradePct);
     const gradeBucket = classifyGradeBucket(gradePct);
 
-    // Debug: log samples with actual distance between points
-    if (i <= 5 || (i % 100 === 0 && Math.abs(gradePct) > 5)) {
-      console.log(`[Point ${i}] elev: ${prevElev.toFixed(0)}m→${currElev.toFixed(0)}m, dist: ${prevDist.toFixed(0)}m→${currDist.toFixed(0)}m (gap: ${distDiff.toFixed(0)}m), grade: ${gradePct.toFixed(1)}%`);
+    // Debug: log ONLY first 3 points of FIRST activity to diagnose
+    if (i <= 3 && totalDistanceKm < 10 && distStream.length < 100) {
+      console.log(`[Point ${i}] dist gap: ${distDiff.toFixed(0)}m, elev: ${elevDiff.toFixed(1)}m, grade: ${gradePct.toFixed(1)}%`);
     }
 
     // Track elevation changes
@@ -392,7 +385,13 @@ export async function analyzeUserActivities(userId?: string, forceReanalyze: boo
 
     let successCount = 0;
 
-    for (const entry of entriesToAnalyze) {
+    for (let idx = 0; idx < entriesToAnalyze.length; idx++) {
+      const entry = entriesToAnalyze[idx];
+
+      // Progress every 20 activities
+      if (idx % 20 === 0) {
+        console.log(`Progress: ${idx}/${entriesToAnalyze.length}`);
+      }
       const logEntry: LogEntry = {
         title: entry.title,
         dateISO: entry.date,
