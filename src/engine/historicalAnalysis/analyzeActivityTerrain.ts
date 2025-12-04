@@ -106,6 +106,42 @@ export function classifyGradeBucket(gradePct: number): GradeBucketKey {
 }
 
 /**
+ * Smooth elevation data using moving average
+ */
+function smoothElevationData(elevations: number[], windowSize: number = 5): number[] {
+  if (elevations.length < windowSize) return [...elevations];
+
+  const smoothed: number[] = [];
+  const halfWindow = Math.floor(windowSize / 2);
+
+  for (let i = 0; i < elevations.length; i++) {
+    const start = Math.max(0, i - halfWindow);
+    const end = Math.min(elevations.length, i + halfWindow + 1);
+    const window = elevations.slice(start, end);
+    const avg = window.reduce((sum, val) => sum + val, 0) / window.length;
+    smoothed.push(avg);
+  }
+
+  return smoothed;
+}
+
+/**
+ * Validate and constrain gradient to realistic values
+ */
+function validateGradient(gradePct: number, distDiff: number): number {
+  // For very short distances (< 10m), gradient calculations are unreliable
+  if (distDiff < 10) return 0;
+
+  // Cap gradients at physically realistic limits
+  // Running gradients rarely exceed ±50% in practice
+  const maxGrade = 50;
+  if (gradePct > maxGrade) return maxGrade;
+  if (gradePct < -maxGrade) return -maxGrade;
+
+  return gradePct;
+}
+
+/**
  * Calculate pace for a segment given distance and duration
  */
 function calculatePace(distanceKm: number, durationMin: number): number | null {
@@ -135,7 +171,6 @@ export function analyzeActivityTerrain(
     return null;
   }
 
-  const elevStream = logEntry.elevationStream;
   const distStream = logEntry.distanceStream;
   const totalDurationMin = logEntry.durationMin;
   const totalDistanceKm = logEntry.km;
@@ -146,9 +181,12 @@ export function analyzeActivityTerrain(
   }
 
   // Need at least 2 points to calculate grades
-  if (elevStream.length < 2 || distStream.length < 2 || elevStream.length !== distStream.length) {
+  if (!logEntry.elevationStream || logEntry.elevationStream.length < 2 || distStream.length < 2 || logEntry.elevationStream.length !== distStream.length) {
     return null;
   }
+
+  // Apply elevation smoothing to reduce GPS noise
+  const elevStream = smoothElevationData(logEntry.elevationStream, 5);
 
   // Calculate total elevation gain/loss to filter flat activities
   const minElev = Math.min(...elevStream);
@@ -219,7 +257,8 @@ export function analyzeActivityTerrain(
 
     if (distDiff <= 0) continue;
 
-    const gradePct = (elevDiff / distDiff) * 100;
+    const rawGradePct = (elevDiff / distDiff) * 100;
+    const gradePct = validateGradient(rawGradePct, distDiff);
     const terrainType = classifyTerrainType(gradePct);
     const gradeBucket = classifyGradeBucket(gradePct);
 
@@ -243,7 +282,8 @@ export function analyzeActivityTerrain(
         const segmentDistMeters = distStream[endIdx] - distStream[segmentStartIdx];
         const segmentDistKm = segmentDistMeters / 1000;
 
-        if (segmentDistKm > 0) {
+        // Only include segments with minimum distance (50m to ensure meaningful data)
+        if (segmentDistKm >= 0.05) {
           const gradeAvgPct = (elevStream[endIdx] - elevStream[segmentStartIdx]) / segmentDistMeters * 100;
           const adjustmentFactor = getPaceAdjustmentFactor(gradeAvgPct);
           const effort = segmentDistKm * adjustmentFactor;

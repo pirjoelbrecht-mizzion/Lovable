@@ -73,6 +73,38 @@ function calculateRecencyWeight(activityDate: string): { weight: number; daysOld
 }
 
 /**
+ * Filter outliers using IQR method
+ * Returns segments with pace values within reasonable bounds
+ */
+function filterOutliers(segments: WeightedSegment[]): WeightedSegment[] {
+  if (segments.length < 4) return segments; // Need at least 4 points for IQR
+
+  // Extract pace values and sort
+  const paces = segments.map(s => s.paceMinKm).sort((a, b) => a - b);
+
+  // Calculate quartiles
+  const q1Index = Math.floor(paces.length * 0.25);
+  const q3Index = Math.floor(paces.length * 0.75);
+  const q1 = paces[q1Index];
+  const q3 = paces[q3Index];
+  const iqr = q3 - q1;
+
+  // Define outlier bounds (using 1.5 * IQR, standard statistical approach)
+  const lowerBound = q1 - 1.5 * iqr;
+  const upperBound = q3 + 1.5 * iqr;
+
+  // Filter segments
+  const filtered = segments.filter(s => s.paceMinKm >= lowerBound && s.paceMinKm <= upperBound);
+
+  // Log if we filtered any outliers
+  if (filtered.length < segments.length) {
+    console.log(`[filterOutliers] Filtered ${segments.length - filtered.length} outliers (bounds: ${lowerBound.toFixed(2)}-${upperBound.toFixed(2)} min/km)`);
+  }
+
+  return filtered;
+}
+
+/**
  * Calculate weighted median pace from segments
  */
 function calculateWeightedMedian(segments: WeightedSegment[]): number {
@@ -206,23 +238,30 @@ export async function calculatePaceProfile(userId?: string): Promise<PaceProfile
       if (segments.length >= 3) {
         // Only calculate if we have at least 3 segments
 
-        // Debug: show sample pace values
+        // Debug: show sample pace values before filtering
         const samplePaces = segments.slice(0, 10).map(s => s.paceMinKm.toFixed(2));
         const sortedPaces = [...segments].sort((a, b) => a.paceMinKm - b.paceMinKm);
         const min = sortedPaces[0]?.paceMinKm.toFixed(2);
         const max = sortedPaces[sortedPaces.length - 1]?.paceMinKm.toFixed(2);
         console.log(`[DEBUG] Bucket ${bucketKey}: Range ${min}-${max} min/km, sample paces:`, samplePaces.join(', '));
 
-        const medianPace = calculateWeightedMedian(segments);
+        // Filter outliers before calculating median
+        const filteredSegments = filterOutliers(segments);
 
-        console.log(`[DEBUG] Bucket ${bucketKey}: ${segments.length} segments, median pace: ${medianPace.toFixed(2)}`);
+        if (filteredSegments.length >= 3) {
+          const medianPace = calculateWeightedMedian(filteredSegments);
 
-        gradeBucketPaces[bucketKey] = {
-          bucket: bucketKey as GradeBucketKey,
-          paceMinKm: parseFloat(medianPace.toFixed(2)),
-          sampleSize: segments.length,
-          confidence: determineConfidence(segments.length),
-        };
+          console.log(`[DEBUG] Bucket ${bucketKey}: ${filteredSegments.length}/${segments.length} segments after outlier filtering, median pace: ${medianPace.toFixed(2)}`);
+
+          gradeBucketPaces[bucketKey] = {
+            bucket: bucketKey as GradeBucketKey,
+            paceMinKm: parseFloat(medianPace.toFixed(2)),
+            sampleSize: filteredSegments.length,
+            confidence: determineConfidence(filteredSegments.length),
+          };
+        } else {
+          console.log(`[DEBUG] Bucket ${bucketKey}: Only ${filteredSegments.length} segments after filtering (need 3+), skipping`);
+        }
       } else {
         console.log(`[DEBUG] Bucket ${bucketKey}: Only ${segments.length} segments (need 3+), skipping`);
       }
@@ -230,17 +269,17 @@ export async function calculatePaceProfile(userId?: string): Promise<PaceProfile
 
     console.log(`[DEBUG] Final gradeBucketPaces:`, gradeBucketPaces);
 
-    // Calculate overall terrain type paces (fallback)
+    // Calculate overall terrain type paces (fallback) with outlier filtering
     const uphillPace = segmentsByType.uphill.length > 0
-      ? calculateWeightedMedian(segmentsByType.uphill)
+      ? calculateWeightedMedian(filterOutliers(segmentsByType.uphill))
       : 0;
 
     const downhillPace = segmentsByType.downhill.length > 0
-      ? calculateWeightedMedian(segmentsByType.downhill)
+      ? calculateWeightedMedian(filterOutliers(segmentsByType.downhill))
       : 0;
 
     const flatPace = segmentsByType.flat.length > 0
-      ? calculateWeightedMedian(segmentsByType.flat)
+      ? calculateWeightedMedian(filterOutliers(segmentsByType.flat))
       : 0;
 
     // Use flat pace as base, or fallback to overall average if no flat segments
