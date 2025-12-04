@@ -23,6 +23,15 @@ const MIN_DATA_REQUIREMENTS = {
   MIN_SEGMENTS_PER_TYPE: 5,
 };
 
+// Pace calculation configuration
+// Use 25th percentile for flat pace (represents faster efforts, better for race predictions)
+// Use 50th percentile (median) for uphill/downhill (represents typical effort)
+const PACE_PERCENTILES = {
+  FLAT: 0.25,      // 25th percentile - faster flat efforts
+  UPHILL: 0.5,     // 50th percentile - median effort
+  DOWNHILL: 0.5,   // 50th percentile - median effort
+};
+
 export interface GradeBucketPace {
   bucket: GradeBucketKey;
   paceMinKm: number;
@@ -105,9 +114,11 @@ function filterOutliers(segments: WeightedSegment[]): WeightedSegment[] {
 }
 
 /**
- * Calculate weighted median pace from segments
+ * Calculate weighted percentile pace from segments
+ * @param segments - Array of weighted segments
+ * @param percentile - Target percentile (0.0 to 1.0), default 0.5 (median)
  */
-function calculateWeightedMedian(segments: WeightedSegment[]): number {
+function calculateWeightedPercentile(segments: WeightedSegment[], percentile: number = 0.5): number {
   if (segments.length === 0) return 0;
 
   // Sort by pace
@@ -116,19 +127,27 @@ function calculateWeightedMedian(segments: WeightedSegment[]): number {
   // Calculate total weight
   const totalWeight = sorted.reduce((sum, seg) => sum + seg.weight, 0);
 
-  // Find weighted median
+  // Find weighted percentile
   let cumulativeWeight = 0;
-  const halfWeight = totalWeight / 2;
+  const targetWeight = totalWeight * percentile;
 
   for (const seg of sorted) {
     cumulativeWeight += seg.weight;
-    if (cumulativeWeight >= halfWeight) {
+    if (cumulativeWeight >= targetWeight) {
       return seg.paceMinKm;
     }
   }
 
-  // Fallback to simple median
-  return sorted[Math.floor(sorted.length / 2)].paceMinKm;
+  // Fallback to simple percentile
+  const index = Math.floor(sorted.length * percentile);
+  return sorted[Math.min(index, sorted.length - 1)].paceMinKm;
+}
+
+/**
+ * Calculate weighted median pace from segments (backward compatibility)
+ */
+function calculateWeightedMedian(segments: WeightedSegment[]): number {
+  return calculateWeightedPercentile(segments, 0.5);
 }
 
 /**
@@ -245,17 +264,19 @@ export async function calculatePaceProfile(userId?: string): Promise<PaceProfile
         const max = sortedPaces[sortedPaces.length - 1]?.paceMinKm.toFixed(2);
         console.log(`[DEBUG] Bucket ${bucketKey}: Range ${min}-${max} min/km, sample paces:`, samplePaces.join(', '));
 
-        // Filter outliers before calculating median
+        // Filter outliers before calculating pace
         const filteredSegments = filterOutliers(segments);
 
         if (filteredSegments.length >= 3) {
-          const medianPace = calculateWeightedMedian(filteredSegments);
+          // Use 25th percentile for flat terrain (faster efforts), median for uphill/downhill
+          const percentile = bucketKey === 'flat' ? PACE_PERCENTILES.FLAT : PACE_PERCENTILES.UPHILL;
+          const bucketPace = calculateWeightedPercentile(filteredSegments, percentile);
 
-          console.log(`[DEBUG] Bucket ${bucketKey}: ${filteredSegments.length}/${segments.length} segments after outlier filtering, median pace: ${medianPace.toFixed(2)}`);
+          console.log(`[DEBUG] Bucket ${bucketKey}: ${filteredSegments.length}/${segments.length} segments after outlier filtering, ${percentile === PACE_PERCENTILES.FLAT ? '25th percentile' : 'median'} pace: ${bucketPace.toFixed(2)}`);
 
           gradeBucketPaces[bucketKey] = {
             bucket: bucketKey as GradeBucketKey,
-            paceMinKm: parseFloat(medianPace.toFixed(2)),
+            paceMinKm: parseFloat(bucketPace.toFixed(2)),
             sampleSize: filteredSegments.length,
             confidence: determineConfidence(filteredSegments.length),
           };
@@ -279,8 +300,14 @@ export async function calculatePaceProfile(userId?: string): Promise<PaceProfile
       : 0;
 
     const flatPace = segmentsByType.flat.length > 0
-      ? calculateWeightedMedian(filterOutliers(segmentsByType.flat))
+      ? calculateWeightedPercentile(filterOutliers(segmentsByType.flat), PACE_PERCENTILES.FLAT)
       : 0;
+
+    // Log comparison of percentiles for flat pace
+    if (segmentsByType.flat.length > 0) {
+      const flatMedian = calculateWeightedMedian(filterOutliers(segmentsByType.flat));
+      console.log(`[DEBUG] Flat pace comparison: 25th percentile=${flatPace.toFixed(2)}, median=${flatMedian.toFixed(2)} (using 25th for predictions)`);
+    }
 
     // Use flat pace as base, or fallback to overall average if no flat segments
     let baseFlatPace = flatPace;
