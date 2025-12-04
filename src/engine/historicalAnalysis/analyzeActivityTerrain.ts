@@ -248,6 +248,7 @@ export function analyzeActivityTerrain(
 
   // Track gradient distribution for debugging
   const gradientCounts = { flat: 0, uphill: 0, downhill: 0 };
+  let segmentsBeforeFiltering = 0;
 
   // Process each point
   for (let i = 1; i < elevStream.length; i++) {
@@ -288,6 +289,8 @@ export function analyzeActivityTerrain(
         const endIdx = isLastPoint ? i : i - 1;
         const segmentDistMeters = distStream[endIdx] - distStream[segmentStartIdx];
         const segmentDistKm = segmentDistMeters / 1000;
+
+        segmentsBeforeFiltering++;
 
         // Only include segments with minimum distance (20m to capture short terrain changes)
         if (segmentDistKm >= 0.02) {
@@ -372,7 +375,7 @@ export function analyzeActivityTerrain(
 
   // Debug: Log terrain distribution
   const totalPoints = gradientCounts.flat + gradientCounts.uphill + gradientCounts.downhill;
-  console.log(`[analyzeActivityTerrain] ${logEntry.dateISO}: ${totalPoints} points - flat: ${gradientCounts.flat}, uphill: ${gradientCounts.uphill}, downhill: ${gradientCounts.downhill} | Segments: ${segments.length} - U:${totalUphillDist.toFixed(1)}km, D:${totalDownhillDist.toFixed(1)}km, F:${totalFlatDist.toFixed(1)}km`);
+  console.log(`[analyzeActivityTerrain] ${logEntry.dateISO}: ${totalPoints} points (flat: ${gradientCounts.flat}, up: ${gradientCounts.uphill}, down: ${gradientCounts.downhill}) | ${segmentsBeforeFiltering} raw segments → ${segmentData.length} kept (>20m) → ${segments.length} final | U:${totalUphillDist.toFixed(1)}km, D:${totalDownhillDist.toFixed(1)}km, F:${totalFlatDist.toFixed(1)}km`);
 
   return {
     logEntryId,
