@@ -129,8 +129,8 @@ function smoothElevationData(elevations: number[], windowSize: number = 5): numb
  * Validate and constrain gradient to realistic values
  */
 function validateGradient(gradePct: number, distDiff: number): number {
-  // For very short distances (< 10m), gradient calculations are unreliable
-  if (distDiff < 10) return 0;
+  // For very short distances (< 5m), gradient calculations are unreliable
+  if (distDiff < 5) return 0;
 
   // Cap gradients at physically realistic limits
   // Running gradients rarely exceed ±50% in practice
@@ -185,8 +185,8 @@ export function analyzeActivityTerrain(
     return null;
   }
 
-  // Apply elevation smoothing to reduce GPS noise
-  const elevStream = smoothElevationData(logEntry.elevationStream, 5);
+  // Apply elevation smoothing to reduce GPS noise (use 3-point window to preserve terrain features)
+  const elevStream = smoothElevationData(logEntry.elevationStream, 3);
 
   // Calculate total elevation gain/loss to filter flat activities
   const minElev = Math.min(...elevStream);
@@ -194,8 +194,8 @@ export function analyzeActivityTerrain(
   const elevationRange = maxElev - minElev;
 
   // Skip activities with insufficient elevation variation (likely flat or bad data)
-  // Require at least 10m per km (1% average grade variation)
-  const minElevationRange = Math.max(10, totalDistanceKm * 10);
+  // Require at least 5m per km (0.5% average grade variation) to allow for gentle rolling terrain
+  const minElevationRange = Math.max(10, totalDistanceKm * 5);
   if (elevationRange < minElevationRange) {
     return null;
   }
@@ -282,8 +282,8 @@ export function analyzeActivityTerrain(
         const segmentDistMeters = distStream[endIdx] - distStream[segmentStartIdx];
         const segmentDistKm = segmentDistMeters / 1000;
 
-        // Only include segments with minimum distance (50m to ensure meaningful data)
-        if (segmentDistKm >= 0.05) {
+        // Only include segments with minimum distance (20m to capture short terrain changes)
+        if (segmentDistKm >= 0.02) {
           const gradeAvgPct = (elevStream[endIdx] - elevStream[segmentStartIdx]) / segmentDistMeters * 100;
           const adjustmentFactor = getPaceAdjustmentFactor(gradeAvgPct);
           const effort = segmentDistKm * adjustmentFactor;
