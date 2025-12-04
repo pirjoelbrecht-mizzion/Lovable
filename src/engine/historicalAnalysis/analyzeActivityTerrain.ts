@@ -250,18 +250,34 @@ export function analyzeActivityTerrain(
   const gradientCounts = { flat: 0, uphill: 0, downhill: 0 };
   let segmentsBeforeFiltering = 0;
 
-  // Process each point
-  for (let i = 1; i < elevStream.length; i++) {
-    const prevElev = elevStream[i - 1];
-    const currElev = elevStream[i];
-    const prevDist = distStream[i - 1];
-    const currDist = distStream[i];
+  // WINDOWED GRADIENT CALCULATION
+  // Look ahead to smooth out GPS noise and prevent micro-segments
+  const LOOKAHEAD_DISTANCE_M = 100; // Look 100m ahead for gradient
+  const MIN_SEGMENT_DISTANCE_M = 50; // Minimum 50m before creating new segment
 
-    const elevDiff = currElev - prevElev;
-    const distDiff = currDist - prevDist;
+  // Process each point with lookahead
+  for (let i = 1; i < elevStream.length; i++) {
+    const startDist = distStream[i - 1];
+    const startElev = elevStream[i - 1];
+
+    // Find point ~100m ahead
+    let lookAheadIdx = i;
+    for (let j = i; j < elevStream.length; j++) {
+      if (distStream[j] - startDist >= LOOKAHEAD_DISTANCE_M) {
+        lookAheadIdx = j;
+        break;
+      }
+      lookAheadIdx = j;
+    }
+
+    const endDist = distStream[lookAheadIdx];
+    const endElev = elevStream[lookAheadIdx];
+    const elevDiff = endElev - startElev;
+    const distDiff = endDist - startDist;
 
     if (distDiff <= 0) continue;
 
+    // Calculate gradient over the lookahead window
     const rawGradePct = (elevDiff / distDiff) * 100;
     const gradePct = validateGradient(rawGradePct, distDiff);
     const terrainType = classifyTerrainType(gradePct);
@@ -270,11 +286,16 @@ export function analyzeActivityTerrain(
     // Track terrain type distribution
     gradientCounts[terrainType]++;
 
-    // Track elevation changes
-    if (elevDiff > 0) {
-      segmentElevGain += elevDiff;
+    // Track point-level elevation changes for this segment
+    const prevElev = elevStream[i - 1];
+    const currElev = elevStream[i];
+    const pointElevDiff = currElev - prevElev;
+
+    // Track elevation changes (point-to-point for accurate gain/loss)
+    if (pointElevDiff > 0) {
+      segmentElevGain += pointElevDiff;
     } else {
-      segmentElevLoss += Math.abs(elevDiff);
+      segmentElevLoss += Math.abs(pointElevDiff);
     }
 
     const segmentChanged =
@@ -282,8 +303,10 @@ export function analyzeActivityTerrain(
       currentGradeBucket !== gradeBucket;
 
     const isLastPoint = i === elevStream.length - 1;
+    const segmentDistSoFar = distStream[i - 1] - distStream[segmentStartIdx];
 
-    if (segmentChanged || isLastPoint) {
+    // Only create new segment if terrain changed AND we've gone at least minimum distance
+    if ((segmentChanged && segmentDistSoFar >= MIN_SEGMENT_DISTANCE_M) || isLastPoint) {
       // Close current segment
       if (currentSegmentType !== null && currentGradeBucket !== null) {
         const endIdx = isLastPoint ? i : i - 1;
@@ -292,8 +315,8 @@ export function analyzeActivityTerrain(
 
         segmentsBeforeFiltering++;
 
-        // Only include segments with minimum distance (20m to capture short terrain changes)
-        if (segmentDistKm >= 0.02) {
+        // Keep all segments that meet minimum distance (already enforced above)
+        if (segmentDistKm >= MIN_SEGMENT_DISTANCE_M / 1000) {
           const gradeAvgPct = (elevStream[endIdx] - elevStream[segmentStartIdx]) / segmentDistMeters * 100;
           const adjustmentFactor = getPaceAdjustmentFactor(gradeAvgPct);
           const effort = segmentDistKm * adjustmentFactor;
@@ -375,7 +398,7 @@ export function analyzeActivityTerrain(
 
   // Debug: Log terrain distribution
   const totalPoints = gradientCounts.flat + gradientCounts.uphill + gradientCounts.downhill;
-  console.log(`[analyzeActivityTerrain] ${logEntry.dateISO}: ${totalPoints} points (flat: ${gradientCounts.flat}, up: ${gradientCounts.uphill}, down: ${gradientCounts.downhill}) | ${segmentsBeforeFiltering} raw segments → ${segmentData.length} kept (>20m) → ${segments.length} final | U:${totalUphillDist.toFixed(1)}km, D:${totalDownhillDist.toFixed(1)}km, F:${totalFlatDist.toFixed(1)}km`);
+  console.log(`[analyzeActivityTerrain] ${logEntry.dateISO}: ${totalPoints} points (flat: ${gradientCounts.flat}, up: ${gradientCounts.uphill}, down: ${gradientCounts.downhill}) | ${segmentsBeforeFiltering} raw segments → ${segmentData.length} kept (>50m) → ${segments.length} final | U:${totalUphillDist.toFixed(1)}km, D:${totalDownhillDist.toFixed(1)}km, F:${totalFlatDist.toFixed(1)}km`);
 
   return {
     logEntryId,
