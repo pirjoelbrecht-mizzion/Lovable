@@ -129,8 +129,9 @@ function smoothElevationData(elevations: number[], windowSize: number = 5): numb
  * Validate and constrain gradient to realistic values
  */
 function validateGradient(gradePct: number, distDiff: number): number {
-  // For very short distances (< 5m), gradient calculations are unreliable
-  if (distDiff < 5) return 0;
+  // For very short distances (< 2m), gradient calculations are unreliable
+  // But we need to allow smaller distances to capture terrain between GPS points
+  if (distDiff < 2) return 0;
 
   // Cap gradients at physically realistic limits
   // Running gradients rarely exceed ±50% in practice
@@ -245,6 +246,9 @@ export function analyzeActivityTerrain(
   let segmentElevGain = 0;
   let segmentElevLoss = 0;
 
+  // Track gradient distribution for debugging
+  const gradientCounts = { flat: 0, uphill: 0, downhill: 0 };
+
   // Process each point
   for (let i = 1; i < elevStream.length; i++) {
     const prevElev = elevStream[i - 1];
@@ -261,6 +265,9 @@ export function analyzeActivityTerrain(
     const gradePct = validateGradient(rawGradePct, distDiff);
     const terrainType = classifyTerrainType(gradePct);
     const gradeBucket = classifyGradeBucket(gradePct);
+
+    // Track terrain type distribution
+    gradientCounts[terrainType]++;
 
     // Track elevation changes
     if (elevDiff > 0) {
@@ -362,6 +369,10 @@ export function analyzeActivityTerrain(
   // Calculate average grade across entire activity
   const totalElevChange = elevStream[elevStream.length - 1] - elevStream[0];
   const avgGradePct = (totalElevChange / (totalDistanceKm * 1000)) * 100;
+
+  // Debug: Log terrain distribution
+  const totalPoints = gradientCounts.flat + gradientCounts.uphill + gradientCounts.downhill;
+  console.log(`[analyzeActivityTerrain] ${logEntry.dateISO}: ${totalPoints} points - flat: ${gradientCounts.flat}, uphill: ${gradientCounts.uphill}, downhill: ${gradientCounts.downhill} | Segments: ${segments.length} - U:${totalUphillDist.toFixed(1)}km, D:${totalDownhillDist.toFixed(1)}km, F:${totalFlatDist.toFixed(1)}km`);
 
   return {
     logEntryId,
