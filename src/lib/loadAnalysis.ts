@@ -1,4 +1,4 @@
-import { getLogEntriesByDateRange } from './database';
+import { getLogEntriesByDateRange, getEvents } from './database';
 import type { LogEntry } from '@/types';
 
 export type TrainingLoad = {
@@ -7,6 +7,8 @@ export type TrainingLoad = {
   progressionRatio: number;
   last7DaysKm: number;
   last28DaysKm: number;
+  eventLoadLast7Days: number;
+  eventLoadLast28Days: number;
   recommendation: 'increase' | 'maintain' | 'reduce' | 'taper';
 };
 
@@ -27,6 +29,39 @@ function addDays(dateStr: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * Calculate event workload in km-equivalent
+ */
+function calculateEventWorkload(event: any): number {
+  let workloadKm = 0;
+
+  // Base workload from distance
+  if (event.distance_km) {
+    workloadKm = event.distance_km;
+  } else if (event.expected_time) {
+    // Estimate from time (assume 6 min/km pace)
+    const [hours, minutes] = event.expected_time.split(':').map(Number);
+    const totalMinutes = (hours || 0) * 60 + (minutes || 0);
+    workloadKm = totalMinutes / 6;
+  }
+
+  // Add elevation workload (100m elevation = 1km flat equivalent)
+  if (event.elevation_gain) {
+    workloadKm += event.elevation_gain / 100;
+  }
+
+  // Priority multiplier
+  const priorityMultiplier = {
+    'A': 1.5,
+    'B': 1.2,
+    'C': 1.0,
+  };
+  const priority = event.priority || 'B';
+  workloadKm *= priorityMultiplier[priority as 'A' | 'B' | 'C'] || 1.0;
+
+  return workloadKm;
+}
+
 export async function calculateTrainingLoad(referenceDate?: Date): Promise<TrainingLoad> {
   const today = referenceDate || new Date();
   const todayStr = today.toISOString().slice(0, 10);
@@ -34,6 +69,7 @@ export async function calculateTrainingLoad(referenceDate?: Date): Promise<Train
   const last7Start = addDays(todayStr, -6);
   const last28Start = addDays(todayStr, -27);
 
+  // Get training activities
   const entries = await getLogEntriesByDateRange(last28Start, todayStr);
 
   const last7DaysKm = entries
@@ -42,8 +78,20 @@ export async function calculateTrainingLoad(referenceDate?: Date): Promise<Train
 
   const last28DaysKm = entries.reduce((sum, e) => sum + (e.km || 0), 0);
 
-  const acuteLoad = last7DaysKm;
-  const chronicLoad = last28DaysKm / 4;
+  // Get calendar events and calculate their workload
+  const events = await getEvents(100);
+
+  const eventLoadLast7Days = events
+    .filter(e => e.date >= last7Start && e.date <= todayStr)
+    .reduce((sum, e) => sum + calculateEventWorkload(e), 0);
+
+  const eventLoadLast28Days = events
+    .filter(e => e.date >= last28Start && e.date <= todayStr)
+    .reduce((sum, e) => sum + calculateEventWorkload(e), 0);
+
+  // Combine training and event load
+  const acuteLoad = last7DaysKm + eventLoadLast7Days;
+  const chronicLoad = (last28DaysKm + eventLoadLast28Days) / 4;
   const progressionRatio = chronicLoad > 0 ? acuteLoad / chronicLoad : 1.0;
 
   let recommendation: TrainingLoad['recommendation'] = 'maintain';
@@ -63,6 +111,8 @@ export async function calculateTrainingLoad(referenceDate?: Date): Promise<Train
     progressionRatio,
     last7DaysKm,
     last28DaysKm,
+    eventLoadLast7Days,
+    eventLoadLast28Days,
     recommendation,
   };
 }

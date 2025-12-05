@@ -25,7 +25,7 @@ import { getACWRZoneStatus, getACWRTrendDirection } from '@/utils/acwrZones';
 import { getWeatherForLocation, type CurrentWeather } from '@/utils/weather';
 import { detectMotivationArchetype } from '@/lib/motivationDetection';
 import { listRaces } from '@/utils/races';
-import { getLogEntriesByDateRange } from '@/lib/database';
+import { getLogEntriesByDateRange, getEvents, type DbEvent } from '@/lib/database';
 import { getSavedLocation } from '@/utils/location';
 import { loadUserProfile } from '@/state/userData';
 import { load } from '@/utils/storage';
@@ -233,35 +233,53 @@ async function getTrainingHistory() {
 }
 
 /**
- * Get race calendar data
+ * Convert calendar event to RaceInfo format
+ */
+function convertEventToRaceInfo(event: DbEvent): RaceInfo {
+  // Parse expected time (HH:MM:SS) to calculate distance if not provided
+  let distanceKm = event.distance_km || 0;
+
+  // If GPX was uploaded, distance will be available
+  // Otherwise estimate from expected time (conservative estimate)
+  if (!distanceKm && event.expected_time) {
+    const [hours, minutes] = event.expected_time.split(':').map(Number);
+    const totalMinutes = (hours || 0) * 60 + (minutes || 0);
+    // Assume 6 min/km pace for estimation
+    distanceKm = totalMinutes / 6;
+  }
+
+  return {
+    id: event.id || 'event-' + event.date,
+    name: event.name,
+    date: event.date,
+    distanceKm,
+    priority: (event.priority as 'A' | 'B' | 'C') || 'B',
+    verticalGain: event.elevation_gain || 0,
+    climate: undefined,
+  };
+}
+
+/**
+ * Get race calendar data (includes both races and calendar events)
  */
 async function getRaceCalendarData() {
   const races = await listRaces();
+  const events = await getEvents();
   const now = new Date();
 
+  // Combine races and events
   const upcomingRaces = races
     .filter(r => new Date(r.dateISO) >= now)
     .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 
-  const mainRace = upcomingRaces.find(r => r.priority === 'A') || upcomingRaces[0] || null;
-  const nextRace = upcomingRaces[0] || null;
+  const upcomingEvents = events
+    .filter(e => new Date(e.date) >= now)
+    .sort((a, b) => a.date.localeCompare(b.date));
 
-  const daysToMainRace = mainRace
-    ? Math.ceil((new Date(mainRace.dateISO).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-    : 999;
+  // Convert events to RaceInfo format
+  const eventInfos = upcomingEvents.map(convertEventToRaceInfo);
 
-  const daysToNextRace = nextRace
-    ? Math.ceil((new Date(nextRace.dateISO).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-    : 999;
-
-  // CRITICAL: Debug log for race detection
-  if (mainRace) {
-    console.log('🏁 Race Found:', mainRace.name, '| Days away:', daysToMainRace, '| Priority:', mainRace.priority);
-    if (daysToMainRace <= 7) {
-      console.log('⚠️ RACE WEEK ACTIVE - Should override to race_week/taper phase');
-    }
-  }
-
+  // Convert races to RaceInfo format
   const raceInfos: RaceInfo[] = upcomingRaces.map(r => ({
     id: r.id,
     name: r.name,
@@ -269,13 +287,35 @@ async function getRaceCalendarData() {
     distanceKm: r.distanceKm || 42.195,
     priority: (r.priority || 'C') as 'A' | 'B' | 'C',
     verticalGain: r.elevationGain || 0,
-    climate: undefined, // Could be enhanced with race location weather
+    climate: undefined,
   }));
 
+  // Merge and sort all events
+  const allUpcoming = [...raceInfos, ...eventInfos].sort((a, b) => a.date.localeCompare(b.date));
+
+  const mainRace = allUpcoming.find(r => r.priority === 'A') || allUpcoming[0] || null;
+  const nextRace = allUpcoming[0] || null;
+
+  const daysToMainRace = mainRace
+    ? Math.ceil((new Date(mainRace.date).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    : 999;
+
+  const daysToNextRace = nextRace
+    ? Math.ceil((new Date(nextRace.date).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    : 999;
+
+  // CRITICAL: Debug log for race/event detection
+  if (mainRace) {
+    console.log('🏁 Race/Event Found:', mainRace.name, '| Days away:', daysToMainRace, '| Priority:', mainRace.priority);
+    if (daysToMainRace <= 7) {
+      console.log('⚠️ RACE WEEK ACTIVE - Should override to race_week/taper phase');
+    }
+  }
+
   return {
-    mainRace: mainRace ? raceInfos.find(r => r.id === mainRace.id) || null : null,
-    nextRace: nextRace ? raceInfos[0] : null,
-    allUpcoming: raceInfos,
+    mainRace,
+    nextRace,
+    allUpcoming,
     daysToMainRace,
     daysToNextRace,
   };
