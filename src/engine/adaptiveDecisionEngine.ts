@@ -106,6 +106,7 @@ export interface RaceInfo {
   priority: 'A' | 'B' | 'C';
   verticalGain: number;
   climate?: 'hot' | 'humid' | 'cold' | 'temperate';
+  expectedTimeMin?: number;
 }
 
 export interface AdjustmentLayer {

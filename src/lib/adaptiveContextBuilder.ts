@@ -238,14 +238,24 @@ async function getTrainingHistory() {
 function convertEventToRaceInfo(event: DbEvent): RaceInfo {
   // Parse expected time (HH:MM:SS) to calculate distance if not provided
   let distanceKm = event.distance_km || 0;
+  let expectedTimeMin: number | undefined;
+
+  // Parse expected_time to minutes
+  if (event.expected_time) {
+    const parts = event.expected_time.split(':').map(Number);
+    if (parts.length >= 2) {
+      const hours = parts[0] || 0;
+      const minutes = parts[1] || 0;
+      const seconds = parts.length >= 3 ? parts[2] || 0 : 0;
+      expectedTimeMin = hours * 60 + minutes + seconds / 60;
+    }
+  }
 
   // If GPX was uploaded, distance will be available
   // Otherwise estimate from expected time (conservative estimate)
-  if (!distanceKm && event.expected_time) {
-    const [hours, minutes] = event.expected_time.split(':').map(Number);
-    const totalMinutes = (hours || 0) * 60 + (minutes || 0);
+  if (!distanceKm && expectedTimeMin) {
     // Assume 6 min/km pace for estimation
-    distanceKm = totalMinutes / 6;
+    distanceKm = expectedTimeMin / 6;
   }
 
   return {
@@ -255,6 +265,7 @@ function convertEventToRaceInfo(event: DbEvent): RaceInfo {
     distanceKm,
     priority: (event.priority as 'A' | 'B' | 'C') || 'B',
     verticalGain: event.elevation_gain || 0,
+    expectedTimeMin,
     climate: undefined,
   };
 }

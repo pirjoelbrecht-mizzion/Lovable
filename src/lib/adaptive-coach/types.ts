@@ -86,6 +86,7 @@ export interface RaceEvent {
   climate?: "hot" | "humid" | "cold" | "temperate" | "mixed";
   terrain?: "road" | "trail" | "mountain" | "mixed";
   technicalDifficulty?: "easy" | "moderate" | "hard" | "extreme";
+  expectedTimeMin?: number; // Expected finish time in minutes (from GPX or user input)
 }
 
 export interface RaceResult {

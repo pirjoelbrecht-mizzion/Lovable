@@ -542,11 +542,25 @@ function distributeWorkouts(
     if (raceDateStr && dateStr === raceDateStr) {
       console.log('🏁 [DistributeWorkouts] ✅ RACE INSERTED on', dayName, dateStr);
 
+      // Use expected time if provided, otherwise calculate
+      let durationMin: number;
+      if (race.expectedTimeMin) {
+        durationMin = Math.round(race.expectedTimeMin);
+        console.log(`🏁 Using expected time: ${durationMin} min (${Math.floor(durationMin/60)}:${String(Math.floor(durationMin%60)).padStart(2,'0')})`);
+      } else {
+        // Conservative estimate: base pace + elevation penalty
+        const basePaceMinKm = 6.0; // Conservative 6:00 min/km
+        const elevationPenaltyMin = (race.verticalGain || 0) / 100 * 10; // 10 min per 100m
+        durationMin = Math.round(race.distanceKm * basePaceMinKm + elevationPenaltyMin);
+        console.log(`🏁 Calculated duration: ${durationMin} min`);
+      }
+
       const raceWorkout: Workout = {
         type: 'simulation', // Use simulation type for race day
         title: `🏁 ${race.name}`,
         description: `Race day! ${race.distanceKm}km with ${race.verticalGain || 0}m elevation gain.`,
         distanceKm: race.distanceKm,
+        durationMin,
         verticalGain: race.verticalGain || 0,
         intensityZones: ['Z4', 'Z5'], // Race effort
       };
