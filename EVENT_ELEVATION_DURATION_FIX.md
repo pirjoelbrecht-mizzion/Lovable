@@ -1,9 +1,10 @@
 # Event Elevation and Duration Display Fix
 
 ## Problem
-Calendar events added to training plans were missing:
+Training plans (both Adaptive Coach and Quest "This Week" view) were missing:
 1. **Elevation gain data** (showing 0m instead of actual elevation)
-2. **Accurate duration** (not using personalized pace profile)
+2. **Accurate duration** (not using personalized pace profile or stored duration)
+3. **Type mismatch** - Session types didn't include required fields
 
 ## Solution Summary
 
@@ -184,6 +185,8 @@ Calculation:
 2. **`src/utils/planEvents.ts`** - Added duration calculation functions
 3. **`src/hooks/useWeeklyEvents.ts`** - Auto-calculate duration for events
 4. **`src/utils/eventPlanIntegration.ts`** (new) - Event-to-session conversion utilities
+5. **`src/pages/Planner.tsx`** - Updated Session type and display logic
+6. **`src/pages/Quest.tsx`** - Updated SessionNode type and data extraction
 
 ## Testing
 
@@ -213,6 +216,60 @@ To verify the fix:
 2. **Terrain Awareness:** Elevation gain properly factored into duration
 3. **Training Load:** ACWR calculations now account for event difficulty
 4. **Better Visualization:** Clear display of distance, time, and elevation
+
+## Quest Page ("This Week" View) Fixes
+
+### Problem
+The Quest page was:
+1. **Estimating duration** instead of using actual `durationMin` field
+2. **Parsing elevation from notes** using regex instead of reading `elevationGain` field
+3. **Missing elevation in SessionNode** type definition
+
+### Solution
+
+**Updated SessionNode Type:**
+```typescript
+type SessionNode = {
+  // ... existing fields
+  elevation?: number;  // ✅ Added
+};
+```
+
+**Extract Real Data:**
+```typescript
+// OLD: Always estimated
+const duration = estimateDuration(km, sessionType);
+
+// NEW: Use actual duration if available
+const durationMin = mainSession?.durationMin ?? fallback?.durationMin;
+const duration = durationMin
+  ? `${Math.floor(durationMin / 60)}h ${Math.floor(durationMin % 60)}m`
+  : estimateDuration(km, sessionType);
+
+const elevation = mainSession?.elevationGain ?? fallback?.elevationGain;
+```
+
+**Enhanced Description:**
+```typescript
+if (elevation && elevation > 0) {
+  description = `${km}km • ${Math.round(elevation)}m↑ • ${duration}`;
+}
+```
+
+### Display Result
+
+**Before:**
+```
+Long Run
+25K • 150 min
+```
+
+**After:**
+```
+Chiang Mai
+54.8km • 2,380m↑ • 8h 43m
+Trail event • Est. 8:43:00 • Priority A
+```
 
 ## Related Documentation
 

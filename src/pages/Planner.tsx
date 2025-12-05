@@ -26,7 +26,15 @@ import CoachSummary from "@/components/CoachSummary";
 import AdaptiveCoachPanel from "@/components/AdaptiveCoachPanel";
 
 /** ---------- Local types ---------- */
-type Session = { title: string; km?: number; notes?: string };
+type Session = {
+  title: string;
+  km?: number;
+  notes?: string;
+  durationMin?: number;
+  elevationGain?: number;
+  type?: string;
+  distanceKm?: number;
+};
 type PlanDay = { dateISO: string; sessions: Session[] };
 export type PlanWeek = PlanDay[];
 
@@ -68,7 +76,7 @@ function normalizeWeek(maybe: any): PlanWeek {
     const sessions = Array.isArray(d.sessions)
       ? d.sessions
           .filter(isSession)
-          .map((s) => ({
+          .map((s: any) => ({
             title: String(s.title),
             km:
               s.km == null
@@ -77,6 +85,10 @@ function normalizeWeek(maybe: any): PlanWeek {
                 ? s.km
                 : Number(s.km) || undefined,
             notes: s.notes == null ? undefined : String(s.notes),
+            durationMin: s.durationMin != null ? Number(s.durationMin) : undefined,
+            elevationGain: s.elevationGain != null ? Number(s.elevationGain) : undefined,
+            type: s.type != null ? String(s.type) : undefined,
+            distanceKm: s.distanceKm != null ? Number(s.distanceKm) : undefined,
           }))
       : [];
     const dateISO =
@@ -653,9 +665,13 @@ export default function Planner() {
           const newWeek = week.map((day, i) => ({
             ...day,
             sessions: plan.days[i] ? [{
-              title: plan.days[i].workoutType,
-              km: plan.days[i].distanceKm,
-              notes: plan.days[i].notes
+              title: plan.days[i].workout.title || plan.days[i].workout.type,
+              type: plan.days[i].workout.type,
+              km: plan.days[i].workout.distanceKm,
+              distanceKm: plan.days[i].workout.distanceKm,
+              durationMin: plan.days[i].workout.durationMin,
+              elevationGain: plan.days[i].workout.verticalGain || undefined,
+              notes: plan.days[i].workout.description
             }] : day.sessions
           }));
           setWeek(newWeek);
@@ -822,8 +838,10 @@ export default function Planner() {
                         <div className="row" style={{ justifyContent: "space-between" }}>
                           <div>
                             <b>{s.title}</b>
-                            {s.km ? ` — ${s.km} km` : ""}{" "}
-                            {s.notes ? ` • ${s.notes}` : ""}
+                            {(s.km || s.distanceKm) ? ` — ${(s.distanceKm || s.km)?.toFixed(1)} km` : ""}
+                            {s.durationMin ? ` • ${Math.floor(s.durationMin / 60)}:${String(Math.floor(s.durationMin % 60)).padStart(2, '0')}h` : ""}
+                            {s.elevationGain ? ` • ${Math.round(s.elevationGain)}m↑` : ""}
+                            {s.notes && !s.notes.includes('Est.') && !s.notes.includes('gain') ? ` • ${s.notes}` : ""}
                           </div>
                           <div className="row" style={{ gap: 6 }}>
                             <button className="btn" onClick={() => openEdit(dayIdx, idx)}>

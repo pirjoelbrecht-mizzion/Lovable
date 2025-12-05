@@ -34,6 +34,7 @@ type SessionNode = {
   emoji: string;
   duration: string;
   distance?: string;
+  elevation?: number;
   pace?: string;
   zones?: string;
   description?: string;
@@ -179,7 +180,7 @@ export default function Quest() {
 
     return {
       distance: mainSession.km,
-      elevation: mainSession.notes?.match(/(\d+)m/)?.[1] ? parseInt(mainSession.notes.match(/(\d+)m/)![1]) : undefined,
+      elevation: (mainSession as any)?.elevationGain || (mainSession.notes?.match(/(\d+)m/)?.[1] ? parseInt(mainSession.notes.match(/(\d+)m/)![1]) : undefined),
       terrain: (mainSession.notes?.toLowerCase().includes('trail') ? 'trail' :
                 mainSession.notes?.toLowerCase().includes('road') ? 'road' :
                 undefined) as 'road' | 'trail' | 'mixed' | undefined,
@@ -335,7 +336,14 @@ export default function Quest() {
       const notes = mainSession?.notes || fallback?.notes || "";
       const sessionType = detectSessionType(title, notes);
       const emoji = SESSION_EMOJIS[sessionType] || "🏃";
-      const duration = estimateDuration(km, sessionType);
+
+      // Use actual duration if available, otherwise estimate
+      const durationMin = (mainSession as any)?.durationMin ?? (fallback as any)?.durationMin;
+      const duration = durationMin
+        ? `${Math.floor(durationMin / 60)}h ${Math.floor(durationMin % 60)}m`.replace(/0h /, '')
+        : estimateDuration(km, sessionType);
+
+      const elevation = (mainSession as any)?.elevationGain ?? (fallback as any)?.elevationGain;
       const isToday = idx === today;
       const isAdapted = mainSession?.source === "coach";
 
@@ -366,6 +374,15 @@ export default function Quest() {
       const dateStr = workoutDate.toISOString().slice(0, 10);
       const isCompleted = completionStatus[dateStr] || false;
 
+      // Build description with elevation if available
+      let description = notes || `${title} session as planned.`;
+      if (elevation && elevation > 0) {
+        description = `${km && km > 0 ? `${km}km` : ''} ${elevation ? `• ${Math.round(elevation)}m↑` : ''} ${duration ? `• ${duration}` : ''}`.trim();
+        if (notes && !notes.includes('Est.')) {
+          description += ` • ${notes}`;
+        }
+      }
+
       return {
         id: day.label.toLowerCase(),
         day: DAYS_SHORT[idx],
@@ -374,9 +391,10 @@ export default function Quest() {
         emoji,
         duration,
         distance: km && km > 0 ? `${km}K` : undefined,
+        elevation: elevation && elevation > 0 ? Math.round(elevation) : undefined,
         pace,
         zones,
-        description: notes || `${title} session as planned.`,
+        description,
         weather,
         completed: isCompleted,
         isToday,
