@@ -313,7 +313,20 @@ async function getRaceCalendarData() {
   // Merge and sort all events
   const allUpcoming = [...raceInfos, ...eventInfos].sort((a, b) => a.date.localeCompare(b.date));
 
+  console.log('[getRaceCalendarData] allUpcoming:', allUpcoming.map(r => ({
+    name: r.name,
+    priority: r.priority,
+    expectedTimeMin: r.expectedTimeMin,
+    verticalGain: r.verticalGain
+  })));
+
   const mainRace = allUpcoming.find(r => r.priority === 'A') || allUpcoming[0] || null;
+  console.log('[getRaceCalendarData] Selected mainRace:', mainRace ? {
+    name: mainRace.name,
+    expectedTimeMin: mainRace.expectedTimeMin,
+    verticalGain: mainRace.verticalGain
+  } : null);
+
   const nextRace = allUpcoming[0] || null;
 
   const daysToMainRace = mainRace
