@@ -2,7 +2,17 @@
 import { load, save } from "@/utils/storage";
 
 // Keep local copies so this file is standalone
-export type Session = { title: string; km?: number; notes?: string };
+export type Session = {
+  title: string;
+  km?: number;
+  notes?: string;
+  durationMin?: number;
+  elevationGain?: number;
+  type?: string;
+  distanceKm?: number;
+  zones?: any[];
+  source?: "coach" | "user";
+};
 export type PlanDay = { dateISO: string; sessions: Session[] };
 export type PlanWeek = PlanDay[];
 

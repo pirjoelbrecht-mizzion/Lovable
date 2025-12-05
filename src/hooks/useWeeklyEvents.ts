@@ -3,18 +3,22 @@
  */
 
 import { useEffect, useState } from 'react';
-import { getEventsForWeek, type EventForDay, calculateEventWorkload } from '@/utils/planEvents';
+import { getEventsForWeek, type EventForDay, calculateEventWorkload, calculateEventDuration } from '@/utils/planEvents';
 import type { WeekPlan } from '@/lib/plan';
 
+export interface EventWithDuration extends EventForDay {
+  calculatedDurationMin?: number;
+}
+
 export interface WeeklyEventsData {
-  eventsByDate: Map<string, EventForDay[]>;
+  eventsByDate: Map<string, EventWithDuration[]>;
   totalEventWorkload: number;
   hasEvents: boolean;
   loading: boolean;
 }
 
 export function useWeeklyEvents(weekPlan: WeekPlan): WeeklyEventsData {
-  const [eventsByDate, setEventsByDate] = useState<Map<string, EventForDay[]>>(new Map());
+  const [eventsByDate, setEventsByDate] = useState<Map<string, EventWithDuration[]>>(new Map());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,8 +33,25 @@ export function useWeeklyEvents(weekPlan: WeekPlan): WeeklyEventsData {
 
       try {
         const events = await getEventsForWeek(weekPlan);
+
+        // Calculate duration for each event
+        const eventsWithDuration = new Map<string, EventWithDuration[]>();
+
+        for (const [date, eventList] of events.entries()) {
+          const enrichedEvents = await Promise.all(
+            eventList.map(async (event) => {
+              const calculatedDurationMin = await calculateEventDuration(event);
+              return {
+                ...event,
+                calculatedDurationMin,
+              };
+            })
+          );
+          eventsWithDuration.set(date, enrichedEvents);
+        }
+
         if (mounted) {
-          setEventsByDate(events);
+          setEventsByDate(eventsWithDuration);
         }
       } catch (error) {
         console.error('Failed to fetch weekly events:', error);
