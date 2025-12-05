@@ -310,8 +310,8 @@ async function getRaceCalendarData() {
     climate: undefined,
   }));
 
-  // Merge and sort all events
-  const allUpcoming = [...raceInfos, ...eventInfos].sort((a, b) => a.date.localeCompare(b.date));
+  // Merge and sort all events (events first - they have more detailed data like expectedTimeMin)
+  const allUpcoming = [...eventInfos, ...raceInfos].sort((a, b) => a.date.localeCompare(b.date));
 
   console.log('[getRaceCalendarData] allUpcoming:', allUpcoming.map((r, i) => ({
     index: i,
