@@ -817,6 +817,8 @@ function applyAllLayers(plan: WeeklyPlan, layers: AdjustmentLayer[], context?: A
 
         if (day.date === raceDateStr) {
           const race = context.races.mainRace!;
+          console.log('🏁 [applyAllLayers] Race object:', race);
+          console.log('🏁 [applyAllLayers] Race expectedTimeMin:', race.expectedTimeMin);
 
           // Calculate duration: use expected time if available, otherwise estimate
           let durationMin: number;
