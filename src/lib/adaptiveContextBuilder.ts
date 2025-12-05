@@ -258,7 +258,7 @@ function convertEventToRaceInfo(event: DbEvent): RaceInfo {
     distanceKm = expectedTimeMin / 6;
   }
 
-  return {
+  const raceInfo = {
     id: event.id || 'event-' + event.date,
     name: event.name,
     date: event.date,
@@ -268,6 +268,15 @@ function convertEventToRaceInfo(event: DbEvent): RaceInfo {
     expectedTimeMin,
     climate: undefined,
   };
+
+  console.log('[convertEventToRaceInfo] Event:', event.name, {
+    elevation_gain: event.elevation_gain,
+    expected_time: event.expected_time,
+    verticalGain: raceInfo.verticalGain,
+    expectedTimeMin: raceInfo.expectedTimeMin
+  });
+
+  return raceInfo;
 }
 
 /**
