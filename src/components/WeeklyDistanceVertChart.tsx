@@ -212,7 +212,7 @@ export default function WeeklyDistanceVertChart({
               r: 5,
               stroke: '#f472b6',
               strokeWidth: 2,
-              fill: (entry: any) => (entry.payload.overVert ? '#ef4444' : 'white'),
+              fill: 'white',
             }}
           />
         </ComposedChart>
