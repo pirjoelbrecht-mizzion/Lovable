@@ -12,7 +12,7 @@ import { fetchDailyWeather, type DailyWeather, getWeatherForLocation, type Curre
 import { loadUserProfile } from "@/state/userData";
 import { loadWeekPlan, type WeekItem } from "@/utils/weekPlan";
 import { listRaces, type Race } from "@/utils/races";
-import { load } from "@/utils/storage";
+import { load, save } from "@/utils/storage";
 import { type DbSavedRoute } from "@/lib/database";
 import { toast } from "@/components/ToastHost";
 import { getSavedLocation, detectLocation, saveLocation, ensureLocationLabel } from "@/utils/location";
@@ -681,6 +681,28 @@ export default function Quest() {
           <AdaptiveCoachPanel
             onPlanGenerated={(plan) => {
               console.log('[Quest] Adaptive plan generated:', plan);
+
+              // Convert adaptive plan to week plan format
+              const newWeek = plan.days.map((day, i) => ({
+                day: DAYS[i],
+                date: day.date,
+                sessions: day.workout ? [{
+                  title: day.workout.title || day.workout.type,
+                  type: day.workout.type,
+                  km: day.workout.distanceKm,
+                  distanceKm: day.workout.distanceKm,
+                  durationMin: day.workout.durationMin,
+                  elevationGain: day.workout.verticalGain || undefined,
+                  notes: day.workout.description
+                }] : []
+              }));
+
+              console.log('[Quest] Converted week plan:', newWeek);
+
+              // Update state and save to localStorage
+              setWeekPlan(newWeek);
+              save("plan", newWeek);
+
               toast("Adaptive training plan generated! Check your weekly schedule.", "success");
               window.dispatchEvent(new Event('planner:updated'));
             }}
