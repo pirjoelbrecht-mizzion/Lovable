@@ -18,6 +18,7 @@ export type UserSettings = {
   voice_output_enabled: boolean;
   voice_input_enabled: boolean;
   coach_proactive_tips: boolean;
+  flat_pace_mode?: 'accurate' | 'conservative' | 'fast';
   created_at?: string;
   updated_at?: string;
 };
@@ -37,6 +38,7 @@ const DEFAULT_SETTINGS: Omit<UserSettings, 'id' | 'user_id' | 'created_at' | 'up
   voice_output_enabled: false,
   voice_input_enabled: false,
   coach_proactive_tips: true,
+  flat_pace_mode: 'accurate',
 };
 
 export async function getUserSettings(): Promise<UserSettings> {

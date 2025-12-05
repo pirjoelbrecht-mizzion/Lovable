@@ -23,11 +23,19 @@ const MIN_DATA_REQUIREMENTS = {
   MIN_SEGMENTS_PER_TYPE: 5,
 };
 
+// Flat pace mode configuration
+export type FlatPaceMode = 'accurate' | 'conservative' | 'fast';
+
+const FLAT_PACE_PERCENTILES: Record<FlatPaceMode, number> = {
+  accurate: 0.30,      // 30th percentile - race-capable speed
+  conservative: 0.50,  // 50th percentile - median pace
+  fast: 0.20,          // 20th percentile - aggressive predictions
+};
+
 // Pace calculation configuration
-// Use 25th percentile for flat pace (represents faster efforts, better for race predictions)
+// Use configurable percentile for flat pace (better represents race output)
 // Use 50th percentile (median) for uphill/downhill (represents typical effort)
 const PACE_PERCENTILES = {
-  FLAT: 0.25,      // 25th percentile - faster flat efforts
   UPHILL: 0.5,     // 50th percentile - median effort
   DOWNHILL: 0.5,   // 50th percentile - median effort
 };
@@ -161,8 +169,13 @@ function determineConfidence(sampleSize: number): 'high' | 'medium' | 'low' {
 
 /**
  * Calculate pace profile from historical terrain analysis data
+ * @param userId - User ID (optional, defaults to current user)
+ * @param flatPaceMode - Mode for calculating flat pace percentile (default: 'accurate')
  */
-export async function calculatePaceProfile(userId?: string): Promise<PaceProfile | null> {
+export async function calculatePaceProfile(
+  userId?: string,
+  flatPaceMode: FlatPaceMode = 'accurate'
+): Promise<PaceProfile | null> {
   try {
     const supabase = getSupabase();
     const uid = userId || await getCurrentUserId();
@@ -268,11 +281,15 @@ export async function calculatePaceProfile(userId?: string): Promise<PaceProfile
         const filteredSegments = filterOutliers(segments);
 
         if (filteredSegments.length >= 3) {
-          // Use 25th percentile for flat terrain (faster efforts), median for uphill/downhill
-          const percentile = bucketKey === 'flat' ? PACE_PERCENTILES.FLAT : PACE_PERCENTILES.UPHILL;
+          // Use configurable percentile for flat terrain, median for uphill/downhill
+          const flatPercentile = FLAT_PACE_PERCENTILES[flatPaceMode];
+          const percentile = bucketKey === 'flat' ? flatPercentile : PACE_PERCENTILES.UPHILL;
           const bucketPace = calculateWeightedPercentile(filteredSegments, percentile);
 
-          console.log(`[DEBUG] Bucket ${bucketKey}: ${filteredSegments.length}/${segments.length} segments after outlier filtering, ${percentile === PACE_PERCENTILES.FLAT ? '25th percentile' : 'median'} pace: ${bucketPace.toFixed(2)}`);
+          const percentileLabel = bucketKey === 'flat'
+            ? `${Math.round(percentile * 100)}th percentile (${flatPaceMode})`
+            : 'median';
+          console.log(`[DEBUG] Bucket ${bucketKey}: ${filteredSegments.length}/${segments.length} segments after outlier filtering, ${percentileLabel} pace: ${bucketPace.toFixed(2)}`);
 
           gradeBucketPaces[bucketKey] = {
             bucket: bucketKey as GradeBucketKey,
@@ -299,14 +316,15 @@ export async function calculatePaceProfile(userId?: string): Promise<PaceProfile
       ? calculateWeightedMedian(filterOutliers(segmentsByType.downhill))
       : 0;
 
+    const flatPercentile = FLAT_PACE_PERCENTILES[flatPaceMode];
     const flatPace = segmentsByType.flat.length > 0
-      ? calculateWeightedPercentile(filterOutliers(segmentsByType.flat), PACE_PERCENTILES.FLAT)
+      ? calculateWeightedPercentile(filterOutliers(segmentsByType.flat), flatPercentile)
       : 0;
 
     // Log comparison of percentiles for flat pace
     if (segmentsByType.flat.length > 0) {
       const flatMedian = calculateWeightedMedian(filterOutliers(segmentsByType.flat));
-      console.log(`[DEBUG] Flat pace comparison: 25th percentile=${flatPace.toFixed(2)}, median=${flatMedian.toFixed(2)} (using 25th for predictions)`);
+      console.log(`[DEBUG] Flat pace comparison: ${Math.round(flatPercentile * 100)}th percentile (${flatPaceMode})=${flatPace.toFixed(2)}, median=${flatMedian.toFixed(2)} (using ${Math.round(flatPercentile * 100)}th for predictions)`);
     }
 
     // Use flat pace as base, or fallback to overall average if no flat segments
@@ -455,9 +473,27 @@ export async function getPaceProfile(userId?: string): Promise<PaceProfile | nul
 
 /**
  * Recalculate and save pace profile (foreground)
+ * @param userId - User ID (optional)
+ * @param flatPaceMode - Mode for calculating flat pace percentile (optional, will fetch from settings if not provided)
  */
-export async function recalculatePaceProfile(userId?: string): Promise<PaceProfile | null> {
-  const profile = await calculatePaceProfile(userId);
+export async function recalculatePaceProfile(
+  userId?: string,
+  flatPaceMode?: FlatPaceMode
+): Promise<PaceProfile | null> {
+  // Fetch flat pace mode from user settings if not provided
+  let mode = flatPaceMode;
+  if (!mode) {
+    try {
+      const { getUserSettings } = await import('@/lib/userSettings');
+      const settings = await getUserSettings();
+      mode = (settings.flat_pace_mode as FlatPaceMode) || 'accurate';
+    } catch (err) {
+      console.error('Failed to fetch flat pace mode from settings, using default:', err);
+      mode = 'accurate';
+    }
+  }
+
+  const profile = await calculatePaceProfile(userId, mode);
 
   if (profile) {
     await savePaceProfile(profile);
@@ -481,8 +517,13 @@ export function recalculatePaceProfileBackground(userId: string): void {
  *
  * This is the main entry point for getting a user's pace profile.
  * It will return cached profile if available and fresh, otherwise recalculate.
+ * @param userId - User ID (optional)
+ * @param flatPaceMode - Mode for calculating flat pace percentile (optional, will fetch from settings if not provided)
  */
-export async function getOrCalculatePaceProfile(userId?: string): Promise<PaceProfile | null> {
+export async function getOrCalculatePaceProfile(
+  userId?: string,
+  flatPaceMode?: FlatPaceMode
+): Promise<PaceProfile | null> {
   // Try to get existing profile
   const existing = await getPaceProfile(userId);
 
@@ -498,5 +539,5 @@ export async function getOrCalculatePaceProfile(userId?: string): Promise<PacePr
   }
 
   // Otherwise recalculate
-  return await recalculatePaceProfile(userId);
+  return await recalculatePaceProfile(userId, flatPaceMode);
 }

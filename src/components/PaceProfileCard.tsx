@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { getPaceProfile, recalculatePaceProfile, type PaceProfile } from '@/engine/historicalAnalysis/calculateUserPaceProfile';
+import { getPaceProfile, recalculatePaceProfile, type PaceProfile, type FlatPaceMode } from '@/engine/historicalAnalysis/calculateUserPaceProfile';
 import { GRADE_BUCKETS, type GradeBucketKey } from '@/engine/historicalAnalysis/analyzeActivityTerrain';
 import * as bus from '@/lib/bus';
 import { supabase } from '@/lib/supabase';
+import { getUserSettings, updateUserSettings } from '@/lib/userSettings';
 
 export function PaceProfileCard() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -15,15 +16,17 @@ export function PaceProfileCard() {
   const [profile, setProfile] = useState<PaceProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [flatPaceMode, setFlatPaceMode] = useState<FlatPaceMode>('accurate');
 
   useEffect(() => {
     loadProfile();
+    loadSettings();
 
     // Listen for log updates and refresh pace profile
     const handleLogUpdate = async () => {
       console.log('[PaceProfileCard] Log updated, recalculating pace profile...');
       try {
-        const data = await recalculatePaceProfile();
+        const data = await recalculatePaceProfile(undefined, flatPaceMode);
         setProfile(data);
         console.log('[PaceProfileCard] Pace profile updated automatically');
       } catch (err) {
@@ -33,7 +36,18 @@ export function PaceProfileCard() {
 
     const unsubscribe = bus.on('log:updated', handleLogUpdate);
     return unsubscribe;
-  }, []);
+  }, [flatPaceMode]);
+
+  async function loadSettings() {
+    try {
+      const settings = await getUserSettings();
+      if (settings.flat_pace_mode) {
+        setFlatPaceMode(settings.flat_pace_mode as FlatPaceMode);
+      }
+    } catch (err) {
+      console.error('Failed to load settings:', err);
+    }
+  }
 
   async function loadProfile() {
     setLoading(true);
@@ -68,11 +82,27 @@ export function PaceProfileCard() {
       console.log(`[PaceProfileCard] Analyzed ${analyzedCount} activities`);
 
       console.log('[PaceProfileCard] Calculating pace profile...');
-      const data = await recalculatePaceProfile();
+      const data = await recalculatePaceProfile(undefined, flatPaceMode);
       setProfile(data);
       console.log('[PaceProfileCard] Pace profile ready');
     } catch (err) {
       console.error('Failed to analyze and calculate pace profile:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  async function handleFlatPaceModeChange(mode: FlatPaceMode) {
+    setFlatPaceMode(mode);
+    await updateUserSettings({ flat_pace_mode: mode });
+
+    // Recalculate profile with new mode
+    setRefreshing(true);
+    try {
+      const data = await recalculatePaceProfile(undefined, mode);
+      setProfile(data);
+    } catch (err) {
+      console.error('Failed to recalculate with new mode:', err);
     } finally {
       setRefreshing(false);
     }
@@ -203,13 +233,95 @@ export function PaceProfileCard() {
         border: '2px solid #10b981',
         borderRadius: '8px',
         padding: '12px 16px',
-        marginBottom: '20px',
+        marginBottom: '16px',
       }}>
         <div style={{ fontSize: '13px', fontWeight: 600, color: '#065f46', marginBottom: '4px' }}>
           Using YOUR ACTUAL Running Data
         </div>
         <div style={{ fontSize: '12px', color: '#047857' }}>
           Calculated from {profile.sampleSize} activities with real elevation and pace data
+        </div>
+      </div>
+
+      <div style={{
+        backgroundColor: '#f8fafc',
+        border: '1px solid #e2e8f0',
+        borderRadius: '8px',
+        padding: '16px',
+        marginBottom: '20px',
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '12px',
+        }}>
+          <div>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '2px' }}>
+              Flat Pace Mode
+            </div>
+            <div style={{ fontSize: '11px', color: '#64748b' }}>
+              {flatPaceMode === 'accurate' && 'Uses 30th percentile - race-capable speed'}
+              {flatPaceMode === 'conservative' && 'Uses 50th percentile - median pace'}
+              {flatPaceMode === 'fast' && 'Uses 20th percentile - aggressive predictions'}
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={() => handleFlatPaceModeChange('accurate')}
+            disabled={refreshing}
+            style={{
+              flex: 1,
+              padding: '10px 16px',
+              backgroundColor: flatPaceMode === 'accurate' ? '#3b82f6' : 'white',
+              color: flatPaceMode === 'accurate' ? 'white' : '#64748b',
+              border: flatPaceMode === 'accurate' ? 'none' : '1px solid #cbd5e1',
+              borderRadius: '6px',
+              cursor: refreshing ? 'not-allowed' : 'pointer',
+              fontSize: '13px',
+              fontWeight: 600,
+              opacity: refreshing ? 0.6 : 1,
+            }}
+          >
+            Accurate
+          </button>
+          <button
+            onClick={() => handleFlatPaceModeChange('conservative')}
+            disabled={refreshing}
+            style={{
+              flex: 1,
+              padding: '10px 16px',
+              backgroundColor: flatPaceMode === 'conservative' ? '#3b82f6' : 'white',
+              color: flatPaceMode === 'conservative' ? 'white' : '#64748b',
+              border: flatPaceMode === 'conservative' ? 'none' : '1px solid #cbd5e1',
+              borderRadius: '6px',
+              cursor: refreshing ? 'not-allowed' : 'pointer',
+              fontSize: '13px',
+              fontWeight: 600,
+              opacity: refreshing ? 0.6 : 1,
+            }}
+          >
+            Conservative
+          </button>
+          <button
+            onClick={() => handleFlatPaceModeChange('fast')}
+            disabled={refreshing}
+            style={{
+              flex: 1,
+              padding: '10px 16px',
+              backgroundColor: flatPaceMode === 'fast' ? '#3b82f6' : 'white',
+              color: flatPaceMode === 'fast' ? 'white' : '#64748b',
+              border: flatPaceMode === 'fast' ? 'none' : '1px solid #cbd5e1',
+              borderRadius: '6px',
+              cursor: refreshing ? 'not-allowed' : 'pointer',
+              fontSize: '13px',
+              fontWeight: 600,
+              opacity: refreshing ? 0.6 : 1,
+            }}
+          >
+            Fast
+          </button>
         </div>
       </div>
 
@@ -275,7 +387,7 @@ export function PaceProfileCard() {
                     console.log('[DEBUG] Sample terrain data:', terrainSamples[0]);
                   }
 
-                  const data = await recalculatePaceProfile();
+                  const data = await recalculatePaceProfile(undefined, flatPaceMode);
                   console.log('[PaceProfileCard] Pace profile result:', data);
                   setProfile(data);
                 } catch (err) {
