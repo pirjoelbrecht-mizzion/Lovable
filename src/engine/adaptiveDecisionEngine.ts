@@ -816,18 +816,33 @@ function applyAllLayers(plan: WeeklyPlan, layers: AdjustmentLayer[], context?: A
         console.log(`[applyAllLayers] Checking ${day.day} (${day.date}) vs Race (${raceDateStr}): ${day.date === raceDateStr}`);
 
         if (day.date === raceDateStr) {
+          const race = context.races.mainRace!;
+
+          // Calculate duration: use expected time if available, otherwise estimate
+          let durationMin: number;
+          if (race.expectedTimeMin) {
+            durationMin = Math.round(race.expectedTimeMin);
+            console.log(`🏁 [applyAllLayers] Using expected time: ${durationMin} min (${Math.floor(durationMin/60)}:${String(durationMin%60).padStart(2,'0')})`);
+          } else {
+            // Fallback: estimate with elevation penalty
+            const elevationPenaltyMin = (race.verticalGain || 0) / 100 * 10; // 10 min per 100m
+            durationMin = Math.round(race.distanceKm * 6 + elevationPenaltyMin);
+            console.log(`🏁 [applyAllLayers] Calculated duration: ${durationMin} min (${race.distanceKm}km × 6 + ${elevationPenaltyMin.toFixed(0)}m penalty)`);
+          }
+
           console.log('🏁 [applyAllLayers] ✅ RACE INSERTED on', day.day, day.date);
 
           return {
             ...day,
             workout: {
               type: 'simulation',
-              title: `🏁 ${context.races.mainRace!.name}`,
-              description: `Race day! ${context.races.mainRace!.distanceKm}km with ${context.races.mainRace!.verticalGain}m elevation gain.`,
-              distanceKm: context.races.mainRace!.distanceKm,
-              verticalGain: context.races.mainRace!.verticalGain,
+              title: `🏁 ${race.name}`,
+              description: `Race day! ${race.distanceKm}km with ${race.verticalGain || 0}m elevation gain.`,
+              distanceKm: race.distanceKm,
+              durationMin,
+              verticalGain: race.verticalGain || 0,
               intensityZones: ['Z4', 'Z5'],
-              notes: `🏁 RACE DAY - ${context.races.mainRace!.name}. Execute your race plan and trust your training!`
+              notes: `🏁 RACE DAY - ${race.name}. Execute your race plan and trust your training!`
             }
           };
         }
