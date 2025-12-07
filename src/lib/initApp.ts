@@ -32,6 +32,15 @@ export async function initializeApp(): Promise<void> {
       console.error('[App] Failed to initialize auto-calculation service:', error);
     }
 
+    // Initialize adaptive coach event bus
+    try {
+      const { initializeAdaptiveCoachEventBus } = await import('@/lib/adaptive-coach/event-bus-integration');
+      initializeAdaptiveCoachEventBus();
+      console.log('[App] Adaptive coach event bus initialized');
+    } catch (error) {
+      console.error('[App] Failed to initialize adaptive coach event bus:', error);
+    }
+
     initialized = true;
     console.log('App initialized successfully');
   } catch (error) {

@@ -5,7 +5,10 @@ import type { LogEntry } from "@/types";
 import ImportWizard from "@/components/ImportWizard";
 import StravaImporter from "@/components/StravaImporter";
 import SendToPlannerModal from "@/components/SendToPlannerModal";
-import RunFeedbackModal from "@/components/RunFeedbackModal"; // NEW
+import RunFeedbackModal from "@/components/RunFeedbackModal";
+import { RacePerformanceFeedbackModal } from "@/components/RacePerformanceFeedbackModal";
+import { DNFFeedbackModal } from "@/components/DNFFeedbackModal";
+import { DNFConfirmDialog } from "@/components/DNFConfirmDialog";
 import { exportLastRunPNG } from "@/utils/share";
 import { toast } from "@/components/ToastHost";
 import { adaptAfterLog } from "@/utils/adapt";
@@ -13,6 +16,9 @@ import { mergeDedup, totals } from "@/utils/log";
 import { syncLogEntries } from "@/lib/database";
 import { on } from "@/lib/bus";
 import RouteMap from "@/components/RouteMap";
+import { shouldPromptFeedback, detectDNF, determineAppropriateModal } from "@/utils/feedbackDetection";
+import { saveRaceFeedback, saveDNFFeedback } from "@/services/feedbackService";
+import type { RaceFeedback, DNFEvent } from "@/types/feedback";
 
 type EditState = { open: boolean; idx: number; draft: LogEntry | null };
 
@@ -26,9 +32,15 @@ export default function Log() {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [q, setQ] = useState("");
 
-  // NEW: Feedback modal state
+  // Feedback modal state
   const [fbOpen, setFbOpen] = useState(false);
   const [fbSeed, setFbSeed] = useState<{ dateISO: string; title: string; km?: number } | null>(null);
+
+  // Smart feedback state
+  const [showDNFConfirm, setShowDNFConfirm] = useState(false);
+  const [showRaceModal, setShowRaceModal] = useState(false);
+  const [showDNFModal, setShowDNFModal] = useState(false);
+  const [pendingActivity, setPendingActivity] = useState<LogEntry | null>(null);
 
   const sums = useMemo(() => totals(entries), [entries]);
   const visible = useMemo(() => {
@@ -70,15 +82,26 @@ export default function Log() {
     persistAndMaybeAdapt(merged, label);
     toast(`Imported ${newOnes.length} runs (${label}).`, "success");
 
-    // Auto-open feedback for first imported run
+    // Smart feedback prompting for first imported run
     if (newOnes.length > 0) {
       const first = newOnes[0];
-      setFbSeed({
-        dateISO: first.dateISO,
-        title: first.title || "Run",
-        km: first.km,
-      });
-      setFbOpen(true);
+      setPendingActivity(first);
+
+      // Determine appropriate modal
+      const modalType = determineAppropriateModal(first, undefined, undefined, false);
+
+      if (modalType === 'dnf') {
+        setShowDNFConfirm(true);
+      } else if (modalType === 'race') {
+        setShowRaceModal(true);
+      } else if (modalType === 'training') {
+        setFbSeed({
+          dateISO: first.dateISO,
+          title: first.title || "Run",
+          km: first.km,
+        });
+        setFbOpen(true);
+      }
     }
   }
 
@@ -163,7 +186,7 @@ export default function Log() {
     setSelected(next);
   }
 
-  // NEW: Open feedback modal
+  // Open feedback modal
   function openFeedback(e: LogEntry) {
     setFbSeed({
       dateISO: e.dateISO,
@@ -171,6 +194,43 @@ export default function Log() {
       km: e.km,
     });
     setFbOpen(true);
+  }
+
+  // Smart feedback handlers
+  async function handleRaceFeedbackSubmit(data: Partial<RaceFeedback>) {
+    if (!pendingActivity) return;
+    const result = await saveRaceFeedback(
+      { ...data, event_date: pendingActivity.dateISO, user_id: '' },
+      pendingActivity.id
+    );
+    if (result.success) {
+      toast("Race feedback saved. Coach updated with 5× learning weight.", "success");
+    } else {
+      toast("Failed to save race feedback.", "error");
+    }
+  }
+
+  async function handleDNFFeedbackSubmit(data: Partial<DNFEvent>) {
+    if (!pendingActivity) return;
+    const result = await saveDNFFeedback(
+      { ...data, event_date: pendingActivity.dateISO, user_id: '' },
+      pendingActivity.id
+    );
+    if (result.success) {
+      toast("Thanks for sharing. We'll adjust your plan to help you come back stronger.", "success");
+    } else {
+      toast("Failed to save DNF feedback.", "error");
+    }
+  }
+
+  function handleDNFConfirmed() {
+    setShowDNFConfirm(false);
+    setShowDNFModal(true);
+  }
+
+  function handleDNFDenied() {
+    setShowDNFConfirm(false);
+    setShowRaceModal(true);
   }
 
   // Load data from database on mount
@@ -394,7 +454,7 @@ export default function Log() {
         </div>
       )}
 
-      {/* NEW: Run Feedback Modal */}
+      {/* Run Feedback Modal */}
       {fbOpen && fbSeed && (
         <RunFeedbackModal
           open={fbOpen}
@@ -403,6 +463,51 @@ export default function Log() {
             setFbOpen(false);
             setFbSeed(null);
           }}
+        />
+      )}
+
+      {/* DNF Confirmation Dialog */}
+      {showDNFConfirm && pendingActivity && (
+        <DNFConfirmDialog
+          isOpen={showDNFConfirm}
+          onConfirm={handleDNFConfirmed}
+          onDeny={handleDNFDenied}
+          activityTitle={pendingActivity.title || 'Run'}
+          completionPercent={Math.round((pendingActivity.km / (pendingActivity.km || 1)) * 100)}
+        />
+      )}
+
+      {/* Race Performance Feedback Modal */}
+      {showRaceModal && pendingActivity && (
+        <RacePerformanceFeedbackModal
+          isOpen={showRaceModal}
+          onClose={() => {
+            setShowRaceModal(false);
+            setPendingActivity(null);
+          }}
+          eventTitle={pendingActivity.title || 'Race'}
+          eventType="race"
+          eventDate={pendingActivity.dateISO}
+          actualDistance={pendingActivity.km}
+          actualDuration={pendingActivity.durationMin}
+          onSubmit={handleRaceFeedbackSubmit}
+        />
+      )}
+
+      {/* DNF Feedback Modal */}
+      {showDNFModal && pendingActivity && (
+        <DNFFeedbackModal
+          isOpen={showDNFModal}
+          onClose={() => {
+            setShowDNFModal(false);
+            setPendingActivity(null);
+          }}
+          eventTitle={pendingActivity.title || 'Race'}
+          eventDate={pendingActivity.dateISO}
+          actualDistance={pendingActivity.km}
+          plannedDistance={pendingActivity.km * 1.5}
+          autoDetected={true}
+          onSubmit={handleDNFFeedbackSubmit}
         />
       )}
     </div>

@@ -4,6 +4,14 @@ export type BusEventMap = {
   "log:added-run": { dateISO: string; km?: number };
   "log:import-complete": { count: number };
   "log:updated": void;
+  "feedback:training-saved": { feedback: any; weight: number; sessionImportance: string };
+  "feedback:race-saved": { feedback: any; weight: number; logEntryId?: string };
+  "feedback:dnf-saved": { dnfEvent: any; weight: number; logEntryId?: string };
+  "plan:micro-adjustment": { adjustment: any; reason: string };
+  "plan:macro-adjustment": { adjustment: any; reason: string };
+  "plan:recovery-protocol": { plan: any; reason: string };
+  "coach:insight-generated": { insights: any[]; weight: number };
+  "models:update": { models: string[]; weight: number; source: string };
 };
 
 export function emit<K extends keyof BusEventMap>(type: K, detail: BusEventMap[K]) {

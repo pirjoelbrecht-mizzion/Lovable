@@ -7,7 +7,7 @@ import type {
   SessionImportance,
   FEEDBACK_WEIGHTS,
 } from '../types/feedback';
-import { bus } from '../lib/bus';
+import { emit } from '../lib/bus';
 
 const FEEDBACK_WEIGHTS_MAP: Record<FeedbackType, number> = {
   training_normal: 1.0,
@@ -48,7 +48,7 @@ export async function saveRaceFeedback(
       return { success: false, error: error.message };
     }
 
-    bus.emit('feedback:race-saved', {
+    emit('feedback:race-saved', {
       feedback: data,
       weight,
       logEntryId,
@@ -90,7 +90,7 @@ export async function saveDNFFeedback(
       return { success: false, error: error.message };
     }
 
-    bus.emit('feedback:dnf-saved', {
+    emit('feedback:dnf-saved', {
       dnfEvent: data,
       weight: FEEDBACK_WEIGHTS_MAP.dnf,
       logEntryId,
@@ -141,7 +141,7 @@ export async function saveDailyFeedback(
       return { success: false, error: error.message };
     }
 
-    bus.emit('feedback:training-saved', {
+    emit('feedback:training-saved', {
       feedback: data,
       weight,
       sessionImportance,

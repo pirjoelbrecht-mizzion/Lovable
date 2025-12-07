@@ -12,6 +12,7 @@ import ACWRChart from "@/components/ACWRChart";
 import WeeklyDistanceVertChart from "@/components/WeeklyDistanceVertChart";
 import ReadinessTrendChart from "@/components/ReadinessTrendChart";
 import ReadinessInputModal from "@/components/ReadinessInputModal";
+import { FeedbackInsightsCard } from "@/components/FeedbackInsightsCard";
 import { predictNextValue } from "@/utils/analytics";
 import {
   findBestBaselineRace,
@@ -810,6 +811,9 @@ function InsightsContent() {
       {tab === "projection" && <RaceProjectionTab />}
       {tab === "longrun" && <LongRunTab entries={entries} dateRangeLabel={dateRange.label} />}
       {tab === "readiness" && <ReadinessTab />}
+
+      {/* Feedback Insights Card - shown on all tabs */}
+      <FeedbackInsightsCard />
     </div>
   );
 }
