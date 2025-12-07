@@ -287,13 +287,17 @@ async function getRaceCalendarData() {
   const events = await getEvents();
   const now = new Date();
 
-  // Combine races and events
+  // Include races from the last 7 days to handle post-race recovery planning
+  const sevenDaysAgo = new Date(now);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  // Combine races and events (include recent past races for recovery planning)
   const upcomingRaces = races
-    .filter(r => new Date(r.dateISO) >= now)
+    .filter(r => new Date(r.dateISO) >= sevenDaysAgo)
     .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 
   const upcomingEvents = events
-    .filter(e => new Date(e.date) >= now)
+    .filter(e => new Date(e.date) >= sevenDaysAgo)
     .sort((a, b) => a.date.localeCompare(b.date));
 
   // Convert events to RaceInfo format
