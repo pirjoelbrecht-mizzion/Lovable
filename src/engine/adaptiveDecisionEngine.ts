@@ -239,6 +239,79 @@ function applyRacePriority(
   // CRITICAL: Debug log for race priority detection
   console.log('🏁 [RacePriority] Days to race:', daysToRace, '| Priority:', racePriority, '| Distance:', raceDistance + 'km');
 
+  // POST-RACE RECOVERY: Handle races that just happened (negative daysToRace means race is in past)
+  if (daysToRace < 0 && daysToRace >= -7) {
+    const daysSinceRace = Math.abs(daysToRace);
+    console.log('🏁 [RacePriority] POST-RACE RECOVERY: Race was', daysSinceRace, 'days ago');
+
+    // Recovery days based on race priority and distance
+    let recoveryDays = 1;
+    if (racePriority === 'A') {
+      // A-race: 3-7 days recovery based on distance
+      if (raceDistance >= 50) recoveryDays = 7; // Ultra
+      else if (raceDistance >= 42) recoveryDays = 5; // Marathon
+      else if (raceDistance >= 21) recoveryDays = 3; // Half marathon
+      else recoveryDays = 2;
+    } else if (racePriority === 'B') {
+      // B-race: 2-3 days recovery
+      recoveryDays = raceDistance >= 42 ? 3 : 2;
+    } else {
+      // C-race: 1 day recovery
+      recoveryDays = 1;
+    }
+
+    console.log(`🏁 [RacePriority] Prescribing ${recoveryDays} recovery days`);
+
+    // Apply rest days for early part of week
+    plan.days.forEach((day, idx) => {
+      if (!day.workout) return;
+
+      // First N days after race = rest
+      if (idx < recoveryDays && day.workout.type !== 'rest') {
+        changes.push({
+          dayIndex: idx,
+          field: 'replace',
+          oldValue: day.workout.type,
+          newValue: 'rest',
+          reason: `Post-race recovery: ${races.nextRace?.name} was ${daysSinceRace} days ago`
+        });
+      }
+      // Gradual return: easy runs only after recovery period
+      else if (idx < recoveryDays + 2 && day.workout.type !== 'rest' && day.workout.type !== 'easy') {
+        changes.push({
+          dayIndex: idx,
+          field: 'type',
+          oldValue: day.workout.type,
+          newValue: 'easy',
+          reason: 'Post-race gradual return to training'
+        });
+
+        // Reduce volume for return runs
+        const oldKm = day.workout.distanceKm || 10;
+        const newKm = Math.max(5, Math.round(oldKm * 0.5));
+        changes.push({
+          dayIndex: idx,
+          field: 'volume',
+          oldValue: oldKm,
+          newValue: newKm,
+          reason: 'Post-race gradual return to training'
+        });
+      }
+    });
+
+    reasoning = `🏁 POST-RACE RECOVERY: ${races.nextRace?.name} was ${daysSinceRace} days ago. ${recoveryDays} rest days + gradual return.`;
+    applied = true;
+
+    return {
+      name: 'Race Priority',
+      applied,
+      changes,
+      reasoning,
+      priority: 3,
+      safetyOverride: false
+    };
+  }
+
   // CRITICAL FIX: Race Week Logic (0-7 days)
   if (daysToRace <= 7 && racePriority === 'A') {
     console.log('⚠️ [RacePriority] RACE WEEK ACTIVE - Applying aggressive taper');
@@ -788,6 +861,12 @@ function applyLayerToPlan(plan: WeeklyPlan, layer: AdjustmentLayer): WeeklyPlan 
           break;
         case 'replace':
           day.workout.type = change.newValue;
+          // When replacing with rest, clear old workout properties
+          if (change.newValue === 'rest') {
+            day.workout.distanceKm = 0;
+            day.workout.description = 'Complete rest day for recovery';
+            day.workout.notes = '';
+          }
           break;
       }
     }
