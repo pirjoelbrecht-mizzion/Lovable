@@ -570,7 +570,41 @@ function distributeWorkouts(
         date: dateStr,
         workout: raceWorkout,
       });
-      continue;
+
+      // Mark race day index to handle post-race recovery
+      const raceDayIndex = i;
+
+      // CRITICAL: For A category races, remaining days in race week should be REST
+      // Insert rest days for all remaining days after the race
+      if (race.priority === 'A' || race.priority === 'a') {
+        console.log('🏁 [DistributeWorkouts] A category race detected - inserting REST days post-race');
+        for (let j = raceDayIndex + 1; j < 7; j++) {
+          const restDayName = dayNames[j];
+          const restDate = new Date(startDate);
+          restDate.setDate(restDate.getDate() + j);
+          const restDateStr = toLocalDateString(restDate);
+
+          const restWorkout: Workout = {
+            type: 'rest',
+            title: 'Post-Race Rest',
+            description: 'Complete rest for recovery after A category race.',
+            distanceKm: 0,
+            durationMin: 0,
+            verticalGain: 0,
+          };
+
+          days.push({
+            day: restDayName,
+            date: restDateStr,
+            workout: restWorkout,
+          });
+        }
+        // All remaining days added, break the loop
+        break;
+      } else {
+        // For B/C races, continue with normal workout distribution
+        continue;
+      }
     }
 
     // Find matching workout for this day

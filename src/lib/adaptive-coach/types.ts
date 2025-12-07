@@ -75,6 +75,8 @@ export type RaceType =
   | "HalfMarathon"
   | "Custom";
 
+export type RacePriority = 'A' | 'B' | 'C';
+
 export interface RaceEvent {
   id?: string;
   name: string;
@@ -82,6 +84,7 @@ export interface RaceEvent {
   distanceKm: number;
   verticalGain: number;     // meters
   raceType: RaceType;
+  priority?: RacePriority;  // A = goal race, B = tune-up, C = training race
   altitude?: number;        // base altitude in meters
   climate?: "hot" | "humid" | "cold" | "temperate" | "mixed";
   terrain?: "road" | "trail" | "mountain" | "mixed";
