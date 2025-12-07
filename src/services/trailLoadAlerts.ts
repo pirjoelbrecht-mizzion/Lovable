@@ -55,10 +55,10 @@ export async function checkTrailLoadProgression(
     title = 'High Injury Risk - Excessive Load Increase';
   } else if (combinedChange > 10) {
     type = 'caution';
-    title = 'Load Increase Alert';
+    title = 'Load Increase Alert (Week-over-Week)';
   } else if (currentWeek.overDist || currentWeek.overVert) {
     type = 'caution';
-    title = 'Load Increase Alert';
+    title = 'Load Increase Alert (Week-over-Week)';
   }
 
   return {

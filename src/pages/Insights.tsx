@@ -732,7 +732,7 @@ function InsightsContent() {
             </>
           )}
           {baselines && weeklyMetrics.length > 0 && (
-            <AIInsight metrics={weeklyMetrics} baselines={baselines} metricType="weekly_load" />
+            <AIInsight metrics={weeklyMetrics} baselines={baselines} metricType="weekly_load" userProfile={userProfile} />
           )}
           </section>
         </>
