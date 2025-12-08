@@ -270,7 +270,12 @@ export class WearableManager {
           elevation_stream: activity.elevationStream,
           distance_stream: activity.distanceStream,
           temperature: activity.temperature,
-          location_name: activity.location
+          location_name: activity.location,
+          // Rich Strava data fields
+          sport_type: activity.sportType,
+          description: activity.description,
+          device_name: activity.deviceName,
+          gear_id: activity.gearId
         }));
 
         const { data, error } = await supabase
@@ -278,12 +283,16 @@ export class WearableManager {
           .upsert(insertData, {
             onConflict: 'user_id,external_id,data_source',
             ignoreDuplicates: false
-          });
+          })
+          .select('id, external_id');
 
         if (error) {
           console.error('Error upserting activities:', error);
         } else {
           console.log(`Upserted ${newActivities.length} activities`);
+
+          // Fetch rich data for each activity
+          await this.fetchRichDataForActivities(data || [], stravaProvider);
 
           // Analyze terrain for activities with elevation data
           await this.analyzeTerrainForActivities(newActivities);
@@ -364,5 +373,43 @@ export class WearableManager {
     }
 
     console.log('[WearableManager] Climate performance data populated');
+  }
+
+  private async fetchRichDataForActivities(
+    insertedActivities: Array<{ id: string; external_id: string }>,
+    stravaProvider: StravaProvider
+  ): Promise<void> {
+    if (insertedActivities.length === 0) return;
+
+    console.log(`[WearableManager] Fetching rich data for ${insertedActivities.length} activities`);
+
+    // Dynamically import the service to avoid circular dependencies
+    const { stravaRichDataService } = await import('../stravaRichDataService');
+
+    // Get access token from provider
+    const accessToken = await (stravaProvider as any).ensureValidToken();
+    if (!accessToken) {
+      console.error('[WearableManager] No access token available for fetching rich data');
+      return;
+    }
+
+    // Fetch rich data for each activity in the background
+    // Don't await all of these - let them run in parallel
+    const promises = insertedActivities.map(async (activity) => {
+      try {
+        await stravaRichDataService.fetchAndStoreActivityDetails(
+          activity.external_id,
+          activity.id,
+          accessToken
+        );
+      } catch (error) {
+        console.error(`[WearableManager] Failed to fetch rich data for activity ${activity.external_id}:`, error);
+      }
+    });
+
+    // Wait for all to complete
+    await Promise.all(promises);
+
+    console.log('[WearableManager] Rich data fetching complete');
   }
 }

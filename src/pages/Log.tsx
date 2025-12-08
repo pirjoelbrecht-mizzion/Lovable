@@ -1,5 +1,6 @@
 // src/pages/Log.tsx
 import { useMemo, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { load, save } from "@/utils/storage";
 import type { LogEntry } from "@/types";
 import ImportWizard from "@/components/ImportWizard";
@@ -23,6 +24,7 @@ import type { RaceFeedback, DNFEvent } from "@/types/feedback";
 type EditState = { open: boolean; idx: number; draft: LogEntry | null };
 
 export default function Log() {
+  const navigate = useNavigate();
   const [openImport, setOpenImport] = useState(false);
   const [openStrava, setOpenStrava] = useState(false);
   const [entries, setEntries] = useState<LogEntry[]>(load<LogEntry[]>("logEntries", []));
@@ -314,11 +316,28 @@ export default function Log() {
                     />
                   )}
                   <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
-                    <div className="row" style={{ gap: 8, alignItems: "center" }}>
+                    <div className="row" style={{ gap: 8, alignItems: "center", flex: 1 }}>
                       <input type="checkbox" checked={checked} onChange={() => toggleSel(e, i)} />
-                      <div className="h2">{e.title || "Run"}</div>
+                      <div
+                        className="h2"
+                        onClick={() => e.id && navigate(`/activity/${e.id}`)}
+                        style={{
+                          cursor: e.id ? 'pointer' : 'default',
+                          textDecoration: e.id ? 'none' : 'none',
+                          transition: 'color 0.2s ease'
+                        }}
+                        onMouseEnter={(el) => {
+                          if (e.id) el.currentTarget.style.color = 'var(--bolt-teal)';
+                        }}
+                        onMouseLeave={(el) => {
+                          el.currentTarget.style.color = 'var(--bolt-text)';
+                        }}
+                      >
+                        {e.title || "Run"}
+                      </div>
                     </div>
-                    <div className="row" style={{ gap: 6 }}>
+                    <div className="row" style={{ gap: 6, flexShrink: 0 }}>
+                      {e.id && <button className="btn primary" onClick={() => navigate(`/activity/${e.id}`)}>View</button>}
                       <button className="btn" onClick={() => openSendForOne(e)}>→ Planner</button>
                       <button className="btn" onClick={() => startEdit(entries.indexOf(e))}>Edit</button>
                       <button className="btn" onClick={() => del(entries.indexOf(e))}>Delete</button>

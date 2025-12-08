@@ -8,6 +8,7 @@ import './styles/layout.css';
 
 // Legacy pages (still accessible)
 import Log from "./pages/Log";
+import ActivityDetail from "./pages/ActivityDetail";
 import Insights from "./pages/Insights";
 import Planner from "./pages/Planner";
 import Settings from "./pages/Settings";
@@ -83,6 +84,7 @@ const router = createBrowserRouter([
 
       // Legacy routes (still available)
       { path: "log", element: <Log /> },
+      { path: "activity/:id", element: <ActivityDetail /> },
       { path: "insights", element: <Insights /> },
       { path: "planner", element: <Planner /> },
       { path: "settings-old", element: <Settings /> },

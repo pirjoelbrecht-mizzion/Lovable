@@ -58,15 +58,22 @@ export type DbLogEntry = {
   data_source?: string;
   map_polyline?: string;
   map_summary_polyline?: string;
-  elevation_gain?: number;        // Total elevation gain in meters (Column U)
-  elevation_loss?: number;        // Total elevation loss in meters (Column V)
-  elevation_low?: number;         // Lowest elevation point in meters (Column W)
+  elevation_gain?: number;
+  elevation_loss?: number;
+  elevation_low?: number;
   elevation_stream?: number[];
   distance_stream?: number[];
   temperature?: number;
   weather_conditions?: string;
   location_name?: string;
   humidity?: number;
+  // Rich Strava data fields
+  sport_type?: string;
+  description?: string;
+  device_name?: string;
+  gear_id?: string;
+  has_photos?: boolean;
+  has_segments?: boolean;
   created_at?: string;
   updated_at?: string;
 };
@@ -116,15 +123,22 @@ function toDbLogEntry(entry: LogEntry): DbLogEntry {
     data_source: entry.source === 'Strava' ? 'strava' : undefined,
     map_polyline: entry.mapPolyline,
     map_summary_polyline: entry.mapSummaryPolyline,
-    elevation_gain: entry.elevationGain,        // CRITICAL FIX: Use correct column name
-    elevation_loss: entry.elevationLoss,        // CRITICAL FIX: Use correct column name
-    elevation_low: entry.elevationLow,          // CRITICAL FIX: Use correct column name
+    elevation_gain: entry.elevationGain,
+    elevation_loss: entry.elevationLoss,
+    elevation_low: entry.elevationLow,
     elevation_stream: entry.elevationStream,
     distance_stream: entry.distanceStream,
     temperature: entry.temperature,
     weather_conditions: entry.weather,
     location_name: entry.location,
     humidity: entry.humidity,
+    // Rich Strava data fields
+    sport_type: entry.sportType,
+    description: entry.description,
+    device_name: entry.deviceName,
+    gear_id: entry.gearId,
+    has_photos: entry.hasPhotos,
+    has_segments: entry.hasSegments,
   };
 }
 
@@ -140,15 +154,22 @@ function fromDbLogEntry(db: any): LogEntry {
     externalId: db.external_id,
     mapPolyline: db.map_polyline,
     mapSummaryPolyline: db.map_summary_polyline,
-    elevationGain: db.elevation_gain,        // CRITICAL FIX: Use correct column name
-    elevationLoss: db.elevation_loss,        // CRITICAL FIX: Use correct column name
-    elevationLow: db.elevation_low,          // CRITICAL FIX: Use correct column name
+    elevationGain: db.elevation_gain,
+    elevationLoss: db.elevation_loss,
+    elevationLow: db.elevation_low,
     elevationStream: db.elevation_stream,
     distanceStream: db.distance_stream,
     temperature: db.temperature,
     weather: db.weather_conditions,
     location: db.location_name,
     humidity: db.humidity,
+    // Rich Strava data fields
+    sportType: db.sport_type,
+    description: db.description,
+    deviceName: db.device_name,
+    gearId: db.gear_id,
+    hasPhotos: db.has_photos,
+    hasSegments: db.has_segments,
   };
 }
 
@@ -503,14 +524,15 @@ export async function syncLogEntries(): Promise<LogEntry[]> {
   }
 
   // Select only essential fields to avoid JSON size limits with large polylines
-  const { data, error } = await supabase
+  const { data, error} = await supabase
     .from('log_entries')
     .select(`
-      id, user_id, date, type, duration_min, km, hr_avg,
+      id, user_id, date, type, title, duration_min, km, hr_avg,
       source, created_at, updated_at, external_id, data_source,
       map_polyline, map_summary_polyline, elevation_gain, elevation_stream, distance_stream,
       temperature, weather_conditions, location_name, humidity, altitude_m, terrain_type,
-      weather_data, elevation_loss, elevation_low
+      weather_data, elevation_loss, elevation_low,
+      sport_type, description, device_name, gear_id, has_photos, has_segments
     `)
     .eq('user_id', userId)
     .order('date', { ascending: false });

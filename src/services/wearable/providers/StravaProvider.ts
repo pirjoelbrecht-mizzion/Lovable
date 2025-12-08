@@ -140,7 +140,12 @@ export class StravaProvider implements ProviderInterface {
               elevationStream,
               distanceStream,
               temperature: act.average_temp || undefined,
-              location: location || undefined
+              location: location || undefined,
+              // Rich Strava data fields
+              sportType: act.sport_type || act.type || 'Run',
+              description: act.description || undefined,
+              deviceName: act.device_name || undefined,
+              gearId: act.gear_id || undefined
             };
           })
       );
