@@ -95,6 +95,9 @@ export class StravaRichDataService {
       // Fetch photos separately (higher resolution)
       await this.fetchAndStorePhotos(activityId, logEntryId, user.id, accessToken);
 
+      // Fetch and store activity streams for terrain analysis
+      await this.fetchAndStoreActivityStreams(activityId, logEntryId, accessToken);
+
       // Store segments
       if (activity.segment_efforts && activity.segment_efforts.length > 0) {
         await this.storeSegments(activity.segment_efforts, logEntryId, user.id);
@@ -446,6 +449,127 @@ export class StravaRichDataService {
       isPrimary: data.is_primary,
       retired: data.retired
     };
+  }
+
+  /**
+   * Fetch and store activity streams from Strava
+   */
+  async fetchAndStoreActivityStreams(
+    activityId: string,
+    logEntryId: string,
+    accessToken: string
+  ): Promise<void> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      console.log(`Fetching streams for activity ${activityId}`);
+
+      // Request all available streams from Strava
+      const streamTypes = [
+        'time',
+        'distance',
+        'altitude',
+        'grade_smooth',
+        'velocity_smooth',
+        'heartrate',
+        'cadence'
+      ];
+
+      const streamsResponse = await fetch(
+        `${STRAVA_API_BASE}/activities/${activityId}/streams?keys=${streamTypes.join(',')}&key_by_type=true`,
+        {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        }
+      );
+
+      if (!streamsResponse.ok) {
+        if (streamsResponse.status === 404) {
+          console.log(`No streams found for activity ${activityId}`);
+        } else {
+          console.error(`Failed to fetch streams: ${streamsResponse.status}`);
+        }
+        return;
+      }
+
+      const streams = await streamsResponse.json();
+
+      // Extract individual stream arrays
+      const timeSeries = streams.time?.data || null;
+      const distanceSeries = streams.distance?.data || null;
+      const altitudeSeries = streams.altitude?.data || null;
+      const gradeSeries = streams.grade_smooth?.data || null;
+      const velocitySeries = streams.velocity_smooth?.data || null;
+      const heartrateSeries = streams.heartrate?.data || null;
+      const cadenceSeries = streams.cadence?.data || null;
+
+      // Calculate data quality score
+      const availableStreams = [
+        timeSeries,
+        distanceSeries,
+        altitudeSeries,
+        gradeSeries,
+        velocitySeries,
+        heartrateSeries,
+        cadenceSeries
+      ].filter(s => s !== null).length;
+
+      const dataQuality = availableStreams / streamTypes.length;
+
+      // Determine stream length
+      const streamLength = timeSeries?.length || distanceSeries?.length || 0;
+
+      if (streamLength === 0) {
+        console.log(`No stream data available for activity ${activityId}`);
+        return;
+      }
+
+      // Store streams in database
+      const { error } = await supabase
+        .from('activity_streams')
+        .upsert({
+          user_id: user.id,
+          log_entry_id: logEntryId,
+          time_series: timeSeries,
+          distance_series: distanceSeries,
+          altitude_series: altitudeSeries,
+          grade_series: gradeSeries,
+          velocity_series: velocitySeries,
+          heartrate_series: heartrateSeries,
+          cadence_series: cadenceSeries,
+          stream_length: streamLength,
+          data_quality: dataQuality,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'log_entry_id'
+        });
+
+      if (error) {
+        console.error('Error storing streams:', error);
+      } else {
+        console.log(`Stored ${streamLength} stream points for activity ${activityId} (quality: ${(dataQuality * 100).toFixed(0)}%)`);
+      }
+    } catch (error) {
+      console.error('Error in fetchAndStoreActivityStreams:', error);
+    }
+  }
+
+  /**
+   * Get activity streams from database
+   */
+  async getActivityStreams(logEntryId: string): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('activity_streams')
+      .select('*')
+      .eq('log_entry_id', logEntryId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching streams:', error);
+      return null;
+    }
+
+    return data;
   }
 }
 
