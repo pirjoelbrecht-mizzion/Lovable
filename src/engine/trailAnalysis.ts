@@ -88,6 +88,20 @@ export function analyzeTerrainFromStreams(
 
   const gradeDistribution: { [key: string]: number } = {};
 
+  // Calculate velocity stream from distance and duration
+  const velocityStream: number[] = [];
+  if (durationMin && durationMin > 0) {
+    const totalSeconds = durationMin * 60;
+    const timePerPoint = totalSeconds / distanceStream.length;
+
+    velocityStream.push(0); // First point has no velocity
+    for (let i = 1; i < distanceStream.length; i++) {
+      const distDelta = distanceStream[i] - distanceStream[i - 1];
+      const velocity = distDelta / timePerPoint; // m/s
+      velocityStream.push(Math.max(0, velocity)); // Avoid negative velocities
+    }
+  }
+
   // Use rolling window for grade calculation (aim for ~100-200m segments)
   const targetWindowMeters = 150;
 
@@ -133,9 +147,53 @@ export function analyzeTerrainFromStreams(
     i = windowEnd - 1;
   }
 
-  // Downhill confidence score disabled - requires time stream data to calculate segment speeds
-  // Without per-segment timing, cannot accurately measure downhill running pace
-  const downhillBrakingScore = 0;
+  // Calculate downhill braking score from velocity data
+  let downhillBrakingScore = 0;
+
+  if (velocityStream.length > 0) {
+    const downhillSegments: { grade: number; velocity: number }[] = [];
+
+    // Collect downhill segments (grade < -5%) with their velocities
+    for (let i = 0; i < distanceStream.length - 1; i++) {
+      const windowEnd = Math.min(i + 20, distanceStream.length - 1);
+      const distKm = (distanceStream[windowEnd] - distanceStream[i]) / 1000;
+      const elevChange = smoothedElevation[windowEnd] - smoothedElevation[i];
+
+      if (distKm < 0.05) continue; // Skip tiny segments
+
+      const grade = (elevChange / (distKm * 1000)) * 100;
+
+      if (grade < -5 && velocityStream[i] > 0) {
+        downhillSegments.push({
+          grade,
+          velocity: velocityStream[i]
+        });
+      }
+    }
+
+    if (downhillSegments.length > 5) {
+      let brakingCount = 0;
+
+      for (const segment of downhillSegments) {
+        const actualPace = (1000 / 60) / segment.velocity; // min/km
+
+        // Expected downhill pace based on grade
+        let expectedPace = 5.0; // min/km
+        if (segment.grade >= -8) expectedPace = 4.5;
+        else if (segment.grade >= -12) expectedPace = 4.0;
+        else if (segment.grade >= -15) expectedPace = 4.5;
+        else expectedPace = 5.5;
+
+        // Braking if running 30% slower than expected
+        if (actualPace > expectedPace * 1.3) {
+          brakingCount++;
+        }
+      }
+
+      // Score = percentage of segments where braking detected
+      downhillBrakingScore = brakingCount / downhillSegments.length;
+    }
+  }
 
   // Calculate technicality score based on grade variability
   const gradeValues = Object.keys(gradeDistribution).map(Number);
