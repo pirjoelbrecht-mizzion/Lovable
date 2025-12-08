@@ -10,6 +10,18 @@ export interface TerrainSegment {
   paceMinPerKm?: number;
 }
 
+export interface ClimbSegment {
+  climbNumber: number;
+  startDistanceM: number;
+  endDistanceM: number;
+  elevationGainM: number;
+  durationMin?: number;
+  vam?: number; // Meters per hour
+  averageGradePct: number;
+  distanceKm: number;
+  category: 'easy' | 'moderate' | 'hard' | 'extreme';
+}
+
 export interface TerrainAnalysis {
   flatKm: number;
   rollingKm: number;
@@ -18,8 +30,19 @@ export interface TerrainAnalysis {
   downhillKm: number;
   downhillBrakingScore: number; // 0-1, higher = more cautious
   technicalityScore: number; // 0-1, higher = more technical
-  vam?: number; // Vertical meters per hour
   gradeDistribution: { [key: string]: number };
+
+  // New climb-based VAM metrics
+  climbs: ClimbSegment[];
+  peakVam?: number;
+  averageClimbVam?: number;
+  vamFirstClimb?: number;
+  vamLastClimb?: number;
+  vamFatigueSlopePct?: number;
+  vamFirstToLastDropoffPct?: number;
+  totalClimbingTimeMin?: number;
+  totalClimbingDistanceKm?: number;
+  significantClimbsCount: number;
 }
 
 export interface PerformanceAnalysis {
@@ -54,6 +77,229 @@ function smoothElevation(elevationStream: number[], windowSize: number = 5): num
 }
 
 /**
+ * Identify significant climb segments in elevation profile
+ * Only returns climbs meeting significance threshold (>80m gain, >400m distance)
+ */
+function identifyClimbSegments(
+  distanceStream: number[],
+  smoothedElevation: number[],
+  targetWindowMeters: number = 150
+): Array<{ startIndex: number; endIndex: number; elevationGainM: number; distanceM: number; avgGrade: number }> {
+  const rawClimbs: Array<{
+    startIndex: number;
+    endIndex: number;
+    elevationGainM: number;
+    distanceM: number;
+    avgGrade: number;
+  }> = [];
+
+  let inClimb = false;
+  let climbStartIndex = 0;
+  let climbStartElevation = 0;
+
+  for (let i = 0; i < distanceStream.length - 1; i++) {
+    let windowEnd = i + 1;
+    let windowDistance = distanceStream[windowEnd] - distanceStream[i];
+
+    while (windowEnd < distanceStream.length - 1 && windowDistance < targetWindowMeters) {
+      windowEnd++;
+      windowDistance = distanceStream[windowEnd] - distanceStream[i];
+    }
+
+    if (windowDistance < 10) continue;
+
+    const elevChange = smoothedElevation[windowEnd] - smoothedElevation[i];
+    const grade = (elevChange / windowDistance) * 100;
+
+    if (grade > 3 && !inClimb) {
+      inClimb = true;
+      climbStartIndex = i;
+      climbStartElevation = smoothedElevation[i];
+    } else if (grade <= 3 && inClimb) {
+      const climbDistance = distanceStream[i] - distanceStream[climbStartIndex];
+      const climbGain = smoothedElevation[i] - climbStartElevation;
+
+      if (climbDistance > 50 && climbGain > 0) {
+        const avgGrade = (climbGain / climbDistance) * 100;
+        rawClimbs.push({
+          startIndex: climbStartIndex,
+          endIndex: i,
+          elevationGainM: climbGain,
+          distanceM: climbDistance,
+          avgGrade
+        });
+      }
+      inClimb = false;
+    }
+  }
+
+  if (inClimb) {
+    const lastIndex = distanceStream.length - 1;
+    const climbDistance = distanceStream[lastIndex] - distanceStream[climbStartIndex];
+    const climbGain = smoothedElevation[lastIndex] - climbStartElevation;
+    if (climbDistance > 50 && climbGain > 0) {
+      const avgGrade = (climbGain / climbDistance) * 100;
+      rawClimbs.push({
+        startIndex: climbStartIndex,
+        endIndex: lastIndex,
+        elevationGainM: climbGain,
+        distanceM: climbDistance,
+        avgGrade
+      });
+    }
+  }
+
+  const mergedClimbs: typeof rawClimbs = [];
+  for (let i = 0; i < rawClimbs.length; i++) {
+    const current = rawClimbs[i];
+    const next = rawClimbs[i + 1];
+
+    if (next && (distanceStream[next.startIndex] - distanceStream[current.endIndex]) < 50) {
+      const combinedGain = current.elevationGainM + next.elevationGainM;
+      const combinedDistance = distanceStream[next.endIndex] - distanceStream[current.startIndex];
+      mergedClimbs.push({
+        startIndex: current.startIndex,
+        endIndex: next.endIndex,
+        elevationGainM: combinedGain,
+        distanceM: combinedDistance,
+        avgGrade: (combinedGain / combinedDistance) * 100
+      });
+      i++;
+    } else {
+      mergedClimbs.push(current);
+    }
+  }
+
+  return mergedClimbs.filter(c => c.elevationGainM >= 80 && c.distanceM >= 400);
+}
+
+/**
+ * Calculate VAM for each climb segment using effort-based time allocation
+ */
+function calculateClimbVAM(
+  climbs: Array<{ startIndex: number; endIndex: number; elevationGainM: number; distanceM: number; avgGrade: number }>,
+  distanceStream: number[],
+  durationMin?: number
+): ClimbSegment[] {
+  if (!durationMin || durationMin <= 0 || climbs.length === 0) {
+    return climbs.map((climb, index) => ({
+      climbNumber: index + 1,
+      startDistanceM: distanceStream[climb.startIndex],
+      endDistanceM: distanceStream[climb.endIndex],
+      elevationGainM: climb.elevationGainM,
+      averageGradePct: climb.avgGrade,
+      distanceKm: climb.distanceM / 1000,
+      category: categorizeClimb(climb.avgGrade, climb.elevationGainM)
+    }));
+  }
+
+  const totalDistance = distanceStream[distanceStream.length - 1];
+  const totalSeconds = durationMin * 60;
+
+  let totalEffort = 0;
+  const climbEfforts = climbs.map(climb => {
+    const gradeMultiplier = 1 + (climb.avgGrade / 100) * 3;
+    const effort = climb.distanceM * gradeMultiplier;
+    totalEffort += effort;
+    return effort;
+  });
+
+  const remainingDistance = totalDistance - climbs.reduce((sum, c) => sum + c.distanceM, 0);
+  totalEffort += remainingDistance;
+
+  return climbs.map((climb, index) => {
+    const climbEffort = climbEfforts[index];
+    const climbSeconds = (climbEffort / totalEffort) * totalSeconds;
+    const climbMinutes = climbSeconds / 60;
+    const vam = (climb.elevationGainM / (climbMinutes / 60));
+
+    return {
+      climbNumber: index + 1,
+      startDistanceM: distanceStream[climb.startIndex],
+      endDistanceM: distanceStream[climb.endIndex],
+      elevationGainM: climb.elevationGainM,
+      durationMin: climbMinutes,
+      vam,
+      averageGradePct: climb.avgGrade,
+      distanceKm: climb.distanceM / 1000,
+      category: categorizeClimb(climb.avgGrade, climb.elevationGainM)
+    };
+  });
+}
+
+/**
+ * Categorize climb difficulty based on grade and elevation gain
+ */
+function categorizeClimb(avgGrade: number, elevationGainM: number): 'easy' | 'moderate' | 'hard' | 'extreme' {
+  const difficultyScore = (avgGrade * 2) + (elevationGainM / 100);
+
+  if (difficultyScore > 40) return 'extreme';
+  if (difficultyScore > 25) return 'hard';
+  if (difficultyScore > 15) return 'moderate';
+  return 'easy';
+}
+
+/**
+ * Calculate fatigue metrics from climb VAM progression
+ */
+function calculateFatigueMetrics(climbs: ClimbSegment[]): {
+  peakVam?: number;
+  averageClimbVam?: number;
+  vamFirstClimb?: number;
+  vamLastClimb?: number;
+  vamFatigueSlopePct?: number;
+  vamFirstToLastDropoffPct?: number;
+} {
+  const climbsWithVAM = climbs.filter(c => c.vam && c.vam > 0);
+
+  if (climbsWithVAM.length === 0) {
+    return {};
+  }
+
+  const vamValues = climbsWithVAM.map(c => c.vam!);
+  const peakVam = Math.max(...vamValues);
+  const averageClimbVam = vamValues.reduce((sum, v) => sum + v, 0) / vamValues.length;
+  const vamFirstClimb = climbsWithVAM[0].vam;
+  const vamLastClimb = climbsWithVAM[climbsWithVAM.length - 1].vam;
+
+  let vamFatigueSlopePct: number | undefined;
+  let vamFirstToLastDropoffPct: number | undefined;
+
+  if (climbsWithVAM.length >= 2) {
+    vamFirstToLastDropoffPct = ((vamLastClimb! - vamFirstClimb!) / vamFirstClimb!) * 100;
+
+    if (climbsWithVAM.length >= 3) {
+      const n = climbsWithVAM.length;
+      const weights = climbsWithVAM.map(c => c.elevationGainM);
+      const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+
+      let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+      for (let i = 0; i < n; i++) {
+        const x = i + 1;
+        const y = vamValues[i];
+        const w = weights[i] / totalWeight;
+        sumX += x * w;
+        sumY += y * w;
+        sumXY += x * y * w;
+        sumX2 += x * x * w;
+      }
+
+      const slope = (sumXY - sumX * sumY) / (sumX2 - sumX * sumX);
+      vamFatigueSlopePct = (slope / averageClimbVam) * 100;
+    }
+  }
+
+  return {
+    peakVam,
+    averageClimbVam,
+    vamFirstClimb,
+    vamLastClimb,
+    vamFatigueSlopePct,
+    vamFirstToLastDropoffPct
+  };
+}
+
+/**
  * Analyze terrain from elevation and distance streams using rolling window
  */
 export function analyzeTerrainFromStreams(
@@ -71,7 +317,9 @@ export function analyzeTerrainFromStreams(
       downhillKm: 0,
       downhillBrakingScore: 0,
       technicalityScore: 0,
-      gradeDistribution: {}
+      gradeDistribution: {},
+      climbs: [],
+      significantClimbsCount: 0
     };
   }
 
@@ -202,11 +450,14 @@ export function analyzeTerrainFromStreams(
     : 0;
   const technicalityScore = Math.min(1, gradeVariance / 15); // Normalize to 0-1
 
-  // Calculate VAM (Vertical meters per hour)
-  let vam: number | undefined;
-  if (durationMin && elevationGain && durationMin > 0) {
-    vam = (elevationGain / durationMin) * 60;
-  }
+  // New climb-based VAM calculation
+  const rawClimbs = identifyClimbSegments(distanceStream, smoothedElevation);
+  const climbs = calculateClimbVAM(rawClimbs, distanceStream, durationMin);
+  const fatigueMetrics = calculateFatigueMetrics(climbs);
+
+  // Calculate total climbing time and distance
+  const totalClimbingTimeMin = climbs.reduce((sum, c) => sum + (c.durationMin || 0), 0);
+  const totalClimbingDistanceKm = climbs.reduce((sum, c) => sum + c.distanceKm, 0);
 
   return {
     flatKm,
@@ -216,8 +467,14 @@ export function analyzeTerrainFromStreams(
     downhillKm,
     downhillBrakingScore,
     technicalityScore,
-    vam,
-    gradeDistribution
+    gradeDistribution,
+
+    // Climb-based VAM metrics
+    climbs,
+    significantClimbsCount: climbs.length,
+    totalClimbingTimeMin,
+    totalClimbingDistanceKm,
+    ...fatigueMetrics
   };
 }
 

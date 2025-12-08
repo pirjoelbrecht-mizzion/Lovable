@@ -7,6 +7,7 @@
 
 import type { LogEntry } from '@/types';
 import { getSupabase, getCurrentUserId } from '@/lib/supabase';
+import type { TerrainAnalysis } from '@/engine/trailAnalysis';
 
 // Grade bucket definitions (in percentage)
 // More granular buckets for 0-20% range where most running happens
@@ -416,6 +417,111 @@ export function analyzeActivityTerrain(
 }
 
 /**
+ * Save climb segments to database
+ */
+export async function saveClimbSegments(
+  logEntryId: string,
+  userId: string,
+  climbs: Array<{
+    climbNumber: number;
+    startDistanceM: number;
+    endDistanceM: number;
+    elevationGainM: number;
+    durationMin?: number;
+    vam?: number;
+    averageGradePct: number;
+    distanceKm: number;
+    category: string;
+  }>
+): Promise<boolean> {
+  try {
+    const supabase = getSupabase();
+
+    await supabase
+      .from('activity_climb_segments')
+      .delete()
+      .eq('log_entry_id', logEntryId);
+
+    if (climbs.length === 0) {
+      return true;
+    }
+
+    const climbRecords = climbs.map(climb => ({
+      log_entry_id: logEntryId,
+      user_id: userId,
+      climb_number: climb.climbNumber,
+      start_distance_m: climb.startDistanceM,
+      end_distance_m: climb.endDistanceM,
+      elevation_gain_m: climb.elevationGainM,
+      duration_min: climb.durationMin || null,
+      vam: climb.vam || null,
+      average_grade_pct: climb.averageGradePct,
+      distance_km: climb.distanceKm,
+      category: climb.category
+    }));
+
+    const { error } = await supabase
+      .from('activity_climb_segments')
+      .insert(climbRecords);
+
+    if (error) {
+      console.error('Error saving climb segments:', error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Failed to save climb segments:', err);
+    return false;
+  }
+}
+
+/**
+ * Save complete terrain analysis with VAM metrics (from trailAnalysis.ts)
+ */
+export async function saveCompleteTerrainAnalysis(
+  logEntryId: string,
+  userId: string,
+  activityDate: string,
+  terrainAnalysis: TerrainAnalysis
+): Promise<boolean> {
+  try {
+    const supabase = getSupabase();
+
+    await saveClimbSegments(logEntryId, userId, terrainAnalysis.climbs);
+
+    const { error } = await supabase
+      .from('activity_terrain_analysis')
+      .upsert({
+        log_entry_id: logEntryId,
+        user_id: userId,
+        activity_date: activityDate,
+        peak_vam: terrainAnalysis.peakVam || null,
+        average_climb_vam: terrainAnalysis.averageClimbVam || null,
+        vam_first_climb: terrainAnalysis.vamFirstClimb || null,
+        vam_last_climb: terrainAnalysis.vamLastClimb || null,
+        vam_fatigue_slope_pct: terrainAnalysis.vamFatigueSlopePct || null,
+        vam_first_to_last_dropoff_pct: terrainAnalysis.vamFirstToLastDropoffPct || null,
+        total_climbing_time_min: terrainAnalysis.totalClimbingTimeMin || null,
+        total_climbing_distance_km: terrainAnalysis.totalClimbingDistanceKm || null,
+        significant_climbs_count: terrainAnalysis.significantClimbsCount,
+      }, {
+        onConflict: 'log_entry_id'
+      });
+
+    if (error) {
+      console.error('Error saving complete terrain analysis:', error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Failed to save complete terrain analysis:', err);
+    return false;
+  }
+}
+
+/**
  * Save terrain analysis to database
  */
 export async function saveTerrainAnalysis(analysis: ActivityTerrainAnalysis): Promise<boolean> {
@@ -555,6 +661,100 @@ export async function analyzeUserActivities(userId?: string, forceReanalyze: boo
     return successCount;
   } catch (err) {
     console.error('Failed to analyze user activities:', err);
+    return 0;
+  }
+}
+
+/**
+ * Re-analyze all activities with new climb-based VAM calculation
+ * This function processes all activities with elevation data and updates them with
+ * per-climb VAM metrics, fatigue analysis, and climb segments.
+ */
+export async function reanalyzeAllActivitiesWithVAM(userId?: string): Promise<number> {
+  try {
+    const supabase = getSupabase();
+    const uid = userId || await getCurrentUserId();
+
+    if (!uid) {
+      console.error('No user ID available for VAM re-analysis');
+      return 0;
+    }
+
+    console.log('[reanalyzeAllActivitiesWithVAM] Starting VAM re-analysis...');
+
+    const { data: entries, error: fetchError } = await supabase
+      .from('log_entries')
+      .select('*')
+      .eq('user_id', uid)
+      .not('elevation_stream', 'is', null)
+      .not('distance_stream', 'is', null)
+      .not('duration_min', 'is', null);
+
+    if (fetchError) {
+      console.error('Error fetching log entries for VAM analysis:', fetchError);
+      return 0;
+    }
+
+    if (!entries || entries.length === 0) {
+      console.log('[reanalyzeAllActivitiesWithVAM] No activities with elevation data found');
+      return 0;
+    }
+
+    console.log(`[reanalyzeAllActivitiesWithVAM] Analyzing ${entries.length} activities with VAM...`);
+
+    const { analyzeTerrainFromStreams } = await import('@/engine/trailAnalysis');
+
+    let successCount = 0;
+    let climbsFoundCount = 0;
+
+    for (let idx = 0; idx < entries.length; idx++) {
+      const entry = entries[idx];
+
+      if (idx % 20 === 0 && idx > 0) {
+        console.log(`[reanalyzeAllActivitiesWithVAM] Progress: ${idx}/${entries.length} (${successCount} with climbs)`);
+      }
+
+      try {
+        const distanceStream = Array.isArray(entry.distance_stream)
+          ? entry.distance_stream
+          : JSON.parse(entry.distance_stream as any);
+        const elevationStream = Array.isArray(entry.elevation_stream)
+          ? entry.elevation_stream
+          : JSON.parse(entry.elevation_stream as any);
+
+        const terrainAnalysis = analyzeTerrainFromStreams(
+          distanceStream,
+          elevationStream,
+          entry.duration_min,
+          entry.elevation_gain
+        );
+
+        if (terrainAnalysis && terrainAnalysis.significantClimbsCount > 0) {
+          const saved = await saveCompleteTerrainAnalysis(
+            entry.id,
+            uid,
+            entry.date,
+            terrainAnalysis
+          );
+
+          if (saved) {
+            successCount++;
+            climbsFoundCount += terrainAnalysis.significantClimbsCount;
+          }
+        }
+      } catch (err) {
+        console.error(`Error analyzing activity ${entry.id}:`, err);
+      }
+    }
+
+    console.log(
+      `[reanalyzeAllActivitiesWithVAM] Complete! ` +
+      `Analyzed ${successCount} activities with ${climbsFoundCount} total significant climbs`
+    );
+
+    return successCount;
+  } catch (err) {
+    console.error('Failed to re-analyze activities with VAM:', err);
     return 0;
   }
 }
