@@ -4,16 +4,19 @@
  * Single scrollable page with photos, segments, achievements, gear, and more
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { LogEntry, ActivityPhoto, ActivitySegment, ActivityBestEffort, AthleteGear } from '@/types';
 import { ActivityPhotoGallery } from '@/components/activity/ActivityPhotoGallery';
 import { ActivitySegments } from '@/components/activity/ActivitySegments';
 import { ActivityBestEfforts } from '@/components/activity/ActivityBestEfforts';
 import { ActivityGear } from '@/components/activity/ActivityGear';
+import { ActivityTerrainBreakdown } from '@/components/activity/ActivityTerrainBreakdown';
+import { ActivityPerformanceInsights } from '@/components/activity/ActivityPerformanceInsights';
 import RouteMap from '@/components/RouteMap';
 import { stravaRichDataService } from '@/services/stravaRichDataService';
 import { supabase } from '@/lib/supabase';
+import { analyzeTerrainFromStreams, analyzePerformance } from '@/engine/trailAnalysis';
 
 export default function ActivityDetail() {
   const { id } = useParams<{ id: string }>();
@@ -135,6 +138,50 @@ export default function ActivityDetail() {
     const secs = Math.round((paceMin - mins) * 60);
     return `${mins}:${secs.toString().padStart(2, '0')}/km`;
   }
+
+  // Compute terrain analysis from streams
+  const terrainAnalysis = useMemo(() => {
+    if (!activity || !activity.distanceStream || !activity.elevationStream) {
+      return null;
+    }
+
+    const distanceStream = Array.isArray(activity.distanceStream)
+      ? activity.distanceStream
+      : JSON.parse(activity.distanceStream as any);
+    const elevationStream = Array.isArray(activity.elevationStream)
+      ? activity.elevationStream
+      : JSON.parse(activity.elevationStream as any);
+
+    return analyzeTerrainFromStreams(
+      distanceStream,
+      elevationStream,
+      activity.durationMin,
+      activity.elevationGain
+    );
+  }, [activity]);
+
+  // Compute performance analysis
+  const performanceAnalysis = useMemo(() => {
+    if (!activity || !activity.distanceStream || !activity.durationMin) {
+      return null;
+    }
+
+    const distanceStream = Array.isArray(activity.distanceStream)
+      ? activity.distanceStream
+      : JSON.parse(activity.distanceStream as any);
+
+    // Try to get HR stream from Strava rich data if available
+    const hrStream: number[] = []; // TODO: Fetch from activity_streams table
+
+    return analyzePerformance(
+      distanceStream,
+      hrStream,
+      activity.durationMin,
+      activity.temperature,
+      activity.humidity,
+      terrainAnalysis || undefined
+    );
+  }, [activity, terrainAnalysis]);
 
   if (loading) {
     return (
@@ -447,6 +494,10 @@ export default function ActivityDetail() {
           />
         </div>
       )}
+
+      {/* Trail-Specific Analysis */}
+      {terrainAnalysis && <ActivityTerrainBreakdown terrain={terrainAnalysis} />}
+      {performanceAnalysis && <ActivityPerformanceInsights performance={performanceAnalysis} />}
 
       {/* Photos */}
       <ActivityPhotoGallery photos={photos} />
