@@ -975,6 +975,16 @@ export default function SettingsV2() {
               </p>
               <WearablePrioritySettings />
             </div>
+
+            <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid #333' }}>
+              <h3 className="h2" style={{ marginBottom: 12 }}>📸 Strava Activity Photos</h3>
+              <p className="small" style={{ color: 'var(--muted)', marginBottom: 16 }}>
+                Update photo & segment flags for all existing Strava activities. This will make activities with photos appear in Mirror and activity detail pages.
+              </p>
+              <button className="btn" disabled={busy} onClick={onBackfillPhotos}>
+                Update Photo Flags for All Activities
+              </button>
+            </div>
           </div>
         )}
 
@@ -1000,16 +1010,6 @@ export default function SettingsV2() {
                   </p>
                 )}
               </div>
-            </div>
-
-            <div>
-              <h3 className="h2" style={{ marginBottom: 12 }}>Strava Photos</h3>
-              <p className="small" style={{ color: 'var(--muted)', marginBottom: 16 }}>
-                Update photo flags for existing Strava activities so they appear in Mirror and activity pages
-              </p>
-              <button className="btn" disabled={busy} onClick={onBackfillPhotos}>
-                📸 Update Photo Flags
-              </button>
             </div>
 
             <div>
