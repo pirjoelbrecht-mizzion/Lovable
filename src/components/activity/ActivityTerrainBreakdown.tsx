@@ -184,31 +184,57 @@ export function ActivityTerrainBreakdown({ terrain }: ActivityTerrainBreakdownPr
               borderTop: '1px solid var(--bolt-border)'
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '16px'
-              }}
-            >
-              <h4 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--bolt-text)', margin: 0 }}>
-                🏔️ Climb Analysis ({terrain.significantClimbsCount} climbs)
-              </h4>
-              {terrain.climbs.length > 3 && (
-                <button
-                  onClick={() => setShowAllClimbs(!showAllClimbs)}
+            <div style={{ marginBottom: '16px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '8px'
+                }}
+              >
+                <h4 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--bolt-text)', margin: 0 }}>
+                  🏔️ Climb Analysis ({terrain.significantClimbsCount} significant climbs)
+                </h4>
+                {terrain.climbs.length > 3 && (
+                  <button
+                    onClick={() => setShowAllClimbs(!showAllClimbs)}
+                    style={{
+                      fontSize: '12px',
+                      color: 'var(--bolt-teal)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    {showAllClimbs ? 'Show Less' : 'Show All Climbs'}
+                  </button>
+                )}
+              </div>
+
+              {/* Elevation accounting */}
+              {terrain.totalClimbElevationM !== undefined && terrain.totalClimbElevationM > 0 && (
+                <div
                   style={{
                     fontSize: '12px',
-                    color: 'var(--bolt-teal)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    textDecoration: 'underline'
+                    color: 'var(--bolt-text-muted)',
+                    padding: '8px 12px',
+                    background: 'var(--bolt-background)',
+                    borderRadius: '6px',
+                    border: '1px solid var(--bolt-border)'
                   }}
                 >
-                  {showAllClimbs ? 'Show Less' : 'Show All Climbs'}
-                </button>
+                  <strong>{terrain.significantClimbElevationM?.toFixed(0) || 0}m</strong> from significant climbs
+                  {terrain.smallClimbElevationM !== undefined && terrain.smallClimbElevationM > 0 && (
+                    <>
+                      {' + '}
+                      <strong>{terrain.smallClimbElevationM.toFixed(0)}m</strong> from smaller climbs
+                      {' = '}
+                      <strong>{terrain.totalClimbElevationM.toFixed(0)}m</strong> total
+                    </>
+                  )}
+                </div>
               )}
             </div>
 

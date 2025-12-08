@@ -43,6 +43,11 @@ export interface TerrainAnalysis {
   totalClimbingTimeMin?: number;
   totalClimbingDistanceKm?: number;
   significantClimbsCount: number;
+
+  // Elevation accounting
+  totalClimbElevationM: number; // Total elevation from ALL climbs (including small ones)
+  significantClimbElevationM: number; // Elevation from significant climbs only
+  smallClimbElevationM: number; // Elevation from climbs below significance threshold
 }
 
 export interface PerformanceAnalysis {
@@ -77,14 +82,19 @@ function smoothElevation(elevationStream: number[], windowSize: number = 5): num
 }
 
 /**
- * Identify significant climb segments in elevation profile
- * Only returns climbs meeting significance threshold (>80m gain, >400m distance)
+ * Identify climb segments in elevation profile
+ * Returns both significant climbs (>80m gain, >400m distance) and total climb elevation
  */
 function identifyClimbSegments(
   distanceStream: number[],
   smoothedElevation: number[],
   targetWindowMeters: number = 150
-): Array<{ startIndex: number; endIndex: number; elevationGainM: number; distanceM: number; avgGrade: number }> {
+): {
+  allClimbs: Array<{ startIndex: number; endIndex: number; elevationGainM: number; distanceM: number; avgGrade: number }>;
+  significantClimbs: Array<{ startIndex: number; endIndex: number; elevationGainM: number; distanceM: number; avgGrade: number }>;
+  totalClimbElevationM: number;
+  totalSmallClimbElevationM: number;
+} {
   const rawClimbs: Array<{
     startIndex: number;
     endIndex: number;
@@ -170,7 +180,24 @@ function identifyClimbSegments(
     }
   }
 
-  return mergedClimbs.filter(c => c.elevationGainM >= 80 && c.distanceM >= 400);
+  // Calculate total elevation from ALL climbs
+  const totalClimbElevationM = mergedClimbs.reduce((sum, c) => sum + c.elevationGainM, 0);
+
+  // Filter to significant climbs only
+  const significantClimbs = mergedClimbs.filter(c => c.elevationGainM >= 80 && c.distanceM >= 400);
+
+  // Calculate elevation from significant climbs
+  const significantClimbElevationM = significantClimbs.reduce((sum, c) => sum + c.elevationGainM, 0);
+
+  // The difference is from small climbs
+  const totalSmallClimbElevationM = totalClimbElevationM - significantClimbElevationM;
+
+  return {
+    allClimbs: mergedClimbs,
+    significantClimbs,
+    totalClimbElevationM,
+    totalSmallClimbElevationM
+  };
 }
 
 /**
@@ -319,7 +346,10 @@ export function analyzeTerrainFromStreams(
       technicalityScore: 0,
       gradeDistribution: {},
       climbs: [],
-      significantClimbsCount: 0
+      significantClimbsCount: 0,
+      totalClimbElevationM: 0,
+      significantClimbElevationM: 0,
+      smallClimbElevationM: 0
     };
   }
 
@@ -451,13 +481,16 @@ export function analyzeTerrainFromStreams(
   const technicalityScore = Math.min(1, gradeVariance / 15); // Normalize to 0-1
 
   // New climb-based VAM calculation
-  const rawClimbs = identifyClimbSegments(distanceStream, smoothedElevation);
-  const climbs = calculateClimbVAM(rawClimbs, distanceStream, durationMin);
+  const climbData = identifyClimbSegments(distanceStream, smoothedElevation);
+  const climbs = calculateClimbVAM(climbData.significantClimbs, distanceStream, durationMin);
   const fatigueMetrics = calculateFatigueMetrics(climbs);
 
   // Calculate total climbing time and distance
   const totalClimbingTimeMin = climbs.reduce((sum, c) => sum + (c.durationMin || 0), 0);
   const totalClimbingDistanceKm = climbs.reduce((sum, c) => sum + c.distanceKm, 0);
+
+  // Calculate elevation from significant climbs
+  const significantClimbElevationM = climbs.reduce((sum, c) => sum + c.elevationGainM, 0);
 
   return {
     flatKm,
@@ -474,7 +507,12 @@ export function analyzeTerrainFromStreams(
     significantClimbsCount: climbs.length,
     totalClimbingTimeMin,
     totalClimbingDistanceKm,
-    ...fatigueMetrics
+    ...fatigueMetrics,
+
+    // Elevation accounting
+    totalClimbElevationM: climbData.totalClimbElevationM,
+    significantClimbElevationM,
+    smallClimbElevationM: climbData.totalSmallClimbElevationM
   };
 }
 
