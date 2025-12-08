@@ -22,13 +22,18 @@ export function ActivityPhotoGallery({ photos, compact = false }: ActivityPhotoG
     return (
       <div
         className="activity-photo-thumbnail"
-        onClick={() => setSelectedIndex(0)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setSelectedIndex(0);
+        }}
         style={{
           cursor: 'pointer',
           borderRadius: '8px',
           overflow: 'hidden',
           aspectRatio: '16/9',
-          position: 'relative'
+          position: 'relative',
+          marginBottom: '12px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
         }}
       >
         <img
@@ -38,13 +43,15 @@ export function ActivityPhotoGallery({ photos, compact = false }: ActivityPhotoG
             width: '100%',
             height: '100%',
             objectFit: 'cover',
-            transition: 'transform 0.2s ease'
+            transition: 'transform 0.2s ease, filter 0.2s ease'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.03)';
+            e.currentTarget.style.transform = 'scale(1.05)';
+            e.currentTarget.style.filter = 'brightness(1.1)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.filter = 'brightness(1)';
           }}
         />
         {photos.length > 1 && (
@@ -53,12 +60,13 @@ export function ActivityPhotoGallery({ photos, compact = false }: ActivityPhotoG
               position: 'absolute',
               bottom: '8px',
               right: '8px',
-              background: 'rgba(0, 0, 0, 0.7)',
-              color: 'var(--bolt-text)',
-              padding: '4px 8px',
-              borderRadius: '4px',
+              background: 'rgba(0, 0, 0, 0.8)',
+              color: 'white',
+              padding: '4px 10px',
+              borderRadius: '12px',
               fontSize: '12px',
-              fontWeight: 600
+              fontWeight: 600,
+              backdropFilter: 'blur(4px)'
             }}
           >
             +{photos.length - 1}

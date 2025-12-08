@@ -117,6 +117,10 @@ export class StravaProvider implements ProviderInterface {
                   elevationPoints: elevationStream?.length,
                   distancePoints: distanceStream?.length
                 });
+              } else if (streamResponse.status === 404) {
+                console.log(`Activity ${act.id} streams not found (404), skipping elevation data`);
+              } else {
+                console.warn(`Failed to fetch streams for activity ${act.id}: ${streamResponse.status}`);
               }
             } catch (streamError) {
               console.error(`Failed to fetch elevation data for activity ${act.id}:`, streamError);

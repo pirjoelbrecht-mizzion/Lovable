@@ -1,18 +1,22 @@
 // src/pages/Mirror.tsx
 import { useMemo, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { load, save } from "@/utils/storage";
 import { useT } from "@/i18n";
 import Insights from "./Insights";
 import { cleanupDuplicates } from "@/utils/log";
-import type { LogEntry } from "@/types";
+import type { LogEntry, ActivityPhoto } from "@/types";
 import { syncLogEntries } from "@/lib/database";
 import { TimeFrameProvider } from "@/contexts/TimeFrameContext";
 import RouteMap from "@/components/RouteMap";
+import { ActivityPhotoGallery } from "@/components/activity/ActivityPhotoGallery";
+import { stravaRichDataService } from "@/services/stravaRichDataService";
 
 export default function Mirror() {
   const t = useT();
+  const navigate = useNavigate();
   const [all, setAll] = useState<LogEntry[]>(() => load<LogEntry[]>("logEntries", []));
+  const [photosByActivity, setPhotosByActivity] = useState<Record<string, ActivityPhoto[]>>({});
 
   const recent = useMemo(() => {
     const recentEntries = all.slice(0, 6);
@@ -69,6 +73,27 @@ export default function Mirror() {
     return () => window.removeEventListener('log:import-complete', handleImport);
   }, []);
 
+  // Load photos for recent activities
+  useEffect(() => {
+    async function loadPhotos() {
+      const activitiesWithPhotos = recent.filter(e => e.hasPhotos && e.id);
+
+      for (const activity of activitiesWithPhotos) {
+        if (activity.id && !photosByActivity[activity.id]) {
+          const photos = await stravaRichDataService.getActivityPhotos(activity.id);
+          if (photos.length > 0) {
+            setPhotosByActivity(prev => ({
+              ...prev,
+              [activity.id!]: photos
+            }));
+          }
+        }
+      }
+    }
+
+    loadPhotos();
+  }, [recent]);
+
   return (
     <>
     <TimeFrameProvider>
@@ -108,30 +133,61 @@ export default function Mirror() {
             </div>
           ) : (
             <div className="grid cols-3">
-              {recent.map((e, i) => (
-                <article key={i} className="card">
-                  {(e.mapSummaryPolyline || e.mapPolyline) && (
-                    <RouteMap
-                      polyline={e.mapSummaryPolyline || e.mapPolyline}
-                      width={280}
-                      height={160}
-                      className="mb-3"
-                      durationMin={e.durationMin}
-                      elevationStream={e.elevationStream}
-                      distanceStream={e.distanceStream}
-                      showElevation={true}
-                    />
-                  )}
-                  <div className="h2">{e.title || "Run"}</div>
-                  <div className="small" style={{ color: "var(--muted)" }}>
-                    {e.dateISO} • {e.km ?? "—"} km
-                  </div>
-                  <div className="small" style={{ marginTop: 6 }}>
-                    {e.durationMin ? `Duration: ${e.durationMin} min` : "Duration: —"} •{" "}
-                    {e.hrAvg ? `HR: ${e.hrAvg} bpm` : "HR: —"}
-                  </div>
-                </article>
-              ))}
+              {recent.map((e, i) => {
+                const photos = e.id ? photosByActivity[e.id] : undefined;
+                const hasPhotos = photos && photos.length > 0;
+
+                return (
+                  <article
+                    key={i}
+                    className="card"
+                    onClick={() => e.id && navigate(`/activity/${e.id}`)}
+                    style={{ cursor: e.id ? 'pointer' : 'default' }}
+                  >
+                    {hasPhotos ? (
+                      <ActivityPhotoGallery photos={photos} compact />
+                    ) : (e.mapSummaryPolyline || e.mapPolyline) ? (
+                      <RouteMap
+                        polyline={e.mapSummaryPolyline || e.mapPolyline}
+                        width={280}
+                        height={160}
+                        className="mb-3"
+                        durationMin={e.durationMin}
+                        elevationStream={e.elevationStream}
+                        distanceStream={e.distanceStream}
+                        showElevation={true}
+                      />
+                    ) : null}
+                    <div
+                      className="h2"
+                      style={{
+                        transition: 'color 0.2s ease'
+                      }}
+                      onMouseEnter={(el) => {
+                        if (e.id) el.currentTarget.style.color = 'var(--bolt-teal)';
+                      }}
+                      onMouseLeave={(el) => {
+                        el.currentTarget.style.color = 'var(--bolt-text)';
+                      }}
+                    >
+                      {e.title || "Run"}
+                    </div>
+                    <div className="small" style={{ color: "var(--muted)" }}>
+                      {e.dateISO} • {e.km ?? "—"} km
+                    </div>
+                    <div className="small" style={{ marginTop: 6 }}>
+                      {e.durationMin ? `Duration: ${e.durationMin} min` : "Duration: —"} •{" "}
+                      {e.hrAvg ? `HR: ${e.hrAvg} bpm` : "HR: —"}
+                      {e.sportType && (
+                        <>
+                          {" • "}
+                          <span style={{ color: 'var(--bolt-teal)' }}>{e.sportType}</span>
+                        </>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )}
         </section>

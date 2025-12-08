@@ -80,7 +80,13 @@ export class StravaRichDataService {
       );
 
       if (!activityResponse.ok) {
-        console.error('Failed to fetch activity details:', activityResponse.status);
+        if (activityResponse.status === 404) {
+          console.log(`Activity ${activityId} not found (404), skipping rich data fetch`);
+        } else if (activityResponse.status === 401) {
+          console.error('Unauthorized: Strava token may have expired');
+        } else {
+          console.error('Failed to fetch activity details:', activityResponse.status);
+        }
         return;
       }
 
@@ -134,7 +140,11 @@ export class StravaRichDataService {
       );
 
       if (!response.ok) {
-        console.log('No photos available or error fetching photos');
+        if (response.status === 404) {
+          console.log(`No photos found for activity ${activityId}`);
+        } else {
+          console.log(`Error fetching photos for activity ${activityId}: ${response.status}`);
+        }
         return;
       }
 
