@@ -478,7 +478,7 @@ export function analyzeTerrainFromStreams(
   const gradeVariance = gradeValues.length > 0
     ? Math.sqrt(gradeValues.reduce((sum, g) => sum + Math.pow(g, 2), 0) / gradeValues.length)
     : 0;
-  const technicalityScore = Math.min(1, gradeVariance / 15); // Normalize to 0-1
+  const technicalityScore = Math.min(0.95, gradeVariance / 15); // Cap at 95% - no trail is 100% technical
 
   // New climb-based VAM calculation
   const climbData = identifyClimbSegments(distanceStream, smoothedElevation);

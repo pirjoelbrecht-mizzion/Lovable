@@ -304,7 +304,7 @@ export function computeTechnicalityScore(
   });
 
   const paceComponent = paceVariances.length > 0
-    ? Math.min(1.0, average(paceVariances) / 0.3) // Normalize
+    ? Math.min(0.95, average(paceVariances) / 0.3) // Normalize, cap at 95%
     : 0;
 
   // 2. Cadence variance (technical terrain causes uneven steps)
@@ -313,13 +313,13 @@ export function computeTechnicalityScore(
     const validCadence = cadenceSeries.filter(c => c > 0);
     if (validCadence.length > 0) {
       const cadenceVar = standardDeviation(validCadence) / average(validCadence);
-      cadenceComponent = Math.min(1.0, cadenceVar / 0.2);
+      cadenceComponent = Math.min(0.95, cadenceVar / 0.2); // Cap at 95%
     }
   }
 
   // 3. Micro-stops (near-zero pace indicating obstacles)
   const microStops = velocitySeries.filter(v => v > 0 && v < 0.5).length;
-  const stopComponent = Math.min(1.0, microStops / velocitySeries.length / 0.1);
+  const stopComponent = Math.min(0.95, microStops / velocitySeries.length / 0.1); // Cap at 95%
 
   // Weighted fusion
   const techScore = (
@@ -328,7 +328,7 @@ export function computeTechnicalityScore(
     0.15 * stopComponent
   );
 
-  return Math.min(1.0, techScore);
+  return Math.min(0.95, techScore); // Cap at 95% - no trail is 100% technical
 }
 
 // =====================================================================
