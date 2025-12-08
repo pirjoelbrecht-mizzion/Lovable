@@ -210,6 +210,18 @@ export async function saveLogEntry(entry: LogEntry): Promise<boolean> {
       console.error('Error enriching environmental data:', err);
     }
 
+    // Emit activity imported event for terrain analysis processor
+    try {
+      const { emit } = await import('@/lib/bus');
+      emit('activity:imported', {
+        logEntryId: data[0].id,
+        source: entry.source || 'manual',
+        externalId: entry.externalId
+      });
+    } catch (err) {
+      console.error('Error emitting activity:imported event:', err);
+    }
+
     // Trigger terrain analysis and pace profile recalculation if activity has elevation data
     if (entry.elevationStream && entry.distanceStream && entry.durationMin) {
       try {
