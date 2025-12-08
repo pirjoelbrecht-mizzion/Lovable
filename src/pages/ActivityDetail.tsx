@@ -496,7 +496,12 @@ export default function ActivityDetail() {
       )}
 
       {/* Trail-Specific Analysis */}
-      {terrainAnalysis && <ActivityTerrainBreakdown terrain={terrainAnalysis} />}
+      {terrainAnalysis && (
+        <ActivityTerrainBreakdown
+          terrain={terrainAnalysis}
+          activityElevationGain={activity?.elevationGain}
+        />
+      )}
       {performanceAnalysis && <ActivityPerformanceInsights performance={performanceAnalysis} />}
 
       {/* Photos */}

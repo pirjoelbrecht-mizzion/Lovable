@@ -8,9 +8,10 @@ import { type TerrainAnalysis } from '@/engine/trailAnalysis';
 
 interface ActivityTerrainBreakdownProps {
   terrain: TerrainAnalysis;
+  activityElevationGain?: number; // Total elevation from activity data (e.g., Strava)
 }
 
-export function ActivityTerrainBreakdown({ terrain }: ActivityTerrainBreakdownProps) {
+export function ActivityTerrainBreakdown({ terrain, activityElevationGain }: ActivityTerrainBreakdownProps) {
   const [showAllClimbs, setShowAllClimbs] = useState(false);
   const totalKm = terrain.flatKm + terrain.rollingKm + terrain.hillyKm + terrain.steepKm + terrain.downhillKm;
 
@@ -225,14 +226,28 @@ export function ActivityTerrainBreakdown({ terrain }: ActivityTerrainBreakdownPr
                     border: '1px solid var(--bolt-border)'
                   }}
                 >
-                  <strong>{terrain.significantClimbElevationM?.toFixed(0) || 0}m</strong> from significant climbs
-                  {terrain.smallClimbElevationM !== undefined && terrain.smallClimbElevationM > 0 && (
-                    <>
+                  <div>
+                    <strong>{terrain.significantClimbElevationM?.toFixed(0) || 0}m</strong> from significant climbs
+                    {terrain.smallClimbElevationM !== undefined && terrain.smallClimbElevationM > 0 && (
+                      <>
+                        {' + '}
+                        <strong>{terrain.smallClimbElevationM.toFixed(0)}m</strong> from smaller climbs
+                      </>
+                    )}
+                  </div>
+                  {activityElevationGain !== undefined && activityElevationGain > terrain.totalClimbElevationM && (
+                    <div style={{ marginTop: '4px' }}>
                       {' + '}
-                      <strong>{terrain.smallClimbElevationM.toFixed(0)}m</strong> from smaller climbs
+                      <strong>{(activityElevationGain - terrain.totalClimbElevationM).toFixed(0)}m</strong> from rolling terrain
                       {' = '}
-                      <strong>{terrain.totalClimbElevationM.toFixed(0)}m</strong> total
-                    </>
+                      <strong>{activityElevationGain.toFixed(0)}m</strong> total gain
+                    </div>
+                  )}
+                  {activityElevationGain === undefined && (
+                    <div style={{ marginTop: '4px' }}>
+                      {' = '}
+                      <strong>{terrain.totalClimbElevationM.toFixed(0)}m</strong> from climbs detected
+                    </div>
                   )}
                 </div>
               )}
