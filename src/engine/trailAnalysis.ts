@@ -32,7 +32,29 @@ export interface PerformanceAnalysis {
 }
 
 /**
- * Analyze terrain from elevation and distance streams
+ * Smooth elevation data using moving average to reduce GPS noise
+ */
+function smoothElevation(elevationStream: number[], windowSize: number = 5): number[] {
+  const smoothed: number[] = [];
+  const halfWindow = Math.floor(windowSize / 2);
+
+  for (let i = 0; i < elevationStream.length; i++) {
+    let sum = 0;
+    let count = 0;
+
+    for (let j = Math.max(0, i - halfWindow); j <= Math.min(elevationStream.length - 1, i + halfWindow); j++) {
+      sum += elevationStream[j];
+      count++;
+    }
+
+    smoothed.push(sum / count);
+  }
+
+  return smoothed;
+}
+
+/**
+ * Analyze terrain from elevation and distance streams using rolling window
  */
 export function analyzeTerrainFromStreams(
   distanceStream: number[], // meters
@@ -53,6 +75,9 @@ export function analyzeTerrainFromStreams(
     };
   }
 
+  // Smooth elevation data to reduce GPS noise
+  const smoothedElevation = smoothElevation(elevationStream);
+
   let flatKm = 0;
   let rollingKm = 0;
   let hillyKm = 0;
@@ -64,17 +89,26 @@ export function analyzeTerrainFromStreams(
   const gradeDistribution: { [key: string]: number } = {};
   const downhillSpeeds: number[] = [];
 
-  // Analyze each segment
+  // Use rolling window for grade calculation (aim for ~100-200m segments)
+  const targetWindowMeters = 150;
+
   for (let i = 0; i < distanceStream.length - 1; i++) {
-    const distDiff = distanceStream[i + 1] - distanceStream[i];
-    const elevDiff = elevationStream[i + 1] - elevationStream[i];
+    // Find window end point that's approximately targetWindowMeters ahead
+    let windowEnd = i + 1;
+    let windowDistance = distanceStream[windowEnd] - distanceStream[i];
 
-    if (distDiff <= 0) continue;
+    while (windowEnd < distanceStream.length - 1 && windowDistance < targetWindowMeters) {
+      windowEnd++;
+      windowDistance = distanceStream[windowEnd] - distanceStream[i];
+    }
 
-    const distKm = distDiff / 1000;
-    const grade = (elevDiff / distDiff) * 100;
+    if (windowDistance < 10) continue; // Skip very short segments
 
-    // Classify terrain
+    const distKm = windowDistance / 1000;
+    const elevChange = smoothedElevation[windowEnd] - smoothedElevation[i];
+    const grade = (elevChange / windowDistance) * 100;
+
+    // Classify terrain based on grade
     if (grade >= 10) {
       steepKm += distKm;
     } else if (grade >= 6) {
@@ -97,10 +131,12 @@ export function analyzeTerrainFromStreams(
     gradeDistribution[gradeBucket] = (gradeDistribution[gradeBucket] || 0) + distKm;
 
     // Track climbing for VAM
-    if (grade > 0) {
-      climbingElevation += elevDiff;
-      totalClimbTime += durationMin ? (distKm / (durationMin / 60)) : 0;
+    if (elevChange > 0) {
+      climbingElevation += elevChange;
     }
+
+    // Skip ahead to avoid double-counting
+    i = windowEnd - 1;
   }
 
   // Calculate downhill braking score (0 = confident, 1 = very cautious)
