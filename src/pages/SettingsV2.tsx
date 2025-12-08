@@ -7,6 +7,7 @@ import { loadUserProfile, updateUserProfile } from "@/state/userData";
 import { parseStravaCSV, autoEstimateProfile, estimateHrMax, calcHrZones, calcPaceZones } from "@/utils/stravaImport";
 import { mergeDedup } from "@/utils/log";
 import type { LogEntry } from "@/components/StravaImporter";
+import { backfillPhotoFlags } from "@/utils/backfillPhotoFlags";
 import WearablePrioritySettings from "@/components/WearablePrioritySettings";
 import ConnectProviders from "@/components/ConnectProviders";
 import { PaceProfileCard } from "@/components/PaceProfileCard";
@@ -390,6 +391,32 @@ export default function SettingsV2() {
       toast("Coach history cleared", "success");
     } else {
       toast("Failed to clear history", "error");
+    }
+  }
+
+  async function onBackfillPhotos() {
+    if (!confirm("Update photo/segment flags for all Strava activities?\n\nThis will fetch data from Strava and may take a few minutes.")) return;
+
+    setBusy(true);
+    toast("Starting backfill...", "info");
+
+    try {
+      const result = await backfillPhotoFlags();
+
+      if (result.updated > 0) {
+        toast(`Successfully updated ${result.updated} activities!`, "success");
+        // Trigger a page reload to refresh the UI
+        setTimeout(() => window.location.reload(), 1000);
+      } else if (result.errors > 0) {
+        toast("Failed to update activities. Check console for details.", "error");
+      } else {
+        toast("No Strava activities found to update", "info");
+      }
+    } catch (error) {
+      console.error('[SettingsV2] Backfill error:', error);
+      toast("Failed to backfill photo flags", "error");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -973,6 +1000,16 @@ export default function SettingsV2() {
                   </p>
                 )}
               </div>
+            </div>
+
+            <div>
+              <h3 className="h2" style={{ marginBottom: 12 }}>Strava Photos</h3>
+              <p className="small" style={{ color: 'var(--muted)', marginBottom: 16 }}>
+                Update photo flags for existing Strava activities so they appear in Mirror and activity pages
+              </p>
+              <button className="btn" disabled={busy} onClick={onBackfillPhotos}>
+                📸 Update Photo Flags
+              </button>
             </div>
 
             <div>
