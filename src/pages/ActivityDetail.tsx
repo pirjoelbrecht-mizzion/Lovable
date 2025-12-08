@@ -238,7 +238,7 @@ export default function ActivityDetail() {
         )}
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid - Trail Runner Enhanced */}
       <div
         className="stats-grid"
         style={{
@@ -268,9 +268,20 @@ export default function ActivityDetail() {
         )}
 
         {activity.elevationGain && (
-          <div className="stat-card" style={statCardStyle}>
-            <div style={statLabelStyle}>Elevation</div>
-            <div style={statValueStyle}>{activity.elevationGain.toFixed(0)} m</div>
+          <div className="stat-card" style={{...statCardStyle, border: '2px solid var(--bolt-teal)'}}>
+            <div style={statLabelStyle}>Elevation Gain</div>
+            <div style={{...statValueStyle, color: 'var(--bolt-teal)'}}>
+              ↑ {activity.elevationGain.toFixed(0)} m
+            </div>
+          </div>
+        )}
+
+        {activity.elevationLoss && (
+          <div className="stat-card" style={{...statCardStyle, border: '2px solid #ff6b6b'}}>
+            <div style={statLabelStyle}>Elevation Loss</div>
+            <div style={{...statValueStyle, color: '#ff6b6b'}}>
+              ↓ {Math.abs(activity.elevationLoss).toFixed(0)} m
+            </div>
           </div>
         )}
 
@@ -280,14 +291,147 @@ export default function ActivityDetail() {
             <div style={statValueStyle}>{activity.hrAvg} bpm</div>
           </div>
         )}
-
-        {activity.temperature !== undefined && (
-          <div className="stat-card" style={statCardStyle}>
-            <div style={statLabelStyle}>Temperature</div>
-            <div style={statValueStyle}>{Math.round(activity.temperature)}°C</div>
-          </div>
-        )}
       </div>
+
+      {/* Weather Conditions - Trail Specific */}
+      {(activity.temperature !== undefined || activity.weather || activity.humidity) && (
+        <div
+          style={{
+            background: 'linear-gradient(135deg, rgba(var(--bolt-teal-rgb), 0.1), rgba(var(--bolt-blue-rgb), 0.1))',
+            borderRadius: '12px',
+            padding: '20px',
+            marginBottom: '32px',
+            border: '1px solid var(--bolt-border)'
+          }}
+        >
+          <h3
+            style={{
+              fontSize: '16px',
+              fontWeight: 600,
+              marginBottom: '12px',
+              color: 'var(--bolt-text)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <span style={{ fontSize: '20px' }}>🌤️</span>
+            Trail Conditions
+          </h3>
+          <div
+            style={{
+              display: 'flex',
+              gap: '24px',
+              flexWrap: 'wrap',
+              fontSize: '14px'
+            }}
+          >
+            {activity.temperature !== undefined && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '18px' }}>🌡️</span>
+                <span style={{ color: 'var(--bolt-text)' }}>
+                  <strong>{Math.round(activity.temperature)}°C</strong>
+                </span>
+              </div>
+            )}
+            {activity.humidity !== undefined && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '18px' }}>💧</span>
+                <span style={{ color: 'var(--bolt-text)' }}>
+                  <strong>{activity.humidity}%</strong> humidity
+                </span>
+              </div>
+            )}
+            {activity.weather && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ color: 'var(--bolt-text-muted)' }}>
+                  {activity.weather}
+                </span>
+              </div>
+            )}
+            {formatTime(activity.dateISO) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '18px' }}>⏰</span>
+                <span style={{ color: 'var(--bolt-text)' }}>
+                  Started at <strong>{formatTime(activity.dateISO)}</strong>
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Elevation Profile - Enhanced for Trail */}
+      {activity.elevationGain && activity.elevationLoss && (
+        <div
+          style={{
+            background: 'var(--bolt-surface)',
+            borderRadius: '12px',
+            padding: '20px',
+            marginBottom: '32px',
+            border: '1px solid var(--bolt-border)'
+          }}
+        >
+          <h3
+            style={{
+              fontSize: '16px',
+              fontWeight: 600,
+              marginBottom: '16px',
+              color: 'var(--bolt-text)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <span style={{ fontSize: '20px' }}>⛰️</span>
+            Elevation Summary
+          </h3>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '16px'
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '12px', color: 'var(--bolt-text-muted)', marginBottom: '4px' }}>
+                Total Vertical Gain
+              </div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--bolt-teal)' }}>
+                ↑ {activity.elevationGain.toFixed(0)} m
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '12px', color: 'var(--bolt-text-muted)', marginBottom: '4px' }}>
+                Total Vertical Loss
+              </div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: '#ff6b6b' }}>
+                ↓ {Math.abs(activity.elevationLoss).toFixed(0)} m
+              </div>
+            </div>
+            {activity.elevationLow !== undefined && (
+              <div>
+                <div style={{ fontSize: '12px', color: 'var(--bolt-text-muted)', marginBottom: '4px' }}>
+                  Min Elevation
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--bolt-text)' }}>
+                  {activity.elevationLow.toFixed(0)} m
+                </div>
+              </div>
+            )}
+            {activity.elevationLow !== undefined && activity.elevationGain && (
+              <div>
+                <div style={{ fontSize: '12px', color: 'var(--bolt-text-muted)', marginBottom: '4px' }}>
+                  Max Elevation
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--bolt-text)' }}>
+                  {(activity.elevationLow + activity.elevationGain).toFixed(0)} m
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Map */}
       {(activity.mapPolyline || activity.mapSummaryPolyline) && (
