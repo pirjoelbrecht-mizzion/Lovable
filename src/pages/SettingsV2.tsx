@@ -408,13 +408,13 @@ export default function SettingsV2() {
         // Trigger a page reload to refresh the UI
         setTimeout(() => window.location.reload(), 1000);
       } else if (result.errors > 0) {
-        toast("Failed to update activities. Check console for details.", "error");
+        toast("Failed to update activities. Make sure Strava is connected above.", "error");
       } else {
         toast("No Strava activities found to update", "info");
       }
     } catch (error) {
       console.error('[SettingsV2] Backfill error:', error);
-      toast("Failed to backfill photo flags", "error");
+      toast("Failed to backfill photo flags. Check Strava connection.", "error");
     } finally {
       setBusy(false);
     }

@@ -19,16 +19,21 @@ export async function backfillPhotoFlags(): Promise<{
       return { updated: 0, errors: 1 };
     }
 
-    // Get Strava access token
-    const { data: credentials } = await supabase
-      .from('oauth_credentials')
-      .select('access_token, refresh_token, expires_at')
+    // Get Strava access token from wearable_connections
+    const { data: connection } = await supabase
+      .from('wearable_connections')
+      .select('access_token, refresh_token, token_expires_at, connection_status')
       .eq('user_id', user.id)
       .eq('provider', 'strava')
       .maybeSingle();
 
-    if (!credentials?.access_token) {
-      console.error('[Backfill] No Strava credentials found');
+    if (!connection?.access_token) {
+      console.error('[Backfill] No Strava connection found. Please connect Strava first in the Devices tab.');
+      return { updated: 0, errors: 1 };
+    }
+
+    if (connection.connection_status !== 'connected') {
+      console.error(`[Backfill] Strava connection status is: ${connection.connection_status}. Please reconnect Strava.`);
       return { updated: 0, errors: 1 };
     }
 
@@ -68,7 +73,7 @@ export async function backfillPhotoFlags(): Promise<{
               `https://www.strava.com/api/v3/activities/${activity.external_id}`,
               {
                 headers: {
-                  'Authorization': `Bearer ${credentials.access_token}`
+                  'Authorization': `Bearer ${connection.access_token}`
                 }
               }
             );
