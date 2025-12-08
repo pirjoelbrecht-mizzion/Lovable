@@ -82,7 +82,7 @@ export function ActivityPerformanceInsights({ performance }: ActivityPerformance
           </div>
 
           {/* Aerobic Decoupling */}
-          {performance.aerobicDecoupling !== undefined && (
+          {performance.aerobicDecoupling !== undefined && !isNaN(performance.aerobicDecoupling) && (
             <div>
               <div style={{ fontSize: '12px', color: 'var(--bolt-text-muted)', marginBottom: '4px' }}>
                 Aerobic Decoupling
@@ -113,7 +113,7 @@ export function ActivityPerformanceInsights({ performance }: ActivityPerformance
           )}
 
           {/* HR Drift on Climbs */}
-          {performance.hrDriftOnClimbs !== undefined && (
+          {performance.hrDriftOnClimbs !== undefined && !isNaN(performance.hrDriftOnClimbs) && (
             <div>
               <div style={{ fontSize: '12px', color: 'var(--bolt-text-muted)', marginBottom: '4px' }}>
                 HR Drift on Climbs

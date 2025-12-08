@@ -194,14 +194,16 @@ export function analyzePerformance(
     const firstHalfHR = hrStream.slice(0, midpoint).reduce((a, b) => a + b, 0) / midpoint;
     const secondHalfHR = hrStream.slice(midpoint).reduce((a, b) => a + b, 0) / (hrStream.length - midpoint);
 
-    aerobicDecoupling = ((secondHalfHR - firstHalfHR) / firstHalfHR) * 100;
+    if (firstHalfHR > 0) {
+      aerobicDecoupling = ((secondHalfHR - firstHalfHR) / firstHalfHR) * 100;
 
-    if (aerobicDecoupling > 10) {
-      recommendations.push('Significant aerobic decoupling detected. Consider reducing intensity or improving pacing strategy.');
-      efficiencyScore -= 15;
-    } else if (aerobicDecoupling > 5) {
-      recommendations.push('Moderate aerobic decoupling. Your pacing was solid but could be more even.');
-      efficiencyScore -= 5;
+      if (aerobicDecoupling > 10) {
+        recommendations.push('Significant aerobic decoupling detected. Consider reducing intensity or improving pacing strategy.');
+        efficiencyScore -= 15;
+      } else if (aerobicDecoupling > 5) {
+        recommendations.push('Moderate aerobic decoupling. Your pacing was solid but could be more even.');
+        efficiencyScore -= 5;
+      }
     }
   }
 
@@ -221,12 +223,12 @@ export function analyzePerformance(
 
   // HR drift on climbs
   let hrDriftOnClimbs: number | undefined;
-  if (hrStream && terrainAnalysis && (terrainAnalysis.hillyKm + terrainAnalysis.steepKm) > 0) {
+  if (hrStream && hrStream.length > 1 && terrainAnalysis && (terrainAnalysis.hillyKm + terrainAnalysis.steepKm) > 0) {
     // Calculate HR variability during climbing sections
     const hrVariance = hrStream.reduce((sum, hr, i) => {
       if (i === 0) return 0;
       return sum + Math.abs(hr - hrStream[i - 1]);
-    }, 0) / hrStream.length;
+    }, 0) / (hrStream.length - 1);
 
     hrDriftOnClimbs = hrVariance;
 
