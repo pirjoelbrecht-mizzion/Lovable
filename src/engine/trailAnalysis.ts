@@ -87,7 +87,6 @@ export function analyzeTerrainFromStreams(
   let climbingElevation = 0;
 
   const gradeDistribution: { [key: string]: number } = {};
-  const downhillSpeeds: number[] = [];
 
   // Use rolling window for grade calculation (aim for ~100-200m segments)
   const targetWindowMeters = 150;
@@ -119,11 +118,6 @@ export function analyzeTerrainFromStreams(
       flatKm += distKm;
     } else {
       downhillKm += distKm;
-      // Track downhill speeds for braking analysis
-      if (durationMin) {
-        const segmentSpeed = distKm / (durationMin / 60);
-        downhillSpeeds.push(segmentSpeed);
-      }
     }
 
     // Grade distribution
@@ -139,13 +133,9 @@ export function analyzeTerrainFromStreams(
     i = windowEnd - 1;
   }
 
-  // Calculate downhill braking score (0 = confident, 1 = very cautious)
-  let downhillBrakingScore = 0;
-  if (downhillSpeeds.length > 0) {
-    const avgDownhillSpeed = downhillSpeeds.reduce((a, b) => a + b, 0) / downhillSpeeds.length;
-    // Typical trail downhill: 8-12 km/h, confident: >12 km/h, cautious: <8 km/h
-    downhillBrakingScore = Math.max(0, Math.min(1, (12 - avgDownhillSpeed) / 8));
-  }
+  // Downhill confidence score disabled - requires time stream data to calculate segment speeds
+  // Without per-segment timing, cannot accurately measure downhill running pace
+  const downhillBrakingScore = 0;
 
   // Calculate technicality score based on grade variability
   const gradeValues = Object.keys(gradeDistribution).map(Number);
