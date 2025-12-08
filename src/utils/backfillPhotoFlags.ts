@@ -122,26 +122,39 @@ export async function backfillPhotoFlags(): Promise<{
                       .delete()
                       .eq('log_entry_id', activity.id);
 
-                    // Insert new photos
-                    const photosToInsert = photos.map((photo, index) => ({
-                      user_id: user.id,
-                      log_entry_id: activity.id,
-                      url_full: photo.urls['600'] || photo.urls['100'],
-                      url_thumbnail: photo.urls['100'],
-                      caption: photo.caption || null,
-                      latitude: photo.location?.[0] || null,
-                      longitude: photo.location?.[1] || null,
-                      display_order: index
-                    }));
+                    // Filter and map photos, ensuring all required fields have values
+                    const photosToInsert = photos
+                      .filter(photo => photo.urls && (photo.urls['100'] || photo.urls['600']))
+                      .map((photo, index) => {
+                        // Use available URL sizes, with fallbacks
+                        const thumbnail = photo.urls['100'] || photo.urls['600'] || '';
+                        const full = photo.urls['600'] || photo.urls['100'] || '';
 
-                    const { error: photoError } = await supabase
-                      .from('activity_photos')
-                      .insert(photosToInsert);
+                        return {
+                          user_id: user.id,
+                          log_entry_id: activity.id,
+                          url_full: full,
+                          url_thumbnail: thumbnail,
+                          caption: photo.caption || null,
+                          latitude: photo.location?.[0] || null,
+                          longitude: photo.location?.[1] || null,
+                          display_order: index
+                        };
+                      })
+                      .filter(photo => photo.url_thumbnail && photo.url_full); // Only insert photos with valid URLs
 
-                    if (photoError) {
-                      console.error(`[Backfill] Error storing photos for ${activity.id}:`, photoError);
+                    if (photosToInsert.length > 0) {
+                      const { error: photoError } = await supabase
+                        .from('activity_photos')
+                        .insert(photosToInsert);
+
+                      if (photoError) {
+                        console.error(`[Backfill] Error storing photos for ${activity.id}:`, photoError);
+                      } else {
+                        console.log(`[Backfill] ✓ Stored ${photosToInsert.length} photos for "${activity.title}"`);
+                      }
                     } else {
-                      console.log(`[Backfill] ✓ Stored ${photos.length} photos for "${activity.title}"`);
+                      console.log(`[Backfill] No valid photo URLs found for "${activity.title}"`);
                     }
                   }
                 }
