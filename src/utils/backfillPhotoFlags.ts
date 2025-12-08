@@ -1,15 +1,25 @@
 /**
- * Backfill hasPhotos and hasSegments flags for existing Strava activities
- * Run this once to update all existing activities with the correct flags
+ * Backfill photos and segments for existing Strava activities
+ * Fetches and stores actual photo URLs and segment data
  */
 
 import { supabase } from '@/lib/supabase';
+
+interface StravaPhoto {
+  unique_id: string;
+  urls: {
+    '100': string;
+    '600': string;
+  };
+  caption?: string;
+  location?: [number, number];
+}
 
 export async function backfillPhotoFlags(): Promise<{
   updated: number;
   errors: number;
 }> {
-  console.log('[Backfill] Starting photo/segment flags backfill...');
+  console.log('[Backfill] Starting photo/segment data backfill...');
 
   try {
     // Get current user
@@ -60,8 +70,8 @@ export async function backfillPhotoFlags(): Promise<{
     let updated = 0;
     let errors = 0;
 
-    // Process in batches of 10 to avoid rate limits
-    const batchSize = 10;
+    // Process in batches of 5 to avoid rate limits (photos endpoint can be slow)
+    const batchSize = 5;
     for (let i = 0; i < activities.length; i += batchSize) {
       const batch = activities.slice(i, i + batchSize);
 
@@ -69,7 +79,7 @@ export async function backfillPhotoFlags(): Promise<{
         batch.map(async (activity) => {
           try {
             // Fetch detailed activity from Strava to get photo count
-            const response = await fetch(
+            const activityResponse = await fetch(
               `https://www.strava.com/api/v3/activities/${activity.external_id}`,
               {
                 headers: {
@@ -78,21 +88,73 @@ export async function backfillPhotoFlags(): Promise<{
               }
             );
 
-            if (!response.ok) {
-              console.warn(`[Backfill] Failed to fetch activity ${activity.external_id}: ${response.status}`);
+            if (!activityResponse.ok) {
+              console.warn(`[Backfill] Failed to fetch activity ${activity.external_id}: ${activityResponse.status}`);
               errors++;
               return;
             }
 
-            const data = await response.json();
-            const hasPhotos = (data.total_photo_count || 0) > 0;
-            const hasSegments = (data.segment_efforts?.length || 0) > 0;
+            const activityData = await activityResponse.json();
+            const photoCount = activityData.total_photo_count || 0;
+            const hasSegments = (activityData.segment_efforts?.length || 0) > 0;
 
-            // Update the activity in database
+            // If activity has photos, fetch and store them
+            if (photoCount > 0) {
+              console.log(`[Backfill] Fetching ${photoCount} photos for "${activity.title}"...`);
+
+              try {
+                const photosResponse = await fetch(
+                  `https://www.strava.com/api/v3/activities/${activity.external_id}/photos?size=600`,
+                  {
+                    headers: {
+                      'Authorization': `Bearer ${connection.access_token}`
+                    }
+                  }
+                );
+
+                if (photosResponse.ok) {
+                  const photos: StravaPhoto[] = await photosResponse.json();
+
+                  if (photos.length > 0) {
+                    // Delete existing photos for this activity
+                    await supabase
+                      .from('activity_photos')
+                      .delete()
+                      .eq('log_entry_id', activity.id);
+
+                    // Insert new photos
+                    const photosToInsert = photos.map((photo, index) => ({
+                      user_id: user.id,
+                      log_entry_id: activity.id,
+                      url_full: photo.urls['600'] || photo.urls['100'],
+                      url_thumbnail: photo.urls['100'],
+                      caption: photo.caption || null,
+                      latitude: photo.location?.[0] || null,
+                      longitude: photo.location?.[1] || null,
+                      display_order: index
+                    }));
+
+                    const { error: photoError } = await supabase
+                      .from('activity_photos')
+                      .insert(photosToInsert);
+
+                    if (photoError) {
+                      console.error(`[Backfill] Error storing photos for ${activity.id}:`, photoError);
+                    } else {
+                      console.log(`[Backfill] ✓ Stored ${photos.length} photos for "${activity.title}"`);
+                    }
+                  }
+                }
+              } catch (photoError) {
+                console.error(`[Backfill] Error fetching photos for ${activity.id}:`, photoError);
+              }
+            }
+
+            // Update the activity flags
             const { error: updateError } = await supabase
               .from('log_entries')
               .update({
-                has_photos: hasPhotos,
+                has_photos: photoCount > 0,
                 has_segments: hasSegments
               })
               .eq('id', activity.id);
@@ -101,8 +163,8 @@ export async function backfillPhotoFlags(): Promise<{
               console.error(`[Backfill] Error updating activity ${activity.id}:`, updateError);
               errors++;
             } else {
-              if (hasPhotos || hasSegments) {
-                console.log(`[Backfill] Updated "${activity.title}": photos=${hasPhotos}, segments=${hasSegments}`);
+              if (photoCount > 0 || hasSegments) {
+                console.log(`[Backfill] Updated "${activity.title}": photos=${photoCount}, segments=${hasSegments}`);
               }
               updated++;
             }
@@ -113,9 +175,9 @@ export async function backfillPhotoFlags(): Promise<{
         })
       );
 
-      // Add a small delay between batches to respect rate limits
+      // Add a delay between batches to respect rate limits
       if (i + batchSize < activities.length) {
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
       console.log(`[Backfill] Progress: ${Math.min(i + batchSize, activities.length)}/${activities.length}`);

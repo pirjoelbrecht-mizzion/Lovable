@@ -979,10 +979,10 @@ export default function SettingsV2() {
             <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid #333' }}>
               <h3 className="h2" style={{ marginBottom: 12 }}>📸 Strava Activity Photos</h3>
               <p className="small" style={{ color: 'var(--muted)', marginBottom: 16 }}>
-                Update photo & segment flags for all existing Strava activities. This will make activities with photos appear in Mirror and activity detail pages.
+                Download and store photos from all your Strava activities. This makes photos appear in Mirror and activity detail pages. May take several minutes for many activities.
               </p>
               <button className="btn" disabled={busy} onClick={onBackfillPhotos}>
-                Update Photo Flags for All Activities
+                {busy ? 'Downloading Photos...' : 'Download All Activity Photos'}
               </button>
             </div>
           </div>
