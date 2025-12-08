@@ -78,9 +78,19 @@ export default function Mirror() {
     async function loadPhotos() {
       const activitiesWithPhotos = recent.filter(e => e.hasPhotos && e.id);
 
+      console.log('[Mirror] Activities with photos flag:', activitiesWithPhotos.length);
+      console.log('[Mirror] Recent activities:', recent.map(e => ({
+        id: e.id,
+        title: e.title,
+        hasPhotos: e.hasPhotos,
+        hasSegments: e.hasSegments
+      })));
+
       for (const activity of activitiesWithPhotos) {
         if (activity.id && !photosByActivity[activity.id]) {
+          console.log(`[Mirror] Fetching photos for activity ${activity.id} (${activity.title})`);
           const photos = await stravaRichDataService.getActivityPhotos(activity.id);
+          console.log(`[Mirror] Got ${photos.length} photos for activity ${activity.id}`);
           if (photos.length > 0) {
             setPhotosByActivity(prev => ({
               ...prev,

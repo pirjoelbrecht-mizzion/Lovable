@@ -149,7 +149,10 @@ export class StravaProvider implements ProviderInterface {
               sportType: act.sport_type || act.type || 'Run',
               description: act.description || undefined,
               deviceName: act.device_name || undefined,
-              gearId: act.gear_id || undefined
+              gearId: act.gear_id || undefined,
+              // Photo and segment flags
+              hasPhotos: (act.total_photo_count || 0) > 0,
+              hasSegments: (act.segment_efforts?.length || 0) > 0
             };
           })
       );
