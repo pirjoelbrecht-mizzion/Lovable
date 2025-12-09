@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { analyzeActivityHeatImpact } from '../../lib/environmental-analysis/analyzeHeatImpact';
 import { supabase } from '../../lib/supabase';
+import { backfillSingleActivity } from '../../utils/backfillActivityStreams';
 import type { LogEntry } from '../../types';
 
 interface HeatMetrics {
@@ -30,6 +31,7 @@ interface WeatherImpactCardProps {
 export function WeatherImpactCard({ logEntry, userId }: WeatherImpactCardProps) {
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [fetchingGPS, setFetchingGPS] = useState(false);
   const [metrics, setMetrics] = useState<HeatMetrics | null>(null);
   const [insights, setInsights] = useState<AIInsights | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +80,28 @@ export function WeatherImpactCard({ logEntry, userId }: WeatherImpactCardProps) 
     }
   }
 
+  async function handleFetchGPS() {
+    if (logEntry.source !== 'strava') {
+      setError('GPS streams are only available for Strava activities');
+      return;
+    }
+
+    setFetchingGPS(true);
+    setError(null);
+
+    try {
+      await backfillSingleActivity(logEntry.id);
+      setError(null);
+      // Try analyzing again after fetching GPS
+      await handleAnalyze();
+    } catch (err: any) {
+      console.error('Failed to fetch GPS:', err);
+      setError(err.message || 'Failed to fetch GPS data');
+    } finally {
+      setFetchingGPS(false);
+    }
+  }
+
   async function handleAnalyze() {
     setAnalyzing(true);
     setError(null);
@@ -113,6 +137,9 @@ export function WeatherImpactCard({ logEntry, userId }: WeatherImpactCardProps) 
   }
 
   if (!metrics) {
+    const isGPSError = error?.includes('GPS data') || error?.includes('location');
+    const isStravaActivity = logEntry.source === 'strava';
+
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
         <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">
@@ -121,25 +148,61 @@ export function WeatherImpactCard({ logEntry, userId }: WeatherImpactCardProps) 
         <p className="text-gray-600 dark:text-gray-400 mb-4">
           Analyze how environmental conditions affected your performance
         </p>
-        <button
-          onClick={handleAnalyze}
-          disabled={analyzing}
-          className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {analyzing ? (
-            <span className="flex items-center gap-2">
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              Analyzing...
-            </span>
-          ) : (
-            'Analyze Weather Impact'
+
+        <div className="flex flex-wrap gap-3">
+          {isGPSError && isStravaActivity && (
+            <button
+              onClick={handleFetchGPS}
+              disabled={fetchingGPS}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {fetchingGPS ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Fetching GPS...
+                </span>
+              ) : (
+                'Fetch GPS Data'
+              )}
+            </button>
           )}
-        </button>
+
+          <button
+            onClick={handleAnalyze}
+            disabled={analyzing || fetchingGPS}
+            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {analyzing ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Analyzing...
+              </span>
+            ) : (
+              'Analyze Weather Impact'
+            )}
+          </button>
+        </div>
+
         {error && (
-          <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>
+          <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <p className="text-sm text-yellow-800 dark:text-yellow-300 font-medium mb-1">
+              {isGPSError ? 'GPS Data Required' : 'Analysis Error'}
+            </p>
+            <p className="text-sm text-yellow-700 dark:text-yellow-400">
+              {error}
+            </p>
+            {isGPSError && isStravaActivity && (
+              <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-2">
+                Click "Fetch GPS Data" above to download detailed GPS streams from Strava for this activity.
+              </p>
+            )}
+          </div>
         )}
       </div>
     );
