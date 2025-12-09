@@ -52,7 +52,7 @@ export async function backfillActivityStreams(
       .from('log_entries')
       .select('id, external_id, title')
       .eq('user_id', user.id)
-      .eq('source', 'strava')
+      .eq('data_source', 'strava')
       .not('external_id', 'is', null)
       .order('date', { ascending: false });
 
