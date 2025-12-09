@@ -51,6 +51,12 @@ const TOKEN_COST_PER_1K_OUTPUT = 0.0006;
 export async function generateHeatImpactInsights(
   request: LLMInsightRequest
 ): Promise<LLMInsightResponse> {
+  // If no API key configured, skip LLM call and use fallback
+  if (!OPENAI_API_KEY) {
+    console.log('[LLM Insights] No API key configured, using fallback insights');
+    return generateFallbackInsights(request);
+  }
+
   // Build structured prompt
   const prompt = buildPrompt(request);
 
