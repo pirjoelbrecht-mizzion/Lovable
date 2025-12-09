@@ -19,6 +19,7 @@ import { correlateEnvironmentWithStress } from './correlationEngine';
 import { calculateHeatImpactScore, generateRecommendations } from './impactScoring';
 import { generateHeatImpactInsights, cacheInsightsInDatabase } from '../../services/llmInsightService';
 import { supabase } from '../supabase';
+import { fetchActivityStreams, getMidpointCoordinate } from './streamHelpers';
 import type { LogEntry } from '../../types';
 
 export interface HeatImpactAnalysisResult {
@@ -52,14 +53,24 @@ export async function analyzeActivityHeatImpact(
       };
     }
 
-    // Extract location from polyline
-    const location = extractLocationFromPolyline(logEntry.polyline || '');
+    // Fetch activity streams from database (GPS, altitude, time, distance, HR, etc.)
+    const streams = await fetchActivityStreams(logEntry.id);
+
+    // Extract location - prioritize GPS streams over polyline
+    let location = getMidpointCoordinate(streams.latlng);
+    if (!location) {
+      // Fallback to polyline if no GPS streams
+      location = extractLocationFromPolyline(logEntry.polyline || '');
+    }
+
     if (!location) {
       return {
         success: false,
-        error: 'Unable to extract location from activity'
+        error: 'Unable to extract location from activity (no GPS data)'
       };
     }
+
+    console.log(`[Heat Impact] Using location: ${location.lat.toFixed(4)}, ${location.lon.toFixed(4)} ${streams.latlng ? '(from GPS streams)' : '(from polyline)'}`);
 
     // Fetch historical weather data
     const activityDate = new Date(logEntry.date);
@@ -74,9 +85,6 @@ export async function analyzeActivityHeatImpact(
     });
 
     console.log(`[Heat Impact] Fetched ${weatherData.length} hourly weather points`);
-
-    // Parse activity streams
-    const streams = parseActivityStreams(logEntry);
 
     // Generate point-by-point weather with elevation correction
     const hourlyWeatherWithTimestamp = weatherData.map(w => ({
@@ -208,67 +216,7 @@ function validateActivityData(logEntry: LogEntry): { valid: boolean; error?: str
   return { valid: true };
 }
 
-/**
- * Parses activity streams from log entry
- */
-function parseActivityStreams(logEntry: LogEntry): {
-  elevation: number[];
-  time: Date[];
-  distance: number[];
-  heartrate?: number[];
-  velocity?: number[];
-  cadence?: number[];
-  grade?: number[];
-} {
-  const baseTime = new Date(logEntry.date);
-
-  // Parse elevation data
-  const elevation = logEntry.elevation_data
-    ? JSON.parse(logEntry.elevation_data)
-    : generateSyntheticElevation(logEntry);
-
-  // Generate time stream (assuming constant sampling)
-  const totalSeconds = logEntry.moving_time || logEntry.elapsed_time || 3600;
-  const pointCount = elevation.length;
-  const time = Array.from({ length: pointCount }, (_, i) => {
-    const seconds = (i / pointCount) * totalSeconds;
-    return new Date(baseTime.getTime() + seconds * 1000);
-  });
-
-  // Generate distance stream
-  const totalDistance = logEntry.distance || 10000;
-  const distance = Array.from({ length: pointCount }, (_, i) => (i / pointCount) * totalDistance);
-
-  // Parse other streams if available
-  const heartrate = logEntry.heartrate_data ? JSON.parse(logEntry.heartrate_data) : undefined;
-  const velocity = logEntry.velocity_data ? JSON.parse(logEntry.velocity_data) : undefined;
-  const cadence = logEntry.cadence_data ? JSON.parse(logEntry.cadence_data) : undefined;
-  const grade = logEntry.grade_data ? JSON.parse(logEntry.grade_data) : undefined;
-
-  return {
-    elevation,
-    time,
-    distance,
-    heartrate,
-    velocity,
-    cadence,
-    grade
-  };
-}
-
-/**
- * Generates synthetic elevation if not available
- */
-function generateSyntheticElevation(logEntry: LogEntry): number[] {
-  const elevationGain = logEntry.elevation_gain || 100;
-  const pointCount = 200;
-  const baseElevation = 500;
-
-  return Array.from({ length: pointCount }, (_, i) => {
-    const progress = i / pointCount;
-    return baseElevation + elevationGain * Math.sin(progress * Math.PI * 2);
-  });
-}
+// Stream fetching now handled by streamHelpers.ts
 
 /**
  * Saves adjusted weather data to database

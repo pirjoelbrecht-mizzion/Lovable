@@ -463,17 +463,20 @@ export class StravaRichDataService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      console.log(`Fetching streams for activity ${activityId}`);
+      console.log(`Fetching GPS and sensor streams for activity ${activityId}`);
 
-      // Request all available streams from Strava
+      // Request all available streams from Strava including GPS (latlng)
       const streamTypes = [
-        'time',
-        'distance',
-        'altitude',
-        'grade_smooth',
-        'velocity_smooth',
-        'heartrate',
-        'cadence'
+        'latlng',       // GPS coordinates [lat, lng]
+        'time',         // Time in seconds
+        'distance',     // Distance in meters
+        'altitude',     // Elevation in meters
+        'grade_smooth', // Grade percentage
+        'velocity_smooth', // Speed m/s
+        'heartrate',    // Heart rate bpm
+        'cadence',      // Cadence rpm
+        'temp',         // Temperature celsius
+        'watts'         // Power watts
       ];
 
       const streamsResponse = await fetch(
@@ -494,60 +497,45 @@ export class StravaRichDataService {
 
       const streams = await streamsResponse.json();
 
-      // Extract individual stream arrays
-      const timeSeries = streams.time?.data || null;
-      const distanceSeries = streams.distance?.data || null;
-      const altitudeSeries = streams.altitude?.data || null;
-      const gradeSeries = streams.grade_smooth?.data || null;
-      const velocitySeries = streams.velocity_smooth?.data || null;
-      const heartrateSeries = streams.heartrate?.data || null;
-      const cadenceSeries = streams.cadence?.data || null;
+      // Store each stream type as a separate row
+      const streamRecords = [];
+      let totalPoints = 0;
 
-      // Calculate data quality score
-      const availableStreams = [
-        timeSeries,
-        distanceSeries,
-        altitudeSeries,
-        gradeSeries,
-        velocitySeries,
-        heartrateSeries,
-        cadenceSeries
-      ].filter(s => s !== null).length;
+      for (const streamType of streamTypes) {
+        const streamData = streams[streamType]?.data;
+        if (streamData && Array.isArray(streamData) && streamData.length > 0) {
+          streamRecords.push({
+            log_entry_id: logEntryId,
+            user_id: user.id,
+            stream_type: streamType,
+            data: streamData,
+            original_size: streamData.length,
+            resolution: 'high'
+          });
 
-      const dataQuality = availableStreams / streamTypes.length;
+          if (totalPoints === 0) {
+            totalPoints = streamData.length;
+          }
+        }
+      }
 
-      // Determine stream length
-      const streamLength = timeSeries?.length || distanceSeries?.length || 0;
-
-      if (streamLength === 0) {
+      if (streamRecords.length === 0) {
         console.log(`No stream data available for activity ${activityId}`);
         return;
       }
 
-      // Store streams in database
+      // Store all streams in database
       const { error } = await supabase
         .from('activity_streams')
-        .upsert({
-          user_id: user.id,
-          log_entry_id: logEntryId,
-          time_series: timeSeries,
-          distance_series: distanceSeries,
-          altitude_series: altitudeSeries,
-          grade_series: gradeSeries,
-          velocity_series: velocitySeries,
-          heartrate_series: heartrateSeries,
-          cadence_series: cadenceSeries,
-          stream_length: streamLength,
-          data_quality: dataQuality,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'log_entry_id'
+        .upsert(streamRecords, {
+          onConflict: 'log_entry_id,stream_type'
         });
 
       if (error) {
-        console.error('Error storing streams:', error);
+        console.error('Error storing activity streams:', error);
       } else {
-        console.log(`Stored ${streamLength} stream points for activity ${activityId} (quality: ${(dataQuality * 100).toFixed(0)}%)`);
+        console.log(`✓ Stored ${streamRecords.length} stream types with ${totalPoints} data points for activity ${activityId}`);
+        console.log(`  Available streams: ${streamRecords.map(s => s.stream_type).join(', ')}`);
       }
     } catch (error) {
       console.error('Error in fetchAndStoreActivityStreams:', error);
@@ -556,20 +544,56 @@ export class StravaRichDataService {
 
   /**
    * Get activity streams from database
+   * Returns all streams for an activity organized by type
    */
-  async getActivityStreams(logEntryId: string): Promise<any | null> {
+  async getActivityStreams(logEntryId: string): Promise<Record<string, any[]> | null> {
     const { data, error } = await supabase
       .from('activity_streams')
-      .select('*')
-      .eq('log_entry_id', logEntryId)
-      .maybeSingle();
+      .select('stream_type, data')
+      .eq('log_entry_id', logEntryId);
 
     if (error) {
       console.error('Error fetching streams:', error);
       return null;
     }
 
-    return data;
+    if (!data || data.length === 0) {
+      return null;
+    }
+
+    // Convert array of streams into object keyed by stream type
+    const streams: Record<string, any[]> = {};
+    for (const stream of data) {
+      streams[stream.stream_type] = stream.data;
+    }
+
+    return streams;
+  }
+
+  /**
+   * Get a specific stream type for an activity
+   */
+  async getActivityStream(logEntryId: string, streamType: string): Promise<any[] | null> {
+    const { data, error } = await supabase
+      .from('activity_streams')
+      .select('data')
+      .eq('log_entry_id', logEntryId)
+      .eq('stream_type', streamType)
+      .maybeSingle();
+
+    if (error) {
+      console.error(`Error fetching ${streamType} stream:`, error);
+      return null;
+    }
+
+    return data?.data || null;
+  }
+
+  /**
+   * Get GPS coordinates for an activity
+   */
+  async getActivityGPS(logEntryId: string): Promise<Array<[number, number]> | null> {
+    return this.getActivityStream(logEntryId, 'latlng') as Promise<Array<[number, number]> | null>;
   }
 }
 
