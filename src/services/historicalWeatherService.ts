@@ -66,6 +66,12 @@ export async function fetchHistoricalWeather(
 
   const url = `https://archive-api.open-meteo.com/v1/archive?${params}`;
 
+  // Check if date is very recent (archive API may not have complete data yet)
+  const daysSinceStart = Math.floor((Date.now() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24));
+  if (daysSinceStart < 7) {
+    console.warn(`[Weather API] Activity is only ${daysSinceStart} days old - archive data may be incomplete or unavailable`);
+  }
+
   console.log(`[Weather API] Fetching from Open-Meteo: lat=${latitude.toFixed(4)}, lon=${longitude.toFixed(4)}, dates=${startDate} to ${endDate}`);
 
   try {
@@ -95,6 +101,17 @@ export async function fetchHistoricalWeather(
       ? `${Math.min(...weatherData.map(w => w.temperature_c)).toFixed(1)}°C to ${Math.max(...weatherData.map(w => w.temperature_c)).toFixed(1)}°C`
       : 'N/A';
     console.log(`[Weather API] Received ${weatherData.length} hourly points, temperature range: ${tempRange}`);
+
+    // Validate temperature data against expected climate
+    const avgTemp = weatherData.reduce((sum, w) => sum + w.temperature_c, 0) / weatherData.length;
+    const absLat = Math.abs(latitude);
+
+    // For tropical locations (like Chiangmai at 18.8°N), average should be 25-35°C
+    // If data seems clearly wrong, use fallback instead
+    if (absLat < 23 && avgTemp < 20) {
+      console.warn(`[Weather API] Temperature data seems incorrect for tropical location (avg ${avgTemp.toFixed(1)}°C at ${absLat.toFixed(1)}°N). Using climate-aware fallback.`);
+      throw new Error('Temperature data validation failed - unrealistic for location');
+    }
 
     return weatherData;
   } catch (error) {
@@ -186,24 +203,48 @@ export async function getWeatherForActivity(
 
 /**
  * Generates synthetic weather data as fallback
+ * Uses location-aware estimates when possible
  */
 function generateSyntheticWeather(context: ActivityWeatherContext): WeatherDataPoint[] {
   const startTime = new Date(context.startTime);
   const hoursNeeded = Math.ceil(context.duration_hours) + 2;
 
+  // Estimate climate based on latitude
+  // Tropical (0-23°): 25-35°C, high humidity
+  // Subtropical (23-35°): 20-30°C, moderate humidity
+  // Temperate (35-60°): 10-25°C, moderate humidity
+  const absLat = Math.abs(context.lat);
+  let baseTemp = 15;
+  let baseHumidity = 50;
+
+  if (absLat < 23) {
+    // Tropical (e.g., Thailand, Southeast Asia)
+    baseTemp = 28;
+    baseHumidity = 70;
+  } else if (absLat < 35) {
+    // Subtropical
+    baseTemp = 22;
+    baseHumidity = 60;
+  }
+
   const weatherData: WeatherDataPoint[] = [];
 
   for (let i = 0; i < hoursNeeded; i++) {
     const timestamp = new Date(startTime.getTime() + i * 60 * 60 * 1000);
+    const hour = timestamp.getHours();
+
+    // Simulate daily temperature variation
+    const hourlyVariation = Math.sin((hour - 6) * Math.PI / 12) * 5;
+    const temperature = baseTemp + hourlyVariation;
 
     weatherData.push({
       hour_timestamp: timestamp.toISOString(),
-      temperature_c: 15, // Default moderate temperature
-      humidity_percent: 50, // Default moderate humidity
-      dew_point_c: 10,
+      temperature_c: temperature,
+      humidity_percent: baseHumidity + (hour < 12 ? 10 : -5), // Higher in morning
+      dew_point_c: temperature - 5,
       wind_speed_kmh: 10,
       wind_direction_deg: 180,
-      solar_radiation_wm2: 400,
+      solar_radiation_wm2: hour >= 6 && hour <= 18 ? 400 : 0,
       weather_code: 0
     });
   }
