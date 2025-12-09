@@ -128,7 +128,7 @@ function generateFallbackStreams(logEntry: any): ActivityStreams {
  * Generates synthetic elevation if not available
  */
 function generateSyntheticElevation(logEntry: any): number[] {
-  const elevationGain = logEntry.elevation_gain || 100;
+  const elevationGain = logEntry.elevationGain || logEntry.elevation_gain || 100;
   const pointCount = 200;
   const baseElevation = 500;
 

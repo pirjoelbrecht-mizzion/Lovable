@@ -60,7 +60,7 @@ export async function analyzeActivityHeatImpact(
     let location = getMidpointCoordinate(streams.latlng);
     if (!location) {
       // Fallback to polyline if no GPS streams
-      location = extractLocationFromPolyline(logEntry.map_polyline || logEntry.map_summary_polyline || '');
+      location = extractLocationFromPolyline(logEntry.mapPolyline || logEntry.mapSummaryPolyline || '');
     }
 
     if (!location) {
@@ -73,8 +73,8 @@ export async function analyzeActivityHeatImpact(
     console.log(`[Heat Impact] Using location: ${location.lat.toFixed(4)}, ${location.lon.toFixed(4)} ${streams.latlng ? '(from GPS streams)' : '(from polyline)'}`);
 
     // Fetch historical weather data
-    const activityDate = new Date(logEntry.date);
-    const durationHours = (logEntry.moving_time || logEntry.elapsed_time || 0) / 3600;
+    const activityDate = new Date(logEntry.dateISO);
+    const durationHours = (logEntry.durationMin || 0) / 60;
 
     const weatherData = await getWeatherForActivity(userId, logEntry.id, {
       lat: location.lat,
@@ -140,7 +140,7 @@ export async function analyzeActivityHeatImpact(
     console.log(`[Heat Impact] Correlation strength: ${(correlation.correlation_strength * 100).toFixed(0)}%`);
 
     // Calculate heat impact score
-    const durationMinutes = (logEntry.moving_time || logEntry.elapsed_time || 0) / 60;
+    const durationMinutes = logEntry.durationMin || 0;
     const heatImpactScore = calculateHeatImpactScore(
       physiologicalStress,
       timeInZone,
@@ -201,15 +201,15 @@ export async function analyzeActivityHeatImpact(
  * Validates activity has required data for analysis
  */
 function validateActivityData(logEntry: LogEntry): { valid: boolean; error?: string } {
-  if (!logEntry.map_polyline && !logEntry.map_summary_polyline) {
+  if (!logEntry.mapPolyline && !logEntry.mapSummaryPolyline) {
     return { valid: false, error: 'Activity missing GPS data' };
   }
 
-  if (!logEntry.elevation_gain && !logEntry.elevation_data) {
+  if (!logEntry.elevationGain && !logEntry.elevationStream) {
     return { valid: false, error: 'Activity missing elevation data' };
   }
 
-  if ((logEntry.moving_time || 0) < 600) {
+  if ((logEntry.durationMin || 0) < 10) {
     return { valid: false, error: 'Activity too short for meaningful analysis' };
   }
 
