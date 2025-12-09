@@ -45,6 +45,7 @@ export function WeatherImpactCard({ logEntry, userId }: WeatherImpactCardProps) 
     setError(null);
 
     try {
+      // Get metrics
       const { data: metricsData, error: metricsError } = await supabase
         .from('race_heat_stress_metrics')
         .select('*')
@@ -54,6 +55,19 @@ export function WeatherImpactCard({ logEntry, userId }: WeatherImpactCardProps) 
       if (metricsError) throw metricsError;
 
       if (metricsData) {
+        // Get first weather data point to show location
+        const { data: weatherPoint } = await supabase
+          .from('race_weather_raw')
+          .select('hour_timestamp')
+          .eq('log_entry_id', logEntry.id)
+          .order('hour_timestamp')
+          .limit(1)
+          .maybeSingle();
+
+        if (weatherPoint) {
+          console.log('[Weather] Using weather data from:', weatherPoint.hour_timestamp);
+        }
+
         setMetrics(metricsData);
 
         const { data: insightsData, error: insightsError } = await supabase

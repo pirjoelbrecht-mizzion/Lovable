@@ -66,6 +66,8 @@ export async function fetchHistoricalWeather(
 
   const url = `https://archive-api.open-meteo.com/v1/archive?${params}`;
 
+  console.log(`[Weather API] Fetching from Open-Meteo: lat=${latitude.toFixed(4)}, lon=${longitude.toFixed(4)}, dates=${startDate} to ${endDate}`);
+
   try {
     const response = await fetch(url);
     if (!response.ok) {
@@ -88,6 +90,11 @@ export async function fetchHistoricalWeather(
       solar_radiation_wm2: data.hourly.shortwave_radiation[i] ?? 0,
       weather_code: data.hourly.weather_code[i] ?? 0
     }));
+
+    const tempRange = weatherData.length > 0
+      ? `${Math.min(...weatherData.map(w => w.temperature_c)).toFixed(1)}°C to ${Math.max(...weatherData.map(w => w.temperature_c)).toFixed(1)}°C`
+      : 'N/A';
+    console.log(`[Weather API] Received ${weatherData.length} hourly points, temperature range: ${tempRange}`);
 
     return weatherData;
   } catch (error) {
