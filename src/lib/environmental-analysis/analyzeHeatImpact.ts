@@ -227,6 +227,12 @@ async function saveAdjustedWeather(
   adjustedWeather: any[],
   distanceStream: number[]
 ): Promise<void> {
+  // Delete existing data first
+  await supabase
+    .from('race_weather_adjusted')
+    .delete()
+    .eq('log_entry_id', logEntryId);
+
   const rows = adjustedWeather.map((weather, i) => ({
     user_id: userId,
     log_entry_id: logEntryId,
@@ -240,12 +246,19 @@ async function saveAdjustedWeather(
     feels_like_c: weather.feels_like_c
   }));
 
-  const { error } = await supabase.from('race_weather_adjusted').insert(rows);
+  // Batch insert in chunks of 1000 to avoid payload limits
+  const BATCH_SIZE = 1000;
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const batch = rows.slice(i, i + BATCH_SIZE);
+    const { error } = await supabase.from('race_weather_adjusted').insert(batch);
 
-  if (error) {
-    console.error('Failed to save adjusted weather:', error);
-    throw error;
+    if (error) {
+      console.error(`Failed to save weather batch ${i / BATCH_SIZE + 1}:`, error);
+      throw error;
+    }
   }
+
+  console.log(`[Heat Impact] Saved ${rows.length} weather points in ${Math.ceil(rows.length / BATCH_SIZE)} batches`);
 }
 
 /**
