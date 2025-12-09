@@ -1042,6 +1042,57 @@ export default function SettingsV2() {
               </button>
             </div>
 
+            <div style={{
+              padding: 20,
+              background: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
+              borderRadius: 12,
+              border: "1px solid rgba(14, 165, 233, 0.3)"
+            }}>
+              <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "#fff" }}>
+                📍 Fetch GPS Streams from Strava
+              </h3>
+              <p className="small" style={{ color: "rgba(255,255,255,0.9)", marginBottom: 16, lineHeight: 1.6 }}>
+                Download detailed GPS data for all your Strava activities. Required for heat impact analysis, elevation profiles, and route recommendations.
+              </p>
+              <button
+                className="btn"
+                disabled={busy}
+                onClick={async () => {
+                  if (!confirm('This will fetch GPS streams for all your Strava activities. This may take several minutes. Continue?')) {
+                    return;
+                  }
+                  setBusy(true);
+                  try {
+                    const { backfillActivityStreams } = await import('@/utils/backfillActivityStreams');
+                    let completed = 0;
+                    let totalActivities = 0;
+
+                    const result = await backfillActivityStreams((current, total, activityName) => {
+                      totalActivities = total;
+                      completed = current;
+                      toast(`Fetching GPS: ${current}/${total} - ${activityName}`, 'info');
+                    });
+
+                    const message = `GPS Backfill Complete!\n✓ Fetched: ${result.fetched}\n↷ Skipped: ${result.skipped}\n✗ Failed: ${result.failed}`;
+                    toast(message, result.failed > 0 ? 'warning' : 'success');
+                  } catch (err: any) {
+                    console.error('GPS backfill error:', err);
+                    toast(err.message || 'Failed to fetch GPS streams', 'error');
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                style={{
+                  background: "white",
+                  color: "#0284c7",
+                  fontWeight: 600,
+                  border: "none"
+                }}
+              >
+                {busy ? "Fetching GPS..." : "Fetch GPS for All Activities"}
+              </button>
+            </div>
+
             <div>
               <h3 className="h2" style={{ marginBottom: 12 }}>Environmental Learning</h3>
               <p className="small" style={{ color: 'var(--muted)', marginBottom: 16 }}>
