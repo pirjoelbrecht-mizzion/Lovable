@@ -13,9 +13,10 @@ import { ActivityBestEfforts } from '@/components/activity/ActivityBestEfforts';
 import { ActivityGear } from '@/components/activity/ActivityGear';
 import { ActivityTerrainBreakdown } from '@/components/activity/ActivityTerrainBreakdown';
 import { ActivityPerformanceInsights } from '@/components/activity/ActivityPerformanceInsights';
+import { WeatherImpactCard } from '@/components/activity/WeatherImpactCard';
 import RouteMap from '@/components/RouteMap';
 import { stravaRichDataService } from '@/services/stravaRichDataService';
-import { supabase } from '@/lib/supabase';
+import { supabase, getCurrentUserId } from '@/lib/supabase';
 import { analyzeTerrainFromStreams, analyzePerformance } from '@/engine/trailAnalysis';
 
 export default function ActivityDetail() {
@@ -27,6 +28,7 @@ export default function ActivityDetail() {
   const [segments, setSegments] = useState<ActivitySegment[]>([]);
   const [bestEfforts, setBestEfforts] = useState<ActivityBestEffort[]>([]);
   const [gear, setGear] = useState<AthleteGear | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,6 +42,10 @@ export default function ActivityDetail() {
 
     try {
       setLoading(true);
+
+      // Get current user ID
+      const currentUserId = await getCurrentUserId();
+      setUserId(currentUserId);
 
       // Fetch activity from database
       const { data, error } = await supabase
@@ -407,6 +413,9 @@ export default function ActivityDetail() {
           </div>
         </div>
       )}
+
+      {/* Heat Impact Analysis */}
+      {userId && activity && <WeatherImpactCard logEntry={activity} userId={userId} />}
 
       {/* Elevation Profile - Enhanced for Trail */}
       {activity.elevationGain && activity.elevationLoss && (
