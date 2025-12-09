@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { Thermometer, Droplets, Flame, Clock } from 'lucide-react';
 import { analyzeActivityHeatImpact } from '../../lib/environmental-analysis/analyzeHeatImpact';
 import { supabase } from '../../lib/supabase';
 import { backfillSingleActivity } from '../../utils/backfillActivityStreams';
+import { HeatImpactHeader } from './HeatImpact/HeatImpactHeader';
+import { HeatMetricCard } from './HeatImpact/HeatMetricCard';
+import { HeatTimelineChart } from './HeatImpact/HeatTimelineChart';
+import { HeatEventAlert } from './HeatImpact/HeatEventAlert';
+import { HeatRecommendationCard } from './HeatImpact/HeatRecommendationCard';
 import type { LogEntry } from '../../types';
 
 interface HeatMetrics {
@@ -12,15 +18,24 @@ interface HeatMetrics {
   max_temperature_c: number;
   avg_humidity_percent: number;
   max_humidity_percent: number;
+  avg_heat_index_c: number;
   time_in_danger_zone_minutes: number;
   hr_drift_detected: boolean;
   pace_degradation_detected: boolean;
+  heat_stress_timeline?: Array<{ km: number; heatStress: number }>;
 }
 
 interface AIInsights {
   summary: string;
-  key_events: Array<{ km: number; description: string; severity: string }>;
+  key_events: Array<{ km: number; description: string; severity: string; icon?: string }>;
   recommendations: string[];
+  recommendation_categories?: {
+    hydration?: string[];
+    pacing?: string[];
+    cooling?: string[];
+    clothing?: string[];
+    acclimation?: string[];
+  };
 }
 
 interface WeatherImpactCardProps {
@@ -82,7 +97,8 @@ export function WeatherImpactCard({ logEntry, userId }: WeatherImpactCardProps) 
           setInsights({
             summary: insightsData.summary,
             key_events: insightsData.key_events || [],
-            recommendations: insightsData.recommendations || []
+            recommendations: insightsData.recommendations || [],
+            recommendation_categories: insightsData.recommendation_categories || undefined
           });
         }
       }
@@ -222,143 +238,150 @@ export function WeatherImpactCard({ logEntry, userId }: WeatherImpactCardProps) 
     );
   }
 
-  const severityColor = {
-    LOW: 'text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30',
-    MODERATE: 'text-yellow-700 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30',
-    HIGH: 'text-orange-700 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30',
-    EXTREME: 'text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30'
-  }[metrics.overall_severity] || 'text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-gray-900/30';
+  const severity = (metrics.overall_severity as 'LOW' | 'MODERATE' | 'HIGH' | 'EXTREME') || 'MODERATE';
+  const timeline = metrics.heat_stress_timeline || [];
+
+  // Map event icons
+  const keyEventsWithIcons = insights?.key_events.map(event => ({
+    ...event,
+    severity: (event.severity.toUpperCase() as 'LOW' | 'MODERATE' | 'HIGH'),
+    icon: event.icon || 'warning'
+  })) || [];
+
+  // Extract categorized recommendations or fall back to flat list
+  const recommendationCategories = insights?.recommendation_categories || {};
+  const hasCategories = Object.keys(recommendationCategories).length > 0;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Heat & Humidity Impact
-        </h3>
-        <span className={`px-3 py-1 rounded-full text-sm font-medium ${severityColor}`}>
-          {metrics.overall_severity}
-        </span>
+    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 md:p-6 space-y-6">
+      {/* Header with Gradient */}
+      <HeatImpactHeader score={metrics.heat_impact_score} severity={severity} />
+
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <HeatMetricCard
+          icon={<Thermometer className="w-5 h-5" />}
+          label="Avg Temperature"
+          value={Math.round(metrics.avg_temperature_c)}
+          unit="°C"
+          severity={severity}
+        />
+        <HeatMetricCard
+          icon={<Droplets className="w-5 h-5" />}
+          label="Avg Humidity"
+          value={Math.round(metrics.avg_humidity_percent)}
+          unit="%"
+          severity={severity}
+        />
+        <HeatMetricCard
+          icon={<Flame className="w-5 h-5" />}
+          label="Heat Index"
+          value={Math.round(metrics.avg_heat_index_c || metrics.avg_temperature_c)}
+          unit="°C"
+          severity={severity}
+        />
+        <HeatMetricCard
+          icon={<Clock className="w-5 h-5" />}
+          label="Danger Zone"
+          value={Math.round(metrics.time_in_danger_zone_minutes)}
+          unit="min"
+          severity={severity}
+        />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
-          <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">
-            {metrics.heat_impact_score}
-          </div>
-          <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Heat Impact Score
-          </div>
+      {/* Heat Stress Timeline Chart */}
+      {timeline.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-6">
+          <h4 className="font-semibold text-gray-900 dark:text-white mb-4">
+            Heat Stress Over Distance
+          </h4>
+          <HeatTimelineChart data={timeline} keyEvents={keyEventsWithIcons} />
         </div>
-
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-          <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-            {Math.round(metrics.avg_temperature_c)}°C
-          </div>
-          <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Avg Temperature
-          </div>
-        </div>
-
-        <div className="bg-cyan-50 dark:bg-cyan-900/20 p-4 rounded-lg">
-          <div className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">
-            {Math.round(metrics.avg_humidity_percent)}%
-          </div>
-          <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Avg Humidity
-          </div>
-        </div>
-
-        <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
-          <div className="text-3xl font-bold text-red-600 dark:text-red-400">
-            {Math.round(metrics.time_in_danger_zone_minutes)}
-          </div>
-          <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Min in Danger Zone
-          </div>
-        </div>
-      </div>
-
-      {insights && (
-        <>
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-            <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
-              AI Analysis
-            </h4>
-            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-              {insights.summary}
-            </p>
-          </div>
-
-          {insights.key_events.length > 0 && (
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
-                Key Events
-              </h4>
-              <div className="space-y-3">
-                {insights.key_events.map((event, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-16 text-sm font-medium text-gray-600 dark:text-gray-400">
-                      {event.km.toFixed(1)} km
-                    </span>
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-700 dark:text-gray-300">
-                        {event.description}
-                      </p>
-                    </div>
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      event.severity === 'high'
-                        ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                        : event.severity === 'moderate'
-                        ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
-                        : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                    }`}>
-                      {event.severity}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {insights.recommendations.length > 0 && (
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
-                Recommendations
-              </h4>
-              <ul className="space-y-2">
-                {insights.recommendations.map((rec, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                      {rec}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </>
       )}
 
-      {(metrics.hr_drift_detected || metrics.pace_degradation_detected) && (
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+      {/* AI Analysis Summary */}
+      {insights && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-6">
           <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
-            Physiological Stress Detected
+            Analysis Summary
           </h4>
-          <div className="flex flex-wrap gap-2">
-            {metrics.hr_drift_detected && (
-              <span className="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full text-sm">
-                Heart Rate Drift
-              </span>
+          <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+            {insights.summary}
+          </p>
+        </div>
+      )}
+
+      {/* Key Events with Alert Cards */}
+      {keyEventsWithIcons.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-6">
+          <h4 className="font-semibold text-gray-900 dark:text-white mb-4">
+            Key Events
+          </h4>
+          <div className="space-y-3">
+            {keyEventsWithIcons.map((event, index) => (
+              <HeatEventAlert key={index} event={event} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Categorized Recommendations */}
+      {hasCategories && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-6">
+          <h4 className="font-semibold text-gray-900 dark:text-white mb-4">
+            Personalized Recommendations
+          </h4>
+          <div className="grid gap-4 md:grid-cols-2">
+            {recommendationCategories.hydration && recommendationCategories.hydration.length > 0 && (
+              <HeatRecommendationCard
+                category="hydration"
+                recommendations={recommendationCategories.hydration}
+                severity={severity}
+              />
             )}
-            {metrics.pace_degradation_detected && (
-              <span className="px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-full text-sm">
-                Pace Degradation
-              </span>
+            {recommendationCategories.pacing && recommendationCategories.pacing.length > 0 && (
+              <HeatRecommendationCard
+                category="pacing"
+                recommendations={recommendationCategories.pacing}
+                severity={severity}
+              />
+            )}
+            {recommendationCategories.cooling && recommendationCategories.cooling.length > 0 && (
+              <HeatRecommendationCard
+                category="cooling"
+                recommendations={recommendationCategories.cooling}
+                severity={severity}
+              />
+            )}
+            {recommendationCategories.clothing && recommendationCategories.clothing.length > 0 && (
+              <HeatRecommendationCard
+                category="clothing"
+                recommendations={recommendationCategories.clothing}
+                severity={severity}
+              />
+            )}
+            {recommendationCategories.acclimation && recommendationCategories.acclimation.length > 0 && (
+              <HeatRecommendationCard
+                category="acclimation"
+                recommendations={recommendationCategories.acclimation}
+                severity={severity}
+              />
             )}
           </div>
+        </div>
+      )}
+
+      {/* Fallback to flat recommendations if no categories */}
+      {!hasCategories && insights && insights.recommendations.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-6">
+          <h4 className="font-semibold text-gray-900 dark:text-white mb-4">
+            Recommendations
+          </h4>
+          <HeatRecommendationCard
+            category="hydration"
+            recommendations={insights.recommendations}
+            severity={severity}
+          />
         </div>
       )}
     </div>

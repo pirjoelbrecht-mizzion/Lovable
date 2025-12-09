@@ -18,6 +18,8 @@ import { analyzePhysiologicalStress } from './stressDetection';
 import { correlateEnvironmentWithStress } from './correlationEngine';
 import { calculateHeatImpactScore, generateRecommendations } from './impactScoring';
 import { generateHeatImpactInsights, cacheInsightsInDatabase } from '../../services/llmInsightService';
+import { generateHeatStressTimeline } from './heatStressTimeline';
+import { generatePersonalizedRecommendations } from './personalizedRecommendations';
 import { supabase } from '../supabase';
 import { fetchActivityStreams, getMidpointCoordinate } from './streamHelpers';
 import type { LogEntry } from '../../types';
@@ -151,6 +153,24 @@ export async function analyzeActivityHeatImpact(
 
     console.log(`[Heat Impact] Overall score: ${heatImpactScore.overall_score}/100 (${heatImpactScore.severity})`);
 
+    // Generate heat stress timeline for visualization
+    const heatStressTimeline = generateHeatStressTimeline(adjustedWeather, streams.distance);
+    console.log(`[Heat Impact] Generated timeline with ${heatStressTimeline.length} points`);
+
+    // Generate personalized recommendations based on athlete profile
+    const personalizedRecs = await generatePersonalizedRecommendations(
+      userId,
+      {
+        ...envStats,
+        overall_severity: heatImpactScore.severity,
+        avg_humidity_percent: envStats.avg_humidity_percent,
+        max_heat_index_c: envStats.max_heat_index_c,
+        max_temperature_c: envStats.max_temperature_c
+      },
+      physiologicalStress
+    );
+    console.log(`[Heat Impact] Generated personalized recommendations using ${personalizedRecs.personalizationFactors.length} factors`);
+
     // Save metrics to database
     await saveHeatStressMetrics(userId, logEntry.id, {
       envStats,
@@ -159,10 +179,12 @@ export async function analyzeActivityHeatImpact(
       coolingBenefit,
       peakHeatPeriod,
       physiologicalStress,
-      heatImpactScore
+      heatImpactScore,
+      heatStressTimeline,
+      personalizationFactors: personalizedRecs.personalizationFactors
     });
 
-    // Generate LLM insights
+    // Generate LLM insights (combine with personalized recommendations)
     const insights = await generateHeatImpactInsights({
       activity_name: logEntry.name || 'Untitled Activity',
       distance_km: (logEntry.distance || 0) / 1000,
@@ -170,7 +192,8 @@ export async function analyzeActivityHeatImpact(
       weatherStream: adjustedWeather,
       physiologicalStress,
       correlation,
-      heatImpactScore
+      heatImpactScore,
+      personalizedRecommendations: personalizedRecs
     });
 
     console.log('[Heat Impact] Generated LLM insights');
@@ -272,7 +295,9 @@ async function saveHeatStressMetrics(userId: string, logEntryId: string, data: a
     coolingBenefit,
     peakHeatPeriod,
     physiologicalStress,
-    heatImpactScore
+    heatImpactScore,
+    heatStressTimeline,
+    personalizationFactors
   } = data;
 
   const metrics = {
@@ -314,6 +339,12 @@ async function saveHeatStressMetrics(userId: string, logEntryId: string, data: a
     time_in_extreme_danger_minutes: timeInZone.extreme_danger_minutes,
     peak_heat_period_start_km: peakHeatPeriod?.start_km,
     peak_heat_period_end_km: peakHeatPeriod?.end_km,
+
+    // Heat Stress Timeline for Chart
+    heat_stress_timeline: heatStressTimeline,
+
+    // Personalization Factors
+    personalization_factors_used: { factors: personalizationFactors || [] },
 
     // Analysis Metadata
     analysis_confidence: 0.8,

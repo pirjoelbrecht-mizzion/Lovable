@@ -17,6 +17,7 @@ export interface LLMInsightRequest {
   physiologicalStress: PhysiologicalStress;
   correlation: EnvironmentalCorrelation;
   heatImpactScore: HeatImpactScore;
+  personalizedRecommendations?: any;
   athleteContext?: {
     heat_tolerance_level?: string;
     recent_heat_exposure?: string;
@@ -30,8 +31,16 @@ export interface LLMInsightResponse {
     km: number;
     description: string;
     severity: 'low' | 'moderate' | 'high';
+    icon?: string;
   }>;
   recommendations: string[];
+  recommendation_categories?: {
+    hydration?: string[];
+    pacing?: string[];
+    cooling?: string[];
+    clothing?: string[];
+    acclimation?: string[];
+  };
   llm_metadata: {
     model: string;
     tokens_used: number;
@@ -102,10 +111,23 @@ export async function generateHeatImpactInsights(
       (inputTokens / 1000) * TOKEN_COST_PER_1K_INPUT +
       (outputTokens / 1000) * TOKEN_COST_PER_1K_OUTPUT;
 
+    // Extract categorized recommendations if available from personalized recs
+    const recommendationCategories = request.personalizedRecommendations ? {
+      hydration: request.personalizedRecommendations.hydration || [],
+      pacing: request.personalizedRecommendations.pacing || [],
+      cooling: request.personalizedRecommendations.cooling || [],
+      clothing: request.personalizedRecommendations.clothing || [],
+      acclimation: request.personalizedRecommendations.acclimation || []
+    } : undefined;
+
     return {
       summary: parsed.summary || '',
-      key_events: parsed.key_events || [],
+      key_events: (parsed.key_events || []).map((event: any) => ({
+        ...event,
+        icon: mapEventToIcon(event.description)
+      })),
       recommendations: parsed.recommendations || [],
+      recommendation_categories: recommendationCategories,
       llm_metadata: {
         model: MODEL,
         tokens_used: tokensUsed,
@@ -274,7 +296,8 @@ function generateFallbackInsights(request: LLMInsightRequest): LLMInsightRespons
     key_events.push({
       km: physiologicalStress.hr_drift.start_km,
       description: `HR drift of ${physiologicalStress.hr_drift.magnitude_bpm.toFixed(0)} bpm detected`,
-      severity: physiologicalStress.hr_drift.magnitude_bpm > 15 ? 'high' : 'moderate'
+      severity: physiologicalStress.hr_drift.magnitude_bpm > 15 ? 'high' : 'moderate',
+      icon: 'heart'
     });
   }
 
@@ -282,7 +305,8 @@ function generateFallbackInsights(request: LLMInsightRequest): LLMInsightRespons
     key_events.push({
       km: physiologicalStress.pace_degradation.start_km,
       description: `Pace slowed by ${physiologicalStress.pace_degradation.degradation_percent.toFixed(0)}%`,
-      severity: physiologicalStress.pace_degradation.degradation_percent > 20 ? 'high' : 'moderate'
+      severity: physiologicalStress.pace_degradation.degradation_percent > 20 ? 'high' : 'moderate',
+      icon: 'pace'
     });
   }
 
@@ -318,12 +342,17 @@ export async function cacheInsightsInDatabase(
 ): Promise<void> {
   const { supabase } = await import('../lib/supabase');
 
+  // Extract event icons for storage
+  const eventIcons = insights.key_events.map(e => e.icon || 'warning');
+
   const { error } = await supabase.from('race_heat_ai_insights').upsert({
     user_id: userId,
     log_entry_id: logEntryId,
     summary: insights.summary,
     key_events: insights.key_events,
     recommendations: insights.recommendations,
+    recommendation_categories: insights.recommendation_categories || {},
+    event_icon_types: eventIcons,
     llm_model: insights.llm_metadata.model,
     llm_tokens_used: insights.llm_metadata.tokens_used,
     llm_cost_usd: insights.llm_metadata.cost_usd,
@@ -334,4 +363,25 @@ export async function cacheInsightsInDatabase(
     console.error('Failed to cache insights:', error);
     throw error;
   }
+}
+
+/**
+ * Maps event descriptions to icon types
+ */
+function mapEventToIcon(description: string): string {
+  const lowerDesc = description.toLowerCase();
+
+  if (lowerDesc.includes('hr') || lowerDesc.includes('heart rate') || lowerDesc.includes('drift')) {
+    return 'heart';
+  }
+  if (lowerDesc.includes('pace') || lowerDesc.includes('slow')) {
+    return 'pace';
+  }
+  if (lowerDesc.includes('humidity') || lowerDesc.includes('humid')) {
+    return 'droplet';
+  }
+  if (lowerDesc.includes('heat') || lowerDesc.includes('temperature') || lowerDesc.includes('hot')) {
+    return 'flame';
+  }
+  return 'warning';
 }
