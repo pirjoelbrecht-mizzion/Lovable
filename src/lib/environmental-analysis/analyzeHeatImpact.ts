@@ -60,7 +60,7 @@ export async function analyzeActivityHeatImpact(
     let location = getMidpointCoordinate(streams.latlng);
     if (!location) {
       // Fallback to polyline if no GPS streams
-      location = extractLocationFromPolyline(logEntry.polyline || '');
+      location = extractLocationFromPolyline(logEntry.map_polyline || logEntry.map_summary_polyline || '');
     }
 
     if (!location) {
@@ -201,7 +201,7 @@ export async function analyzeActivityHeatImpact(
  * Validates activity has required data for analysis
  */
 function validateActivityData(logEntry: LogEntry): { valid: boolean; error?: string } {
-  if (!logEntry.polyline) {
+  if (!logEntry.map_polyline && !logEntry.map_summary_polyline) {
     return { valid: false, error: 'Activity missing GPS data' };
   }
 
