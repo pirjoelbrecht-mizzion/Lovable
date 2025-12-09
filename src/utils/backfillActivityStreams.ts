@@ -35,16 +35,16 @@ export async function backfillActivityStreams(
       throw new Error('User not authenticated');
     }
 
-    // Get Strava access token
+    // Get Strava access token from wearable_connections
     const { data: credentials } = await supabase
-      .from('oauth_credentials')
+      .from('wearable_connections')
       .select('access_token, refresh_token')
       .eq('user_id', user.id)
       .eq('provider', 'strava')
       .maybeSingle();
 
     if (!credentials?.access_token) {
-      throw new Error('Strava not connected. Please connect Strava first.');
+      throw new Error('Strava not connected. Please connect Strava first in Settings → Devices.');
     }
 
     // Get all Strava activities that don't have streams yet
