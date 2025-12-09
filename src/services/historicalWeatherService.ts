@@ -115,7 +115,7 @@ export async function fetchHistoricalWeather(
 
     return weatherData;
   } catch (error) {
-    console.error('Failed to fetch historical weather:', error);
+    console.warn('[Weather API] Historical weather unavailable:', error instanceof Error ? error.message : error);
     throw error;
   }
 }
@@ -194,10 +194,18 @@ export async function getWeatherForActivity(
 
     return weatherData;
   } catch (error) {
-    console.error('Failed to get weather for activity:', error);
+    console.warn('Weather API unavailable, using climate-aware synthetic data:', error instanceof Error ? error.message : error);
 
     // Fallback to synthetic weather if API fails
-    return generateSyntheticWeather(context);
+    const syntheticData = generateSyntheticWeather(context);
+
+    console.log(`[Weather Fallback] Generated ${syntheticData.length} synthetic weather points`);
+    if (syntheticData.length > 0) {
+      const temps = syntheticData.map(d => d.temperature_c);
+      console.log(`[Weather Fallback] Temperature range: ${Math.min(...temps).toFixed(1)}°C to ${Math.max(...temps).toFixed(1)}°C`);
+    }
+
+    return syntheticData;
   }
 }
 
