@@ -1,10 +1,5 @@
 import React from 'react';
-import { Thermometer, Droplets, Wind, Clock } from 'lucide-react';
 import { CosmicBackground } from './CosmicBackground';
-import { CosmicHeatCore } from './CosmicHeatCore';
-import { NeonMetricNode } from './NeonMetricNode';
-import { HologramChart } from './HologramChart';
-import { EventIndicator } from './EventIndicator';
 
 interface HeatEvent {
   icon: 'hr_drift' | 'warning' | 'hydration' | 'pace_drop' | 'default';
@@ -36,10 +31,6 @@ export function WeatherImpactCardCosmic({
   showTimeline = true,
   className = '',
 }: WeatherImpactCardCosmicProps) {
-  const hasTimeline = showTimeline && data.timeline && data.timeline.length > 0;
-  const hasEvents = data.events && data.events.length > 0;
-
-  // Calculate level from severity
   const severityToLevel = {
     LOW: 1,
     MODERATE: 2,
@@ -48,124 +39,191 @@ export function WeatherImpactCardCosmic({
   };
   const level = severityToLevel[data.severity];
 
-  // Prepare timeline data for chart
-  const timelineData = hasTimeline
-    ? data.timeline!.map((point) => ({
-        time: `${point.distance.toFixed(1)}km`,
-        heatIndex: point.heatStress,
-      }))
-    : [];
+  const getFlameColor = (severity: string) => {
+    if (severity === 'LOW') return '#00d9ff';
+    if (severity === 'MODERATE') return '#ffa500';
+    if (severity === 'HIGH') return '#ff6b35';
+    return '#ff0000';
+  };
+
+  const flameColor = getFlameColor(data.severity);
+
+  const getEventIcon = (icon: string) => {
+    switch (icon) {
+      case 'hr_drift':
+        return '⚡';
+      case 'hydration':
+        return '⟳';
+      case 'warning':
+        return '△';
+      case 'pace_drop':
+        return '∿';
+      default:
+        return '○';
+    }
+  };
 
   return (
     <div className={`weather-impact-cosmic ${className}`}>
       <CosmicBackground intensity="medium" />
 
       <div className="cosmic-content">
-        <div className="cosmic-header">
-          <h2 className="cosmic-title">HEAT & HUMIDITY IMPACT</h2>
+        {/* Clean Header */}
+        <h2 className="page-header">HEAT & HUMIDITY IMPACT</h2>
+
+        {/* Hero Section: Flame + 4 Circles */}
+        <div className="hero-section">
+          {/* Top Left - Temperature */}
+          <div className="metric-circle top-left">
+            <div className="circle-inner">
+              <div className="circle-value">
+                {Math.round(data.avgTemperature)}<span className="unit">°C</span>
+              </div>
+            </div>
+            <div className="circle-label">Avg Temperature</div>
+          </div>
+
+          {/* Top Right - Humidity */}
+          <div className="metric-circle top-right">
+            <div className="circle-inner">
+              <div className="circle-value">
+                {Math.round(data.avgHumidity)}<span className="unit">%</span>
+              </div>
+            </div>
+            <div className="circle-label">Avg Humidity</div>
+          </div>
+
+          {/* Center Flame */}
+          <div className="flame-container">
+            <svg className="flame-svg" viewBox="0 0 200 260" width="200" height="260">
+              <defs>
+                <linearGradient id="flameGradient" x1="50%" y1="0%" x2="50%" y2="100%">
+                  <stop offset="0%" style={{ stopColor: '#FFD700', stopOpacity: 1 }} />
+                  <stop offset="40%" style={{ stopColor: flameColor, stopOpacity: 1 }} />
+                  <stop offset="100%" style={{ stopColor: '#FF4500', stopOpacity: 0.9 }} />
+                </linearGradient>
+                <filter id="flameGlow">
+                  <feGaussianBlur stdDeviation="10" result="coloredBlur" />
+                  <feMerge>
+                    <feMergeNode in="coloredBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              <path
+                d="M100,30 Q115,50 120,75 Q125,100 122,125 Q118,150 110,175 Q105,195 100,215 Q95,195 90,175 Q82,150 78,125 Q75,100 80,75 Q85,50 100,30 M100,60 Q90,80 92,110 Q95,135 100,160"
+                fill="url(#flameGradient)"
+                filter="url(#flameGlow)"
+              />
+            </svg>
+            <div className="level-text">
+              <div className="level-label">LEVEL</div>
+              <div className="level-number">{level}</div>
+            </div>
+          </div>
+
+          {/* Bottom Left - Heat Index */}
+          <div className="metric-circle bottom-left">
+            <div className="circle-inner">
+              <div className="circle-value">
+                {Math.round(data.heatIndex)}<span className="unit">°C</span>
+              </div>
+            </div>
+            <div className="circle-label">Heat Index</div>
+          </div>
+
+          {/* Bottom Right - Danger Zone */}
+          <div className="metric-circle bottom-right danger-zone">
+            <div className="circle-inner">
+              <div className="circle-value">
+                {data.dangerZoneMinutes !== undefined ? Math.round(data.dangerZoneMinutes) : 0}<span className="unit">min</span>
+              </div>
+            </div>
+            <div className="circle-label">Danger Zone</div>
+          </div>
+
+          {/* Connector Lines */}
+          <svg className="connector-lines" viewBox="0 0 800 500">
+            <line x1="140" y1="120" x2="340" y2="180" stroke={flameColor} strokeWidth="2" opacity="0.5" />
+            <line x1="660" y1="120" x2="460" y2="180" stroke={flameColor} strokeWidth="2" opacity="0.5" />
+            <line x1="140" y1="380" x2="340" y2="320" stroke={flameColor} strokeWidth="2" opacity="0.5" />
+            <line x1="660" y1="380" x2="460" y2="320" stroke={flameColor} strokeWidth="2" opacity="0.5" />
+          </svg>
         </div>
 
-        <div className="three-column-layout">
-          {/* LEFT COLUMN: Timeline + Events */}
-          <div className="left-column">
-            {hasTimeline && (
-              <div className="timeline-container">
-                <HologramChart
-                  data={timelineData}
-                  dataKey="heatIndex"
-                  xAxisKey="time"
-                  title=""
-                  color="var(--neon-orange)"
-                  height={220}
+        {/* Chart Section */}
+        {showTimeline && data.timeline && data.timeline.length > 0 && (
+          <div className="chart-section">
+            <svg className="heat-chart" viewBox="0 0 800 200" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="chartGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" style={{ stopColor: flameColor, stopOpacity: 0.3 }} />
+                  <stop offset="100%" style={{ stopColor: flameColor, stopOpacity: 0.8 }} />
+                </linearGradient>
+              </defs>
+              {/* Grid */}
+              {[0, 1, 2, 3, 4].map((i) => (
+                <line
+                  key={`grid-h-${i}`}
+                  x1="0"
+                  y1={40 * i}
+                  x2="800"
+                  y2={40 * i}
+                  stroke="rgba(255,140,0,0.1)"
+                  strokeWidth="1"
                 />
-              </div>
-            )}
+              ))}
+              {/* Chart Line */}
+              <path
+                d="M0,160 L100,150 L200,135 L300,110 L400,85 L500,65 L600,50 L700,40 L800,35"
+                stroke={flameColor}
+                strokeWidth="3"
+                fill="none"
+                opacity="0.9"
+              />
+              <path
+                d="M0,160 L100,150 L200,135 L300,110 L400,85 L500,65 L600,50 L700,40 L800,35 L800,200 L0,200 Z"
+                fill="url(#chartGradient)"
+                opacity="0.2"
+              />
+            </svg>
+          </div>
+        )}
 
-            {hasEvents && (
-              <div className="events-list">
-                {(data.events || []).map((event, idx) => (
-                  <EventIndicator
-                    key={idx}
-                    icon={event.icon}
-                    distance={event.distance_km}
-                    description={event.description}
-                    severity={event.severity}
-                  />
-                ))}
+        {/* Bottom Section: Events + Recommendations */}
+        <div className="bottom-layout">
+          {/* Left: Key Events */}
+          <div className="events-column">
+            {data.events && data.events.length > 0 && data.events.slice(0, 4).map((event, idx) => (
+              <div key={idx} className="event-row">
+                <div className="event-icon-circle">{getEventIcon(event.icon)}</div>
+                <div className="event-details">
+                  <div className="event-description">{event.description}</div>
+                  <div className="event-distance">{event.distance_km.toFixed(1)} km</div>
+                </div>
               </div>
-            )}
+            ))}
           </div>
 
-          {/* CENTER COLUMN: Flame Core + Metrics */}
-          <div className="center-column">
-            <div className="metrics-top-row">
-              <NeonMetricNode
-                icon={<Thermometer size={20} />}
-                label="Avg Temperature"
-                value={Math.round(data.avgTemperature)}
-                unit="°C"
-                color="blue"
-                severity={data.avgTemperature > 30 ? 'HIGH' : data.avgTemperature > 25 ? 'MODERATE' : 'LOW'}
-              />
-              <div className="spacer"></div>
-              <NeonMetricNode
-                icon={<Droplets size={20} />}
-                label="Avg Humidity"
-                value={Math.round(data.avgHumidity)}
-                unit="%"
-                color="cyan"
-                severity={data.avgHumidity > 70 ? 'HIGH' : data.avgHumidity > 50 ? 'MODERATE' : 'LOW'}
-              />
-            </div>
-
-            <div className="core-section">
-              <CosmicHeatCore
-                severity={data.severity}
-                score={data.overallScore}
-                level={level}
-                showLevel={true}
-              />
-            </div>
-
-            <div className="metrics-bottom-row">
-              <NeonMetricNode
-                icon={<Wind size={20} />}
-                label="Heat Index"
-                value={Math.round(data.heatIndex)}
-                unit="°C"
-                color="blue"
-                severity={data.severity}
-              />
-              <div className="spacer"></div>
-              {data.dangerZoneMinutes !== undefined && (
-                <NeonMetricNode
-                  icon={<Clock size={20} />}
-                  label="Danger Zone"
-                  value={Math.round(data.dangerZoneMinutes)}
-                  unit="min"
-                  color="orange"
-                  severity={data.dangerZoneMinutes > 10 ? 'HIGH' : data.dangerZoneMinutes > 5 ? 'MODERATE' : 'LOW'}
-                />
-              )}
-            </div>
-          </div>
-
-          {/* RIGHT COLUMN: Recommendations */}
-          <div className="right-column">
-            <div className="recommendations-panel">
-              <div className="panel-header">
-                <Droplets size={20} />
-                <h3 className="panel-title">Recommendations</h3>
+          {/* Right: Recommendations */}
+          <div className="recommendations-panel">
+            <div className="rec-header">
+              <div className="rec-icon-circle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00d9ff" strokeWidth="2">
+                  <path d="M12,2 Q14,5 14,9 Q14,13 12,16 M12,16 L12,20" />
+                  <circle cx="12" cy="21" r="1" fill="#00d9ff" />
+                </svg>
               </div>
-              <ul className="recommendations-list">
-                {(Array.isArray(data.recommendations) ? data.recommendations : []).slice(0, 4).map((rec, idx) => (
-                  <li key={idx} className="recommendation-item">
-                    <span className="rec-bullet"></span>
-                    <span className="rec-text">{rec}</span>
-                  </li>
-                ))}
-              </ul>
+              <h3 className="rec-title">Recommendations</h3>
             </div>
+            <ul className="rec-list">
+              {data.recommendations.slice(0, 3).map((rec, idx) => (
+                <li key={idx} className="rec-item">
+                  <span className="rec-bullet"></span>
+                  {rec}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </div>
@@ -173,7 +231,7 @@ export function WeatherImpactCardCosmic({
       <style>{`
         .weather-impact-cosmic {
           position: relative;
-          min-height: 600px;
+          min-height: 700px;
           padding: 40px;
           border-radius: 24px;
           overflow: hidden;
@@ -185,240 +243,340 @@ export function WeatherImpactCardCosmic({
           z-index: 1;
         }
 
-        .cosmic-header {
+        /* Header - Clean, No Effects */
+        .page-header {
           text-align: center;
-          margin-bottom: 48px;
-        }
-
-        .cosmic-title {
           font-size: 36px;
           font-weight: 900;
           color: #ffffff;
           text-transform: uppercase;
           letter-spacing: 3px;
-          margin: 0;
-          text-shadow:
-            0 0 20px rgba(255, 255, 255, 0.5),
-            0 0 40px rgba(255, 255, 255, 0.3);
+          margin: 0 0 24px 0;
         }
 
-        .three-column-layout {
-          display: grid;
-          grid-template-columns: 300px 1fr 320px;
-          gap: 40px;
-          align-items: start;
+        /* Hero Section */
+        .hero-section {
+          position: relative;
+          width: 100%;
+          max-width: 800px;
+          height: 500px;
+          margin: 0 auto 40px auto;
         }
 
-        /* LEFT COLUMN */
-        .left-column {
+        /* Metric Circles */
+        .metric-circle {
+          position: absolute;
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          align-items: center;
+          gap: 8px;
         }
 
-        .timeline-container {
-          background: rgba(10, 20, 40, 0.6);
+        .metric-circle.top-left {
+          top: 80px;
+          left: 60px;
+        }
+
+        .metric-circle.top-right {
+          top: 80px;
+          right: 60px;
+        }
+
+        .metric-circle.bottom-left {
+          bottom: 80px;
+          left: 60px;
+        }
+
+        .metric-circle.bottom-right {
+          bottom: 80px;
+          right: 60px;
+        }
+
+        .circle-inner {
+          width: 100px;
+          height: 100px;
+          border-radius: 50%;
+          border: 2px solid #00d9ff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(0, 20, 40, 0.6);
+          box-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+        }
+
+        .metric-circle.danger-zone .circle-inner {
+          border-color: #ffa500;
+          box-shadow: 0 0 20px rgba(255, 165, 0, 0.5);
+        }
+
+        .circle-value {
+          font-size: 28px;
+          font-weight: 700;
+          color: #FFD700;
+        }
+
+        .circle-value .unit {
+          font-size: 16px;
+          font-weight: 400;
+        }
+
+        .circle-label {
+          font-size: 14px;
+          color: #FFD700;
+          text-align: center;
+          max-width: 120px;
+        }
+
+        /* Flame Container */
+        .flame-container {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .flame-svg {
+          display: block;
+        }
+
+        .level-text {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          text-align: center;
+          margin-top: 20px;
+        }
+
+        .level-label {
+          font-size: 16px;
+          font-weight: 700;
+          color: #FFD700;
+          letter-spacing: 2px;
+        }
+
+        .level-number {
+          font-size: 48px;
+          font-weight: 900;
+          color: #FFD700;
+          line-height: 1;
+        }
+
+        /* Connector Lines */
+        .connector-lines {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+        }
+
+        /* Chart Section */
+        .chart-section {
+          width: 100%;
+          max-width: 800px;
+          height: 200px;
+          margin: 0 auto 40px auto;
+          background: rgba(10, 20, 40, 0.5);
           border: 1px solid rgba(255, 140, 0, 0.3);
           border-radius: 12px;
-          padding: 16px;
-          backdrop-filter: blur(10px);
+          padding: 20px;
         }
 
-        .events-list {
+        .heat-chart {
+          width: 100%;
+          height: 100%;
+        }
+
+        /* Bottom Layout */
+        .bottom-layout {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 40px;
+          max-width: 800px;
+          margin: 0 auto;
+        }
+
+        /* Events Column */
+        .events-column {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .event-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .event-icon-circle {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          border: 2px solid #ffa500;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(255, 140, 0, 0.1);
+          font-size: 20px;
+          flex-shrink: 0;
+        }
+
+        .event-details {
           display: flex;
           flex-direction: column;
           gap: 4px;
         }
 
-        /* CENTER COLUMN */
-        .center-column {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 32px;
-          padding: 0 20px;
+        .event-description {
+          font-size: 14px;
+          color: #ffffff;
         }
 
-        .metrics-top-row,
-        .metrics-bottom-row {
-          display: flex;
-          align-items: center;
-          gap: 80px;
-          width: 100%;
-          justify-content: center;
+        .event-distance {
+          font-size: 12px;
+          color: #999999;
         }
 
-        .spacer {
-          width: 60px;
-        }
-
-        .core-section {
-          margin: 0;
-        }
-
-        /* RIGHT COLUMN */
-        .right-column {
-          display: flex;
-          flex-direction: column;
-        }
-
+        /* Recommendations Panel */
         .recommendations-panel {
           background: rgba(0, 20, 40, 0.7);
-          border: 2px solid rgba(0, 247, 255, 0.6);
+          border: 2px solid rgba(0, 217, 255, 0.6);
           border-radius: 16px;
           padding: 24px;
           backdrop-filter: blur(10px);
-          box-shadow:
-            0 0 20px rgba(0, 247, 255, 0.3),
-            inset 0 0 20px rgba(0, 247, 255, 0.1);
+          box-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
         }
 
-        .panel-header {
+        .rec-header {
           display: flex;
           align-items: center;
           gap: 12px;
-          margin-bottom: 20px;
-          color: var(--neon-cyan);
+          margin-bottom: 16px;
         }
 
-        .panel-title {
+        .rec-icon-circle {
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .rec-title {
           font-size: 18px;
           font-weight: 700;
-          color: var(--neon-cyan);
+          color: #ffffff;
           margin: 0;
-          text-shadow: 0 0 10px var(--neon-cyan-glow);
         }
 
-        .recommendations-list {
+        .rec-list {
           list-style: none;
           padding: 0;
           margin: 0;
           display: flex;
           flex-direction: column;
-          gap: 14px;
+          gap: 12px;
         }
 
-        .recommendation-item {
+        .rec-item {
           display: flex;
           align-items: flex-start;
           gap: 12px;
+          font-size: 14px;
+          line-height: 1.6;
+          color: #cccccc;
         }
 
         .rec-bullet {
           width: 6px;
           height: 6px;
           border-radius: 50%;
-          background: var(--neon-cyan);
+          background: #00d9ff;
           flex-shrink: 0;
           margin-top: 8px;
-          box-shadow: 0 0 8px var(--neon-cyan);
+          box-shadow: 0 0 8px #00d9ff;
         }
 
-        .rec-text {
-          font-size: 14px;
-          line-height: 1.6;
-          color: var(--text);
-        }
-
-        /* RESPONSIVE DESIGN */
-        @media (max-width: 1200px) {
-          .three-column-layout {
-            grid-template-columns: 1fr;
-            gap: 32px;
-          }
-
-          .left-column,
-          .right-column {
+        /* Responsive */
+        @media (max-width: 1000px) {
+          .hero-section {
             max-width: 600px;
-            margin: 0 auto;
-            width: 100%;
+            height: 400px;
           }
 
-          .center-column {
-            max-width: 700px;
-            margin: 0 auto;
-            width: 100%;
+          .circle-inner {
+            width: 80px;
+            height: 80px;
           }
 
-          .metrics-top-row,
-          .metrics-bottom-row {
-            gap: 60px;
+          .circle-value {
+            font-size: 22px;
           }
 
-          .spacer {
-            width: 40px;
+          .flame-svg {
+            width: 160px;
+            height: 208px;
           }
         }
 
         @media (max-width: 768px) {
           .weather-impact-cosmic {
             padding: 24px;
-            min-height: auto;
           }
 
-          .cosmic-header {
-            margin-bottom: 32px;
-          }
-
-          .cosmic-title {
+          .page-header {
             font-size: 24px;
-            letter-spacing: 2px;
           }
 
-          .three-column-layout {
+          .hero-section {
+            height: 350px;
+          }
+
+          .bottom-layout {
+            grid-template-columns: 1fr;
             gap: 24px;
-          }
-
-          .center-column {
-            gap: 24px;
-            padding: 0;
-          }
-
-          .metrics-top-row,
-          .metrics-bottom-row {
-            gap: 40px;
-          }
-
-          .spacer {
-            width: 20px;
-          }
-
-          .recommendations-panel {
-            padding: 20px;
-          }
-
-          .panel-title {
-            font-size: 16px;
-          }
-
-          .rec-text {
-            font-size: 13px;
           }
         }
 
         @media (max-width: 480px) {
-          .weather-impact-cosmic {
-            padding: 16px;
+          .metric-circle.top-left {
+            top: 40px;
+            left: 20px;
           }
 
-          .cosmic-title {
-            font-size: 20px;
-            letter-spacing: 1.5px;
+          .metric-circle.top-right {
+            top: 40px;
+            right: 20px;
           }
 
-          .metrics-top-row,
-          .metrics-bottom-row {
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
+          .metric-circle.bottom-left {
+            bottom: 40px;
+            left: 20px;
           }
 
-          .spacer {
-            display: none;
+          .metric-circle.bottom-right {
+            bottom: 40px;
+            right: 20px;
           }
 
-          .recommendations-panel {
-            padding: 16px;
+          .circle-inner {
+            width: 70px;
+            height: 70px;
+          }
+
+          .circle-value {
+            font-size: 18px;
+          }
+
+          .circle-label {
+            font-size: 12px;
           }
         }
       `}</style>
