@@ -253,9 +253,9 @@ export function WeatherImpactCard({ logEntry, userId }: WeatherImpactCardProps) 
   if (recommendationCategories.clothing) flattenedRecommendations.push(...recommendationCategories.clothing);
 
   // If no categorized recommendations, use flat list
-  const recommendations = flattenedRecommendations.length > 0
+  const recommendationsArray = flattenedRecommendations.length > 0
     ? flattenedRecommendations
-    : insights?.recommendations || [];
+    : (Array.isArray(insights?.recommendations) ? insights.recommendations : []);
 
   // Map key events to proper structure with icon types
   const events = (insights?.key_events || []).map(event => {
@@ -293,7 +293,7 @@ export function WeatherImpactCard({ logEntry, userId }: WeatherImpactCardProps) 
       hr: undefined
     })),
     events: events,
-    recommendations: recommendations
+    recommendations: recommendationsArray
   };
 
   return (

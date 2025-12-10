@@ -83,7 +83,7 @@ export function WeatherImpactCardCosmic({
 
             {hasEvents && (
               <div className="events-list">
-                {data.events!.map((event, idx) => (
+                {(data.events || []).map((event, idx) => (
                   <EventIndicator
                     key={idx}
                     icon={event.icon}
@@ -158,7 +158,7 @@ export function WeatherImpactCardCosmic({
                 <h3 className="panel-title">Recommendations</h3>
               </div>
               <ul className="recommendations-list">
-                {data.recommendations.slice(0, 4).map((rec, idx) => (
+                {(Array.isArray(data.recommendations) ? data.recommendations : []).slice(0, 4).map((rec, idx) => (
                   <li key={idx} className="recommendation-item">
                     <span className="rec-bullet"></span>
                     <span className="rec-text">{rec}</span>
