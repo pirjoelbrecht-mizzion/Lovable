@@ -46,356 +46,230 @@ export function WeatherImpactCardCosmic({
   };
 
   return (
-    <div className={`cosmic-heat-impact ${className}`}>
-      {/* Sci-fi Grid Background */}
-      <div className="cosmic-perspective-grid"></div>
+    <div className={`cosmic-heat-impact-exact ${className}`}>
+      <div className="cosmic-background-grid"></div>
 
-      <div className="cosmic-content-wrapper">
-        {/* Title Header */}
-        <div className="impact-header">
-          <h1 className="impact-title">HEAT & HUMIDITY IMPACT</h1>
-          <p className="impact-subtitle">{severityLabel[data.severity]} • Level {level}</p>
+      <div className="heat-content-container">
+        <div className="header-section">
+          <h1 className="main-title">HEAT & HUMIDITY IMPACT</h1>
+          <p className="subtitle-text">{severityLabel[data.severity]} • Level {level}</p>
         </div>
 
-        {/* Diamond Layout: Metrics + Central Flame */}
-        <div className="diamond-metrics-section">
-          <svg className="diagonal-connectors-svg" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid meet">
+        <div className="metrics-flame-container">
+          <svg className="connector-overlay" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet">
             <defs>
-              <filter id="neonConnectorGlow">
-                <feGaussianBlur stdDeviation="5" result="blurEffect"/>
+              <filter id="connectorGlow">
+                <feGaussianBlur stdDeviation="4" result="glow"/>
                 <feMerge>
-                  <feMergeNode in="blurEffect"/>
-                  <feMergeNode in="blurEffect"/>
+                  <feMergeNode in="glow"/>
+                  <feMergeNode in="glow"/>
                   <feMergeNode in="SourceGraphic"/>
                 </feMerge>
               </filter>
             </defs>
 
-            {/* Diagonal connector: Top-Left Temperature to Center Flame */}
-            <line
-              x1="200" y1="160"
-              x2="520" y2="340"
-              stroke="#00E5FF"
-              strokeWidth="3.5"
-              opacity="0.85"
-              filter="url(#neonConnectorGlow)"
-            />
-
-            {/* Diagonal connector: Top-Right Humidity to Center Flame */}
-            <line
-              x1="1000" y1="160"
-              x2="680" y2="340"
-              stroke="#00E5FF"
-              strokeWidth="3.5"
-              opacity="0.85"
-              filter="url(#neonConnectorGlow)"
-            />
-
-            {/* Diagonal connector: Bottom-Left Heat Index to Center Flame */}
-            <line
-              x1="200" y1="540"
-              x2="520" y2="360"
-              stroke="#FF8C00"
-              strokeWidth="3.5"
-              opacity="0.85"
-              filter="url(#neonConnectorGlow)"
-            />
-
-            {/* Diagonal connector: Bottom-Right Danger Zone to Center Flame */}
-            <line
-              x1="1000" y1="540"
-              x2="680" y2="360"
-              stroke="#FF8C00"
-              strokeWidth="3.5"
-              opacity="0.85"
-              filter="url(#neonConnectorGlow)"
-            />
+            <line x1="160" y1="130" x2="440" y2="240" stroke="#00E5FF" strokeWidth="3" opacity="0.9" filter="url(#connectorGlow)" />
+            <line x1="840" y1="130" x2="560" y2="240" stroke="#00E5FF" strokeWidth="3" opacity="0.9" filter="url(#connectorGlow)" />
+            <line x1="160" y1="370" x2="440" y2="260" stroke="#FF8C00" strokeWidth="3" opacity="0.9" filter="url(#connectorGlow)" />
+            <line x1="840" y1="370" x2="560" y2="260" stroke="#FF8C00" strokeWidth="3" opacity="0.9" filter="url(#connectorGlow)" />
           </svg>
 
-          {/* Top-Left Metric: Average Temperature */}
-          <div className="metric-node position-top-left">
-            <div className="metric-circle-glow cyan-glow">
-              <div className="metric-value">{Math.round(data.avgTemperature)}</div>
-              <div className="metric-unit">°C</div>
+          <div className="metric-circle top-left-pos">
+            <div className="circle-outer cyan-circle">
+              <div className="circle-value">{Math.round(data.avgTemperature)}</div>
+              <div className="circle-unit">°C</div>
             </div>
-            <div className="metric-label">Avg Temperature</div>
+            <div className="circle-label">Avg Temperature</div>
           </div>
 
-          {/* Top-Right Metric: Average Humidity */}
-          <div className="metric-node position-top-right">
-            <div className="metric-circle-glow cyan-glow">
-              <div className="metric-value">{Math.round(data.avgHumidity)}</div>
-              <div className="metric-unit">%</div>
+          <div className="metric-circle top-right-pos">
+            <div className="circle-outer cyan-circle">
+              <div className="circle-value">{Math.round(data.avgHumidity)}</div>
+              <div className="circle-unit">%</div>
             </div>
-            <div className="metric-label">Avg Humidity</div>
+            <div className="circle-label">Avg Humidity</div>
           </div>
 
-          {/* Center: Large Tall Neon Flame */}
-          <div className="central-flame-container">
-            <svg className="tall-neon-flame" viewBox="0 0 320 520" width="320" height="520">
+          <div className="flame-center-pos">
+            <svg className="flame-svg" viewBox="0 0 240 400" width="240" height="400">
               <defs>
-                <filter id="massiveFlameGlow">
-                  <feGaussianBlur stdDeviation="24" result="hugeBlur"/>
+                <filter id="flameGlow">
+                  <feGaussianBlur stdDeviation="20" result="blur"/>
                   <feMerge>
-                    <feMergeNode in="hugeBlur"/>
-                    <feMergeNode in="hugeBlur"/>
-                    <feMergeNode in="hugeBlur"/>
+                    <feMergeNode in="blur"/>
+                    <feMergeNode in="blur"/>
+                    <feMergeNode in="blur"/>
                     <feMergeNode in="SourceGraphic"/>
                   </feMerge>
                 </filter>
-                <linearGradient id="flameOrangeGradient" x1="50%" y1="0%" x2="50%" y2="100%">
+                <linearGradient id="flameGrad" x1="50%" y1="0%" x2="50%" y2="100%">
                   <stop offset="0%" stopColor="#FFF176"/>
-                  <stop offset="20%" stopColor="#FFD54F"/>
-                  <stop offset="45%" stopColor="#FFB74D"/>
-                  <stop offset="70%" stopColor="#FF8A65"/>
+                  <stop offset="25%" stopColor="#FFD54F"/>
+                  <stop offset="50%" stopColor="#FFB74D"/>
+                  <stop offset="75%" stopColor="#FF8A65"/>
                   <stop offset="100%" stopColor="#FF5722"/>
                 </linearGradient>
               </defs>
 
-              {/* Main tall flame body - WIDE and TALL */}
               <path
-                d="M160,30
-                   C170,45 180,65 185,95
-                   Q195,140 198,190
-                   Q200,240 198,290
-                   Q195,340 188,385
-                   Q182,425 175,455
-                   Q170,475 160,495
-                   Q150,475 145,455
-                   Q138,425 132,385
-                   Q125,340 122,290
-                   Q120,240 122,190
-                   Q125,140 135,95
-                   C140,65 150,45 160,30 Z"
+                d="M120,20 C130,35 140,55 145,85 Q152,130 154,180 Q155,230 153,280 Q150,320 145,350 Q140,370 120,390 Q100,370 95,350 Q90,320 87,280 Q85,230 86,180 Q88,130 95,85 C100,55 110,35 120,20 Z"
                 fill="none"
-                stroke="url(#flameOrangeGradient)"
-                strokeWidth="8"
-                filter="url(#massiveFlameGlow)"
+                stroke="url(#flameGrad)"
+                strokeWidth="7"
+                filter="url(#flameGlow)"
               />
 
-              {/* Inner flame glow spine */}
               <path
-                d="M160,80 Q158,140 160,200 Q162,270 160,340 Q159,400 160,440"
+                d="M120,60 Q118,110 120,160 Q122,220 120,280 Q119,330 120,360"
                 fill="none"
                 stroke="#FFF176"
-                strokeWidth="5"
-                opacity="0.95"
-                filter="url(#massiveFlameGlow)"
-              />
-
-              {/* Flame tip accent */}
-              <path
-                d="M155,40 Q160,55 165,70"
-                fill="none"
-                stroke="#FFEB3B"
                 strokeWidth="4"
-                opacity="0.85"
+                opacity="0.95"
+                filter="url(#flameGlow)"
               />
 
-              {/* Side flame wisps */}
-              <path
-                d="M145,120 Q160,150 165,180"
-                fill="none"
-                stroke="#FFB300"
-                strokeWidth="3"
-                opacity="0.7"
-              />
-              <path
-                d="M175,120 Q160,150 155,180"
-                fill="none"
-                stroke="#FFB300"
-                strokeWidth="3"
-                opacity="0.7"
-              />
+              <path d="M115,30 Q120,45 125,60" fill="none" stroke="#FFEB3B" strokeWidth="3" opacity="0.9"/>
+              <path d="M105,100 Q120,130 125,160" fill="none" stroke="#FFB300" strokeWidth="2.5" opacity="0.7"/>
+              <path d="M135,100 Q120,130 115,160" fill="none" stroke="#FFB300" strokeWidth="2.5" opacity="0.7"/>
             </svg>
 
-            {/* LEVEL badge INSIDE the flame */}
-            <div className="flame-level-badge">
-              <div className="badge-level-text">LEVEL</div>
-              <div className="badge-level-number">{level}</div>
+            <div className="flame-badge">
+              <div className="badge-word">LEVEL</div>
+              <div className="badge-num">{level}</div>
             </div>
           </div>
 
-          {/* Bottom-Left Metric: Heat Index */}
-          <div className="metric-node position-bottom-left">
-            <div className="metric-circle-glow orange-glow">
-              <div className="metric-value">{Math.round(data.heatIndex)}</div>
-              <div className="metric-unit">°C</div>
+          <div className="metric-circle bottom-left-pos">
+            <div className="circle-outer orange-circle">
+              <div className="circle-value">{Math.round(data.heatIndex)}</div>
+              <div className="circle-unit">°C</div>
             </div>
-            <div className="metric-label">Heat Index</div>
+            <div className="circle-label">Heat Index</div>
           </div>
 
-          {/* Bottom-Right Metric: Danger Zone */}
-          <div className="metric-node position-bottom-right">
-            <div className="metric-circle-glow orange-glow">
-              <div className="metric-value">{data.dangerZoneMinutes !== undefined ? Math.round(data.dangerZoneMinutes) : 0}</div>
-              <div className="metric-unit">min</div>
+          <div className="metric-circle bottom-right-pos">
+            <div className="circle-outer orange-circle">
+              <div className="circle-value">{data.dangerZoneMinutes !== undefined ? Math.round(data.dangerZoneMinutes) : 0}</div>
+              <div className="circle-unit">min</div>
             </div>
-            <div className="metric-label">Danger Zone</div>
+            <div className="circle-label">Danger Zone</div>
           </div>
         </div>
 
-        {/* Heat Stress Chart - Directly Under Flame */}
-        <div className="heat-stress-chart-section">
-          {showTimeline && data.timeline && data.timeline.length > 0 && (
-            <div className="chart-container">
-              <svg className="neon-stress-curve" viewBox="0 0 800 300" preserveAspectRatio="none">
+        {showTimeline && data.timeline && data.timeline.length > 0 && (
+          <div className="chart-section">
+            <svg className="stress-chart" viewBox="0 0 700 220" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="chartFill" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#FF8C00" stopOpacity="0.45"/>
+                  <stop offset="100%" stopColor="#FF8C00" stopOpacity="0"/>
+                </linearGradient>
+                <filter id="chartGlow">
+                  <feGaussianBlur stdDeviation="5" result="chartBlur"/>
+                  <feMerge>
+                    <feMergeNode in="chartBlur"/>
+                    <feMergeNode in="chartBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+
+              {[0, 55, 110, 165, 220].map((y) => (
+                <line key={`hg-${y}`} x1="0" y1={y} x2="700" y2={y} stroke="rgba(255, 140, 0, 0.12)" strokeWidth="1"/>
+              ))}
+              {[0, 87.5, 175, 262.5, 350, 437.5, 525, 612.5, 700].map((x) => (
+                <line key={`vg-${x}`} x1={x} y1="0" x2={x} y2="220" stroke="rgba(255, 140, 0, 0.08)" strokeWidth="1"/>
+              ))}
+
+              <path
+                d="M0,200 Q70,190 140,170 Q210,145 280,115 Q350,90 420,70 Q490,55 560,45 Q630,38 700,32"
+                fill="none"
+                stroke="#FF8C00"
+                strokeWidth="4.5"
+                filter="url(#chartGlow)"
+              />
+
+              <path
+                d="M0,200 Q70,190 140,170 Q210,145 280,115 Q350,90 420,70 Q490,55 560,45 Q630,38 700,32 L700,220 L0,220 Z"
+                fill="url(#chartFill)"
+              />
+            </svg>
+          </div>
+        )}
+
+        <div className="bottom-section">
+          <div className="timeline-column">
+            <div className="timeline-line-container">
+              <svg width="4" height="100%" preserveAspectRatio="none">
                 <defs>
-                  <linearGradient id="chartAreaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#FF8C00" stopOpacity="0.5"/>
-                    <stop offset="100%" stopColor="#FF8C00" stopOpacity="0"/>
-                  </linearGradient>
-                  <filter id="chartLineGlow">
-                    <feGaussianBlur stdDeviation="6" result="glowBlur"/>
+                  <filter id="lineGlow">
+                    <feGaussianBlur stdDeviation="2.5" result="blur"/>
                     <feMerge>
-                      <feMergeNode in="glowBlur"/>
-                      <feMergeNode in="glowBlur"/>
+                      <feMergeNode in="blur"/>
                       <feMergeNode in="SourceGraphic"/>
                     </feMerge>
                   </filter>
                 </defs>
-
-                {/* Background grid - horizontal */}
-                {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-                  <line
-                    key={`h-${i}`}
-                    x1="0" y1={i * 50}
-                    x2="800" y2={i * 50}
-                    stroke="rgba(255, 140, 0, 0.15)"
-                    strokeWidth="1"
-                  />
-                ))}
-
-                {/* Background grid - vertical */}
-                {[0, 100, 200, 300, 400, 500, 600, 700, 800].map((x) => (
-                  <line
-                    key={`v-${x}`}
-                    x1={x} y1="0"
-                    x2={x} y2="300"
-                    stroke="rgba(255, 140, 0, 0.1)"
-                    strokeWidth="1"
-                  />
-                ))}
-
-                {/* Neon orange stress curve - smooth ascending */}
-                <path
-                  d="M0,260 Q80,250 150,230 Q230,205 310,175 Q390,140 480,110 Q570,85 660,65 Q730,50 800,40"
-                  fill="none"
-                  stroke="#FF8C00"
-                  strokeWidth="5"
-                  filter="url(#chartLineGlow)"
-                />
-
-                {/* Area fill under curve */}
-                <path
-                  d="M0,260 Q80,250 150,230 Q230,205 310,175 Q390,140 480,110 Q570,85 660,65 Q730,50 800,40 L800,300 L0,300 Z"
-                  fill="url(#chartAreaGrad)"
-                />
-              </svg>
-            </div>
-          )}
-        </div>
-
-        {/* Bottom Three-Column Layout */}
-        <div className="bottom-layout-grid">
-          {/* Left Column: Vertical Event Timeline */}
-          <div className="events-timeline-vertical">
-            <div className="vertical-neon-line">
-              <svg width="5" height="100%" preserveAspectRatio="none">
-                <defs>
-                  <filter id="verticalLineGlow">
-                    <feGaussianBlur stdDeviation="3" result="lineBlur"/>
-                    <feMerge>
-                      <feMergeNode in="lineBlur"/>
-                      <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                  </filter>
-                </defs>
-                <line
-                  x1="2.5" y1="0"
-                  x2="2.5" y2="100%"
-                  stroke="#FF8C00"
-                  strokeWidth="4"
-                  filter="url(#verticalLineGlow)"
-                />
+                <line x1="2" y1="0" x2="2" y2="100%" stroke="#FF8C00" strokeWidth="3.5" filter="url(#lineGlow)"/>
               </svg>
             </div>
 
-            <div className="timeline-events-list">
-              {data.events && data.events.slice(0, 4).map((event, idx) => (
-                <div key={idx} className="timeline-event-item">
-                  <div className="event-icon-circle">
-                    {event.icon === 'hr_drift' && <span className="icon-symbol">⚡</span>}
-                    {event.icon === 'hydration' && <span className="icon-symbol">⟳</span>}
-                    {event.icon === 'warning' && <span className="icon-symbol">△</span>}
-                    {event.icon === 'pace_drop' && <span className="icon-symbol">∿</span>}
-                    {event.icon === 'default' && <span className="icon-symbol">●</span>}
+            <div className="timeline-items">
+              {data.events && data.events.slice(0, 2).map((event, idx) => (
+                <div key={idx} className="timeline-item">
+                  <div className="event-circle">
+                    {event.icon === 'hr_drift' && <span className="event-symbol">⚡</span>}
+                    {event.icon === 'hydration' && <span className="event-symbol">⟳</span>}
+                    {event.icon === 'warning' && <span className="event-symbol">△</span>}
+                    {event.icon === 'pace_drop' && <span className="event-symbol">∿</span>}
+                    {!['hr_drift', 'hydration', 'warning', 'pace_drop'].includes(event.icon) && <span className="event-symbol">●</span>}
                   </div>
-                  <div className="event-text-content">
-                    <div className="event-description">{event.description}</div>
-                    <div className="event-distance">{event.distance_km.toFixed(1)} km</div>
+                  <div className="event-content">
+                    <div className="event-desc">{event.description}</div>
+                    <div className="event-dist">{event.distance_km.toFixed(1)} km</div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Middle Column: Empty/Spacer */}
-          <div className="middle-spacer"></div>
-
-          {/* Right Column: Recommendations Card */}
-          <div className="recommendations-section">
-            {/* Teal flame icon ABOVE card */}
-            <div className="teal-icon-above">
-              <svg className="teal-droplet-flame" viewBox="0 0 48 64" width="42" height="64">
+          <div className="recommendations-column">
+            <div className="rec-icon-top">
+              <svg className="teal-flame" viewBox="0 0 40 56" width="36" height="56">
                 <defs>
-                  <filter id="tealIconGlow">
-                    <feGaussianBlur stdDeviation="4" result="tealBlur"/>
+                  <filter id="tealGlow">
+                    <feGaussianBlur stdDeviation="3.5" result="tglow"/>
                     <feMerge>
-                      <feMergeNode in="tealBlur"/>
-                      <feMergeNode in="tealBlur"/>
+                      <feMergeNode in="tglow"/>
+                      <feMergeNode in="tglow"/>
                       <feMergeNode in="SourceGraphic"/>
                     </feMerge>
                   </filter>
                 </defs>
-                {/* Droplet/flame shape */}
                 <path
-                  d="M24,6 Q29,12 30,22 Q31,32 29,42 Q27,50 24,54 Q21,50 19,42 Q17,32 18,22 Q19,12 24,6 Z"
+                  d="M20,5 Q24,10 25,18 Q26,26 24,34 Q22,40 20,44 Q18,40 16,34 Q14,26 15,18 Q16,10 20,5 Z"
                   fill="none"
                   stroke="#00FFD4"
-                  strokeWidth="3.5"
-                  filter="url(#tealIconGlow)"
+                  strokeWidth="3"
+                  filter="url(#tealGlow)"
                 />
-                {/* Bottom droplet */}
-                <circle
-                  cx="24" cy="59" r="3"
-                  fill="#00FFD4"
-                  filter="url(#tealIconGlow)"
-                />
+                <circle cx="20" cy="50" r="2.5" fill="#00FFD4" filter="url(#tealGlow)"/>
               </svg>
             </div>
 
-            {/* Connector line from icon to card */}
-            <div className="teal-connector-line">
-              <svg width="4" height="50" preserveAspectRatio="none">
-                <line
-                  x1="2" y1="0"
-                  x2="2" y2="50"
-                  stroke="#00FFD4"
-                  strokeWidth="2.5"
-                  opacity="0.7"
-                />
+            <div className="rec-connector">
+              <svg width="3" height="40" preserveAspectRatio="none">
+                <line x1="1.5" y1="0" x2="1.5" y2="40" stroke="#00FFD4" strokeWidth="2" opacity="0.65"/>
               </svg>
             </div>
 
-            {/* Recommendations card with teal glow border */}
-            <div className="recommendations-card">
-              <h3 className="card-title">Recommendations</h3>
-              <ul className="recommendations-list">
+            <div className="rec-card">
+              <h3 className="rec-title">Recommendations</h3>
+              <ul className="rec-list">
                 {data.recommendations.slice(0, 3).map((rec, idx) => (
-                  <li key={idx} className="rec-item">
-                    <span className="teal-bullet"></span>
-                    <span className="rec-text">{rec}</span>
+                  <li key={idx} className="rec-entry">
+                    <span className="rec-bullet"></span>
+                    <span className="rec-content">{rec}</span>
                   </li>
                 ))}
               </ul>
@@ -405,72 +279,66 @@ export function WeatherImpactCardCosmic({
       </div>
 
       <style>{`
-        .cosmic-heat-impact {
+        .cosmic-heat-impact-exact {
           position: relative;
-          min-height: 1100px;
-          padding: 60px 80px;
+          min-height: 900px;
+          padding: 40px 60px;
           background: linear-gradient(180deg, #0a0a1e 0%, #050510 100%);
           overflow: hidden;
         }
 
-        /* Sci-fi perspective grid background */
-        .cosmic-perspective-grid {
+        .cosmic-background-grid {
           position: absolute;
           bottom: 0;
           left: 0;
           right: 0;
-          height: 60%;
+          height: 50%;
           background-image:
-            linear-gradient(rgba(0, 229, 255, 0.18) 2px, transparent 2px),
-            linear-gradient(90deg, rgba(0, 229, 255, 0.18) 2px, transparent 2px);
-          background-size: 55px 55px;
-          transform: perspective(700px) rotateX(65deg);
+            linear-gradient(rgba(0, 229, 255, 0.16) 2px, transparent 2px),
+            linear-gradient(90deg, rgba(0, 229, 255, 0.16) 2px, transparent 2px);
+          background-size: 50px 50px;
+          transform: perspective(650px) rotateX(62deg);
           transform-origin: center bottom;
-          opacity: 0.45;
+          opacity: 0.5;
           pointer-events: none;
         }
 
-        .cosmic-content-wrapper {
+        .heat-content-container {
           position: relative;
           z-index: 10;
         }
 
-        /* Header */
-        .impact-header {
+        .header-section {
           text-align: center;
-          margin-bottom: 65px;
+          margin-bottom: 45px;
         }
 
-        .impact-title {
-          font-size: 56px;
+        .main-title {
+          font-size: 48px;
           font-weight: 900;
           color: #ffffff;
           text-transform: uppercase;
-          letter-spacing: 9px;
-          margin: 0 0 14px 0;
-          text-shadow:
-            0 0 50px rgba(255, 255, 255, 0.7),
-            0 0 90px rgba(255, 255, 255, 0.4);
+          letter-spacing: 8px;
+          margin: 0 0 10px 0;
+          text-shadow: 0 0 40px rgba(255, 255, 255, 0.6), 0 0 70px rgba(255, 255, 255, 0.35);
         }
 
-        .impact-subtitle {
-          font-size: 19px;
-          color: rgba(255, 255, 255, 0.85);
+        .subtitle-text {
+          font-size: 17px;
+          color: rgba(255, 255, 255, 0.82);
           margin: 0;
-          letter-spacing: 3px;
+          letter-spacing: 2.5px;
         }
 
-        /* Diamond Metrics Section */
-        .diamond-metrics-section {
+        .metrics-flame-container {
           position: relative;
           width: 100%;
-          max-width: 1200px;
-          height: 700px;
-          margin: 0 auto 80px;
+          max-width: 1000px;
+          height: 500px;
+          margin: 0 auto 50px;
         }
 
-        /* Diagonal connectors SVG overlay */
-        .diagonal-connectors-svg {
+        .connector-overlay {
           position: absolute;
           top: 0;
           left: 0;
@@ -480,89 +348,82 @@ export function WeatherImpactCardCosmic({
           z-index: 1;
         }
 
-        /* Metric nodes positioning */
-        .metric-node {
+        .metric-circle {
           position: absolute;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 14px;
+          gap: 10px;
           z-index: 5;
         }
 
-        .position-top-left {
-          top: 110px;
-          left: 80px;
+        .top-left-pos {
+          top: 80px;
+          left: 60px;
         }
 
-        .position-top-right {
-          top: 110px;
-          right: 80px;
+        .top-right-pos {
+          top: 80px;
+          right: 60px;
         }
 
-        .position-bottom-left {
-          bottom: 110px;
-          left: 80px;
+        .bottom-left-pos {
+          bottom: 80px;
+          left: 60px;
         }
 
-        .position-bottom-right {
-          bottom: 110px;
-          right: 80px;
+        .bottom-right-pos {
+          bottom: 80px;
+          right: 60px;
         }
 
-        /* Metric circles with neon glow */
-        .metric-circle-glow {
-          width: 130px;
-          height: 130px;
+        .circle-outer {
+          width: 115px;
+          height: 115px;
           border-radius: 50%;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 2px;
+          gap: 1px;
         }
 
-        .cyan-glow {
-          border: 4px solid #00E5FF;
-          background: rgba(0, 40, 60, 0.75);
-          box-shadow:
-            0 0 35px rgba(0, 229, 255, 0.8),
-            inset 0 0 30px rgba(0, 229, 255, 0.3);
+        .cyan-circle {
+          border: 3.5px solid #00E5FF;
+          background: rgba(0, 40, 60, 0.7);
+          box-shadow: 0 0 30px rgba(0, 229, 255, 0.75), inset 0 0 25px rgba(0, 229, 255, 0.25);
         }
 
-        .orange-glow {
-          border: 4px solid #FF8C00;
-          background: rgba(60, 30, 0, 0.75);
-          box-shadow:
-            0 0 35px rgba(255, 140, 0, 0.8),
-            inset 0 0 30px rgba(255, 140, 0, 0.3);
+        .orange-circle {
+          border: 3.5px solid #FF8C00;
+          background: rgba(60, 30, 0, 0.7);
+          box-shadow: 0 0 30px rgba(255, 140, 0, 0.75), inset 0 0 25px rgba(255, 140, 0, 0.25);
         }
 
-        .metric-value {
-          font-size: 42px;
+        .circle-value {
+          font-size: 38px;
           font-weight: 700;
           color: #FFD700;
           line-height: 1;
-          text-shadow: 0 0 25px rgba(255, 215, 0, 1);
+          text-shadow: 0 0 22px rgba(255, 215, 0, 1);
         }
 
-        .metric-unit {
-          font-size: 22px;
+        .circle-unit {
+          font-size: 20px;
           font-weight: 400;
           color: #FFD700;
-          text-shadow: 0 0 18px rgba(255, 215, 0, 0.9);
+          text-shadow: 0 0 16px rgba(255, 215, 0, 0.85);
         }
 
-        .metric-label {
-          font-size: 17px;
+        .circle-label {
+          font-size: 15px;
           color: #FFD700;
           text-align: center;
-          letter-spacing: 1.5px;
-          text-shadow: 0 0 16px rgba(255, 215, 0, 0.8);
+          letter-spacing: 1.2px;
+          text-shadow: 0 0 14px rgba(255, 215, 0, 0.75);
         }
 
-        /* Central Tall Neon Flame */
-        .central-flame-container {
+        .flame-center-pos {
           position: absolute;
           top: 50%;
           left: 50%;
@@ -570,289 +431,249 @@ export function WeatherImpactCardCosmic({
           z-index: 10;
         }
 
-        .tall-neon-flame {
+        .flame-svg {
           display: block;
-          filter: drop-shadow(0 0 50px rgba(255, 140, 0, 1));
+          filter: drop-shadow(0 0 45px rgba(255, 140, 0, 0.95));
         }
 
-        /* LEVEL badge inside flame */
-        .flame-level-badge {
+        .flame-badge {
           position: absolute;
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
           text-align: center;
-          margin-top: 60px;
+          margin-top: 50px;
         }
 
-        .badge-level-text {
-          font-size: 26px;
+        .badge-word {
+          font-size: 23px;
           font-weight: 700;
           color: #FFD700;
-          letter-spacing: 6px;
-          text-shadow: 0 0 28px rgba(255, 215, 0, 1);
-          margin-bottom: 8px;
+          letter-spacing: 5px;
+          text-shadow: 0 0 24px rgba(255, 215, 0, 1);
+          margin-bottom: 6px;
         }
 
-        .badge-level-number {
-          font-size: 88px;
+        .badge-num {
+          font-size: 78px;
           font-weight: 900;
           color: #FFD700;
           line-height: 1;
-          text-shadow: 0 0 38px rgba(255, 215, 0, 1);
+          text-shadow: 0 0 32px rgba(255, 215, 0, 1);
         }
 
-        /* Heat Stress Chart Section */
-        .heat-stress-chart-section {
-          max-width: 900px;
-          margin: 0 auto 90px;
+        .chart-section {
+          max-width: 800px;
+          margin: 0 auto 50px;
         }
 
-        .chart-container {
-          background: rgba(10, 20, 40, 0.55);
-          border: 2px solid rgba(255, 140, 0, 0.4);
-          border-radius: 18px;
-          padding: 28px;
-          min-height: 300px;
-        }
-
-        .neon-stress-curve {
+        .stress-chart {
           width: 100%;
-          height: 100%;
+          height: 220px;
+          background: rgba(10, 20, 40, 0.5);
+          border: 2px solid rgba(255, 140, 0, 0.35);
+          border-radius: 16px;
+          padding: 20px;
+          box-sizing: border-box;
         }
 
-        /* Bottom Three-Column Grid */
-        .bottom-layout-grid {
+        .bottom-section {
           display: grid;
-          grid-template-columns: 340px 1fr 380px;
-          gap: 60px;
-          max-width: 1400px;
+          grid-template-columns: 1fr 380px;
+          gap: 80px;
+          max-width: 1200px;
           margin: 0 auto;
+          align-items: start;
         }
 
-        /* Vertical Event Timeline */
-        .events-timeline-vertical {
+        .timeline-column {
           position: relative;
-          padding-left: 70px;
+          padding-left: 60px;
         }
 
-        .vertical-neon-line {
+        .timeline-line-container {
           position: absolute;
-          left: 24px;
+          left: 20px;
           top: 0;
           height: 100%;
         }
 
-        .timeline-events-list {
+        .timeline-items {
           display: flex;
           flex-direction: column;
-          gap: 42px;
+          gap: 36px;
         }
 
-        .timeline-event-item {
+        .timeline-item {
           display: flex;
           align-items: flex-start;
-          gap: 22px;
+          gap: 18px;
         }
 
-        .event-icon-circle {
-          width: 52px;
-          height: 52px;
+        .event-circle {
+          width: 48px;
+          height: 48px;
           border-radius: 50%;
-          border: 3.5px solid #FF8C00;
-          background: rgba(60, 30, 0, 0.85);
+          border: 3px solid #FF8C00;
+          background: rgba(60, 30, 0, 0.8);
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          box-shadow: 0 0 25px rgba(255, 140, 0, 0.8);
+          box-shadow: 0 0 22px rgba(255, 140, 0, 0.75);
           position: relative;
           z-index: 5;
         }
 
-        .icon-symbol {
-          font-size: 26px;
+        .event-symbol {
+          font-size: 24px;
           color: #FF8C00;
-          text-shadow: 0 0 12px #FF8C00;
+          text-shadow: 0 0 10px #FF8C00;
         }
 
-        .event-text-content {
+        .event-content {
           flex: 1;
-          padding-top: 8px;
+          padding-top: 6px;
         }
 
-        .event-description {
-          font-size: 18px;
+        .event-desc {
+          font-size: 17px;
           color: #ffffff;
-          margin-bottom: 7px;
-          text-shadow: 0 0 14px rgba(255, 255, 255, 0.6);
+          margin-bottom: 5px;
+          text-shadow: 0 0 12px rgba(255, 255, 255, 0.55);
         }
 
-        .event-distance {
-          font-size: 16px;
-          color: rgba(255, 255, 255, 0.65);
+        .event-dist {
+          font-size: 15px;
+          color: rgba(255, 255, 255, 0.62);
         }
 
-        /* Middle spacer */
-        .middle-spacer {
-          min-width: 0;
-        }
-
-        /* Recommendations Section */
-        .recommendations-section {
+        .recommendations-column {
           display: flex;
           flex-direction: column;
           align-items: center;
         }
 
-        .teal-icon-above {
-          margin-bottom: -2px;
+        .rec-icon-top {
+          margin-bottom: -1px;
         }
 
-        .teal-droplet-flame {
-          filter: drop-shadow(0 0 18px rgba(0, 255, 212, 0.9));
+        .teal-flame {
+          filter: drop-shadow(0 0 16px rgba(0, 255, 212, 0.85));
         }
 
-        .teal-connector-line {
-          margin-bottom: -2px;
+        .rec-connector {
+          margin-bottom: -1px;
         }
 
-        .recommendations-card {
+        .rec-card {
           width: 100%;
-          background: rgba(0, 25, 45, 0.8);
-          border: 4px solid #00FFD4;
-          border-radius: 26px;
-          padding: 36px;
-          box-shadow:
-            0 0 40px rgba(0, 255, 212, 0.5),
-            inset 0 0 40px rgba(0, 255, 212, 0.15);
+          background: rgba(0, 25, 45, 0.75);
+          border: 3.5px solid #00FFD4;
+          border-radius: 24px;
+          padding: 32px;
+          box-shadow: 0 0 35px rgba(0, 255, 212, 0.45), inset 0 0 35px rgba(0, 255, 212, 0.12);
         }
 
-        .card-title {
-          font-size: 26px;
+        .rec-title {
+          font-size: 24px;
           font-weight: 700;
           color: #ffffff;
-          margin: 0 0 26px 0;
-          text-shadow: 0 0 20px rgba(255, 255, 255, 0.7);
+          margin: 0 0 22px 0;
+          text-shadow: 0 0 18px rgba(255, 255, 255, 0.65);
         }
 
-        .recommendations-list {
+        .rec-list {
           list-style: none;
           padding: 0;
           margin: 0;
           display: flex;
           flex-direction: column;
-          gap: 18px;
-        }
-
-        .rec-item {
-          display: flex;
-          align-items: flex-start;
           gap: 16px;
         }
 
-        .teal-bullet {
-          width: 11px;
-          height: 11px;
+        .rec-entry {
+          display: flex;
+          align-items: flex-start;
+          gap: 14px;
+        }
+
+        .rec-bullet {
+          width: 10px;
+          height: 10px;
           border-radius: 50%;
           background: #00FFD4;
           flex-shrink: 0;
-          margin-top: 10px;
-          box-shadow: 0 0 16px #00FFD4;
+          margin-top: 9px;
+          box-shadow: 0 0 14px #00FFD4;
         }
 
-        .rec-text {
-          font-size: 18px;
-          line-height: 1.7;
-          color: rgba(255, 255, 255, 0.95);
+        .rec-content {
+          font-size: 17px;
+          line-height: 1.65;
+          color: rgba(255, 255, 255, 0.92);
         }
 
-        /* Responsive adjustments */
-        @media (max-width: 1500px) {
-          .bottom-layout-grid {
+        @media (max-width: 1300px) {
+          .bottom-section {
             grid-template-columns: 1fr;
-            gap: 55px;
+            gap: 50px;
           }
 
-          .events-timeline-vertical,
-          .recommendations-section {
-            max-width: 800px;
+          .timeline-column,
+          .recommendations-column {
+            max-width: 700px;
             margin-left: auto;
             margin-right: auto;
           }
-
-          .middle-spacer {
-            display: none;
-          }
         }
 
-        @media (max-width: 1100px) {
-          .cosmic-heat-impact {
-            padding: 45px;
+        @media (max-width: 900px) {
+          .cosmic-heat-impact-exact {
+            padding: 35px 40px;
           }
 
-          .impact-title {
-            font-size: 44px;
-          }
-
-          .diamond-metrics-section {
-            height: 600px;
-          }
-
-          .tall-neon-flame {
-            width: 280px;
-            height: 455px;
-          }
-        }
-
-        @media (max-width: 800px) {
-          .cosmic-heat-impact {
-            padding: 32px;
-          }
-
-          .impact-title {
-            font-size: 36px;
+          .main-title {
+            font-size: 38px;
             letter-spacing: 6px;
           }
 
-          .impact-subtitle {
+          .subtitle-text {
+            font-size: 16px;
+          }
+
+          .metrics-flame-container {
+            height: 420px;
+          }
+
+          .flame-svg {
+            width: 200px;
+            height: 330px;
+          }
+
+          .top-left-pos, .bottom-left-pos {
+            left: 30px;
+          }
+
+          .top-right-pos, .bottom-right-pos {
+            right: 30px;
+          }
+
+          .circle-outer {
+            width: 90px;
+            height: 90px;
+          }
+
+          .circle-value {
+            font-size: 30px;
+          }
+
+          .circle-unit {
             font-size: 17px;
           }
 
-          .diamond-metrics-section {
-            height: 520px;
-          }
-
-          .position-top-left,
-          .position-bottom-left {
-            left: 32px;
-          }
-
-          .position-top-right,
-          .position-bottom-right {
-            right: 32px;
-          }
-
-          .metric-circle-glow {
-            width: 100px;
-            height: 100px;
-          }
-
-          .metric-value {
-            font-size: 32px;
-          }
-
-          .metric-unit {
-            font-size: 18px;
-          }
-
-          .tall-neon-flame {
-            width: 230px;
-            height: 375px;
-          }
-
-          .badge-level-number {
-            font-size: 68px;
+          .badge-num {
+            font-size: 62px;
           }
         }
       `}</style>
