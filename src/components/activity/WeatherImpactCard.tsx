@@ -242,31 +242,58 @@ export function WeatherImpactCard({ logEntry, userId }: WeatherImpactCardProps) 
   const severity = (metrics.overall_severity as 'LOW' | 'MODERATE' | 'HIGH' | 'EXTREME') || 'MODERATE';
   const timeline = metrics.heat_stress_timeline || [];
 
-  // Extract categorized recommendations or fall back to flat list
+  // Flatten all recommendations from categories into single array
   const recommendationCategories = insights?.recommendation_categories || {};
+  const flattenedRecommendations: string[] = [];
 
-  // Convert Celsius to Fahrenheit for cosmic component
-  const celsiusToFahrenheit = (c: number) => (c * 9/5) + 32;
+  if (recommendationCategories.hydration) flattenedRecommendations.push(...recommendationCategories.hydration);
+  if (recommendationCategories.pacing) flattenedRecommendations.push(...recommendationCategories.pacing);
+  if (recommendationCategories.cooling) flattenedRecommendations.push(...recommendationCategories.cooling);
+  if (recommendationCategories.acclimation) flattenedRecommendations.push(...recommendationCategories.acclimation);
+  if (recommendationCategories.clothing) flattenedRecommendations.push(...recommendationCategories.clothing);
 
-  // Transform data for cosmic component
+  // If no categorized recommendations, use flat list
+  const recommendations = flattenedRecommendations.length > 0
+    ? flattenedRecommendations
+    : insights?.recommendations || [];
+
+  // Map key events to proper structure with icon types
+  const events = (insights?.key_events || []).map(event => {
+    let icon: 'hr_drift' | 'warning' | 'hydration' | 'pace_drop' | 'default' = 'default';
+
+    if (event.icon === 'zap' || event.description.toLowerCase().includes('hr')) {
+      icon = 'hr_drift';
+    } else if (event.description.toLowerCase().includes('pace') || event.description.toLowerCase().includes('slow')) {
+      icon = 'pace_drop';
+    } else if (event.description.toLowerCase().includes('hydrat') || event.description.toLowerCase().includes('drink')) {
+      icon = 'hydration';
+    } else if (event.severity === 'HIGH' || event.severity === 'EXTREME') {
+      icon = 'warning';
+    }
+
+    return {
+      icon,
+      distance_km: event.km,
+      description: event.description,
+      severity: event.severity as 'LOW' | 'MODERATE' | 'HIGH' | 'EXTREME'
+    };
+  });
+
+  // Transform data for cosmic component (keep Celsius)
   const cosmicData = {
     overallScore: metrics.heat_impact_score,
     severity: severity,
-    temperature: celsiusToFahrenheit(metrics.avg_temperature_c),
-    humidity: metrics.avg_humidity_percent,
-    heatIndex: celsiusToFahrenheit(metrics.avg_heat_index_c || metrics.avg_temperature_c),
-    wbgt: metrics.avg_heat_index_c,
-    timeline: timeline.map((point, index) => ({
-      time: `${point.km.toFixed(1)}km`,
-      heatIndex: point.heatStress,
-      pace: undefined
+    avgTemperature: metrics.avg_temperature_c,
+    avgHumidity: metrics.avg_humidity_percent,
+    heatIndex: metrics.avg_heat_index_c || metrics.avg_temperature_c,
+    dangerZoneMinutes: metrics.time_in_danger_zone_minutes,
+    timeline: timeline.map((point) => ({
+      distance: point.km,
+      heatStress: point.heatStress,
+      hr: undefined
     })),
-    recommendations: {
-      hydration: recommendationCategories.hydration || [],
-      pacing: recommendationCategories.pacing || [],
-      timing: recommendationCategories.acclimation || [],
-      recovery: recommendationCategories.cooling || []
-    }
+    events: events,
+    recommendations: recommendations
   };
 
   return (
