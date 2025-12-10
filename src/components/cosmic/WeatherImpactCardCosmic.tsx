@@ -177,6 +177,7 @@ export function WeatherImpactCardCosmic({
           padding: 40px;
           border-radius: 24px;
           overflow: hidden;
+          background: #0a0a15;
         }
 
         .cosmic-content {
