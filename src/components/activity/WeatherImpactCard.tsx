@@ -3,6 +3,7 @@ import { Thermometer, Droplets, Flame, Clock } from 'lucide-react';
 import { analyzeActivityHeatImpact } from '../../lib/environmental-analysis/analyzeHeatImpact';
 import { supabase } from '../../lib/supabase';
 import { backfillSingleActivity } from '../../utils/backfillActivityStreams';
+import { WeatherImpactCardCosmic } from '../cosmic/WeatherImpactCardCosmic';
 import { HeatImpactHeader } from './HeatImpact/HeatImpactHeader';
 import { HeatMetricCard } from './HeatImpact/HeatMetricCard';
 import { HeatTimelineChart } from './HeatImpact/HeatTimelineChart';
@@ -241,149 +242,37 @@ export function WeatherImpactCard({ logEntry, userId }: WeatherImpactCardProps) 
   const severity = (metrics.overall_severity as 'LOW' | 'MODERATE' | 'HIGH' | 'EXTREME') || 'MODERATE';
   const timeline = metrics.heat_stress_timeline || [];
 
-  // Map event icons
-  const keyEventsWithIcons = insights?.key_events.map(event => ({
-    ...event,
-    severity: (event.severity.toUpperCase() as 'LOW' | 'MODERATE' | 'HIGH'),
-    icon: event.icon || 'warning'
-  })) || [];
-
   // Extract categorized recommendations or fall back to flat list
   const recommendationCategories = insights?.recommendation_categories || {};
-  const hasCategories = Object.keys(recommendationCategories).length > 0;
+
+  // Convert Celsius to Fahrenheit for cosmic component
+  const celsiusToFahrenheit = (c: number) => (c * 9/5) + 32;
+
+  // Transform data for cosmic component
+  const cosmicData = {
+    overallScore: metrics.heat_impact_score,
+    severity: severity,
+    temperature: celsiusToFahrenheit(metrics.avg_temperature_c),
+    humidity: metrics.avg_humidity_percent,
+    heatIndex: celsiusToFahrenheit(metrics.avg_heat_index_c || metrics.avg_temperature_c),
+    wbgt: metrics.avg_heat_index_c,
+    timeline: timeline.map((point, index) => ({
+      time: `${point.km.toFixed(1)}km`,
+      heatIndex: point.heatStress,
+      pace: undefined
+    })),
+    recommendations: {
+      hydration: recommendationCategories.hydration || [],
+      pacing: recommendationCategories.pacing || [],
+      timing: recommendationCategories.acclimation || [],
+      recovery: recommendationCategories.cooling || []
+    }
+  };
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 md:p-6 space-y-6">
-      {/* Header with Gradient */}
-      <HeatImpactHeader score={metrics.heat_impact_score} severity={severity} />
-
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        <HeatMetricCard
-          icon={<Thermometer className="w-5 h-5" />}
-          label="Avg Temperature"
-          value={Math.round(metrics.avg_temperature_c)}
-          unit="°C"
-          severity={severity}
-        />
-        <HeatMetricCard
-          icon={<Droplets className="w-5 h-5" />}
-          label="Avg Humidity"
-          value={Math.round(metrics.avg_humidity_percent)}
-          unit="%"
-          severity={severity}
-        />
-        <HeatMetricCard
-          icon={<Flame className="w-5 h-5" />}
-          label="Heat Index"
-          value={Math.round(metrics.avg_heat_index_c || metrics.avg_temperature_c)}
-          unit="°C"
-          severity={severity}
-        />
-        <HeatMetricCard
-          icon={<Clock className="w-5 h-5" />}
-          label="Danger Zone"
-          value={Math.round(metrics.time_in_danger_zone_minutes)}
-          unit="min"
-          severity={severity}
-        />
-      </div>
-
-      {/* Heat Stress Timeline Chart */}
-      {timeline.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-6">
-          <h4 className="font-semibold text-gray-900 dark:text-white mb-4">
-            Heat Stress Over Distance
-          </h4>
-          <HeatTimelineChart data={timeline} keyEvents={keyEventsWithIcons} />
-        </div>
-      )}
-
-      {/* AI Analysis Summary */}
-      {insights && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-6">
-          <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
-            Analysis Summary
-          </h4>
-          <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-            {insights.summary}
-          </p>
-        </div>
-      )}
-
-      {/* Key Events with Alert Cards */}
-      {keyEventsWithIcons.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-6">
-          <h4 className="font-semibold text-gray-900 dark:text-white mb-4">
-            Key Events
-          </h4>
-          <div className="space-y-3">
-            {keyEventsWithIcons.map((event, index) => (
-              <HeatEventAlert key={index} event={event} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Categorized Recommendations */}
-      {hasCategories && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-6">
-          <h4 className="font-semibold text-gray-900 dark:text-white mb-4">
-            Personalized Recommendations
-          </h4>
-          <div className="grid gap-4 md:grid-cols-2">
-            {recommendationCategories.hydration && recommendationCategories.hydration.length > 0 && (
-              <HeatRecommendationCard
-                category="hydration"
-                recommendations={recommendationCategories.hydration}
-                severity={severity}
-              />
-            )}
-            {recommendationCategories.pacing && recommendationCategories.pacing.length > 0 && (
-              <HeatRecommendationCard
-                category="pacing"
-                recommendations={recommendationCategories.pacing}
-                severity={severity}
-              />
-            )}
-            {recommendationCategories.cooling && recommendationCategories.cooling.length > 0 && (
-              <HeatRecommendationCard
-                category="cooling"
-                recommendations={recommendationCategories.cooling}
-                severity={severity}
-              />
-            )}
-            {recommendationCategories.clothing && recommendationCategories.clothing.length > 0 && (
-              <HeatRecommendationCard
-                category="clothing"
-                recommendations={recommendationCategories.clothing}
-                severity={severity}
-              />
-            )}
-            {recommendationCategories.acclimation && recommendationCategories.acclimation.length > 0 && (
-              <HeatRecommendationCard
-                category="acclimation"
-                recommendations={recommendationCategories.acclimation}
-                severity={severity}
-              />
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Fallback to flat recommendations if no categories */}
-      {!hasCategories && insights && insights.recommendations.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 md:p-6">
-          <h4 className="font-semibold text-gray-900 dark:text-white mb-4">
-            Recommendations
-          </h4>
-          <HeatRecommendationCard
-            category="hydration"
-            recommendations={insights.recommendations}
-            severity={severity}
-          />
-        </div>
-      )}
-    </div>
+    <WeatherImpactCardCosmic
+      data={cosmicData}
+      showTimeline={timeline.length > 0}
+    />
   );
 }
