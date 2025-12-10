@@ -2,6 +2,9 @@
    MIZZION — Consolidated Styles
    ================================ */
 
+@import './styles/neon-tokens.css';
+@import './styles/neon-animations.css';
+
 /* ===== Theme tokens (dark) ===== */
 :root {
   /* Mirror page premium design tokens */

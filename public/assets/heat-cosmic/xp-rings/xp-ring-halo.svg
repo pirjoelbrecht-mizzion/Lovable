@@ -1,0 +1,12 @@
+<svg width="120" height="120" viewBox="0 0 120 120"
+     xmlns="http://www.w3.org/2000/svg">
+  <circle cx="60" cy="60" r="40"
+    stroke="url(#halo)" stroke-width="6" fill="none"/>
+  <defs>
+    <linearGradient id="halo" x1="0" y1="0" x2="120" y2="120">
+      <stop offset="0%" stop-color="#7DD3FC"/>
+      <stop offset="50%" stop-color="#A78BFA"/>
+      <stop offset="100%" stop-color="#F472B6"/>
+    </linearGradient>
+  </defs>
+</svg>

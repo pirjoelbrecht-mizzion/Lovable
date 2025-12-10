@@ -1,0 +1,124 @@
+:root {
+  --neon-cyan: #00f0ff;
+  --neon-cyan-glow: rgba(0, 240, 255, 0.5);
+  --neon-cyan-strong: #00d9ff;
+
+  --neon-blue: #0096ff;
+  --neon-blue-glow: rgba(0, 150, 255, 0.5);
+  --neon-blue-strong: #0077ff;
+
+  --neon-orange: #ff8c00;
+  --neon-orange-glow: rgba(255, 140, 0, 0.5);
+  --neon-orange-strong: #ff6600;
+
+  --neon-yellow: #ffe066;
+  --neon-yellow-glow: rgba(255, 224, 102, 0.5);
+  --neon-yellow-strong: #ffd700;
+
+  --neon-purple: #b44bff;
+  --neon-purple-glow: rgba(180, 75, 255, 0.5);
+  --neon-purple-strong: #9933ff;
+
+  --neon-pink: #ff00ff;
+  --neon-pink-glow: rgba(255, 0, 255, 0.5);
+  --neon-pink-strong: #e000e0;
+
+  --neon-red: #ff0033;
+  --neon-red-glow: rgba(255, 0, 51, 0.5);
+  --neon-red-strong: #cc0029;
+
+  --neon-lime: #39ff14;
+  --neon-lime-glow: rgba(57, 255, 20, 0.5);
+  --neon-lime-strong: #00ff00;
+
+  --neon-teal: #00ffcc;
+  --neon-teal-glow: rgba(0, 255, 204, 0.5);
+  --neon-teal-strong: #00e6b8;
+
+  --cosmic-bg-dark: #0b0b12;
+  --cosmic-bg-darker: #060608;
+  --cosmic-surface: rgba(20, 20, 30, 0.6);
+  --cosmic-surface-glow: rgba(255, 255, 255, 0.05);
+
+  --hologram-border: rgba(255, 255, 255, 0.1);
+  --hologram-border-bright: rgba(255, 255, 255, 0.2);
+
+  --severity-low: var(--neon-yellow);
+  --severity-low-glow: var(--neon-yellow-glow);
+  --severity-moderate: var(--neon-orange);
+  --severity-moderate-glow: var(--neon-orange-glow);
+  --severity-high: var(--neon-red);
+  --severity-high-glow: var(--neon-red-glow);
+  --severity-extreme: var(--neon-pink);
+  --severity-extreme-glow: var(--neon-pink-glow);
+}
+
+.neon-glow-cyan {
+  box-shadow:
+    0 0 20px var(--neon-cyan-glow),
+    inset 0 0 15px var(--neon-cyan-glow);
+}
+
+.neon-glow-orange {
+  box-shadow:
+    0 0 20px var(--neon-orange-glow),
+    inset 0 0 15px var(--neon-orange-glow);
+}
+
+.neon-glow-yellow {
+  box-shadow:
+    0 0 20px var(--neon-yellow-glow),
+    inset 0 0 15px var(--neon-yellow-glow);
+}
+
+.neon-glow-blue {
+  box-shadow:
+    0 0 20px var(--neon-blue-glow),
+    inset 0 0 15px var(--neon-blue-glow);
+}
+
+.neon-glow-purple {
+  box-shadow:
+    0 0 20px var(--neon-purple-glow),
+    inset 0 0 15px var(--neon-purple-glow);
+}
+
+.neon-border-cyan {
+  border: 2px solid var(--neon-cyan);
+}
+
+.neon-border-orange {
+  border: 2px solid var(--neon-orange);
+}
+
+.neon-border-yellow {
+  border: 2px solid var(--neon-yellow);
+}
+
+.neon-border-blue {
+  border: 2px solid var(--neon-blue);
+}
+
+.hologram-surface {
+  background: var(--cosmic-surface);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--hologram-border);
+  border-radius: 16px;
+}
+
+.hologram-surface-bright {
+  background: rgba(20, 20, 30, 0.8);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--hologram-border-bright);
+  border-radius: 16px;
+}
+
+@media (max-width: 768px) {
+  .neon-glow-cyan,
+  .neon-glow-orange,
+  .neon-glow-yellow,
+  .neon-glow-blue,
+  .neon-glow-purple {
+    box-shadow: 0 0 12px var(--neon-cyan-glow);
+  }
+}

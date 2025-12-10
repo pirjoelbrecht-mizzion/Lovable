@@ -1,0 +1,19 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none"
+     xmlns="http://www.w3.org/2000/svg">
+  <path d="M32 1C32 1 15 18 15 34C15 42 23 50 32 50C41 50 49 42 49 34C49 18 32 1 32 1Z"
+        fill="url(#grad1)"/>
+  <path d="M32 63C50 63 64 49 64 32C64 18 54 8 42 4C40 3 34 2 35 10C36 18 30 27 22 27C14 27 10 18 10 10C10 2 4 6 2 8C-4 15 0 24 0 32C0 49 14 63 32 63Z"
+        fill="url(#grad2)"/>
+  <defs>
+    <linearGradient id="grad1" x1="15" x2="49" y1="1" y2="50">
+      <stop offset="0%" stop-color="#FF4B2B"/>
+      <stop offset="50%" stop-color="#FF0033"/>
+      <stop offset="100%" stop-color="#D000FF"/>
+    </linearGradient>
+    <linearGradient id="grad2" x1="0" x2="64" y1="4" y2="63">
+      <stop offset="0%" stop-color="#FF7A5C"/>
+      <stop offset="50%" stop-color="#FF0033"/>
+      <stop offset="100%" stop-color="#7A00FF"/>
+    </linearGradient>
+  </defs>
+</svg>

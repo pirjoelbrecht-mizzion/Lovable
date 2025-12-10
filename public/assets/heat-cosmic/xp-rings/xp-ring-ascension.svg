@@ -1,0 +1,13 @@
+<svg width="180" height="180" viewBox="0 0 180 180"
+     xmlns="http://www.w3.org/2000/svg">
+  <circle cx="90" cy="90" r="60"
+    stroke="url(#burst)" stroke-width="10" fill="none"
+    stroke-dasharray="12 18"/>
+  <defs>
+    <linearGradient id="burst" x1="0" y1="0" x2="180" y2="180">
+      <stop offset="0%" stop-color="#FDE047"/>
+      <stop offset="50%" stop-color="#FB923C"/>
+      <stop offset="100%" stop-color="#F43F5E"/>
+    </linearGradient>
+  </defs>
+</svg>

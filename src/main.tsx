@@ -20,6 +20,7 @@ import SeasonPlan from "./pages/SeasonPlan";
 import RouteExplorer from "./pages/RouteExplorer";
 import LearningDemo from "./pages/LearningDemo";
 import EnvironmentalLearning from "./pages/EnvironmentalLearning";
+import HeatImpactDemo from "./pages/HeatImpactDemo";
 
 // NEW triad pages
 import Quest from "./pages/Quest";
@@ -81,6 +82,9 @@ const router = createBrowserRouter([
 
       // Statistical Learning Demo
       { path: "learning", element: <LearningDemo /> },
+
+      // Heat Impact Cosmic Demo
+      { path: "heat-impact-demo", element: <HeatImpactDemo /> },
 
       // Legacy routes (still available)
       { path: "log", element: <Log /> },

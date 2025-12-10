@@ -1,0 +1,12 @@
+<svg width="160" height="160" viewBox="0 0 160 160"
+     xmlns="http://www.w3.org/2000/svg">
+  <circle cx="80" cy="80" r="55"
+    stroke="url(#pulse)" stroke-width="8" fill="none" opacity="0.75"/>
+  <defs>
+    <radialGradient id="pulse">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="50%" stop-color="#7DD3FC"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </radialGradient>
+  </defs>
+</svg>

@@ -1,0 +1,17 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none"
+     xmlns="http://www.w3.org/2000/svg">
+  <path d="M32 2C32 2 17 18 17 32C17 39 23 46 32 46C41 46 47 39 47 32C47 18 32 2 32 2Z"
+        fill="url(#grad1)"/>
+  <path d="M32 62C47 62 60 49 60 32C60 20 51 11.5 41 8C39 7 34 6 34.5 12C35 18 30 26 23.5 26C17 26 14 18 14 12C14 6 9 9 7 10C1 16 0 24 0 32C0 49 13 62 32 62Z"
+        fill="url(#grad2)" />
+  <defs>
+    <linearGradient id="grad1" x1="17" y1="2" x2="47" y2="46">
+      <stop offset="0%" stop-color="#FF9A00"/>
+      <stop offset="100%" stop-color="#FF3B00"/>
+    </linearGradient>
+    <linearGradient id="grad2" x1="0" y1="8" x2="60" y2="62">
+      <stop offset="0%" stop-color="#FFB35A"/>
+      <stop offset="100%" stop-color="#FF2400"/>
+    </linearGradient>
+  </defs>
+</svg>

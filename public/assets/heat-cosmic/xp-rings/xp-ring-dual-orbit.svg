@@ -1,0 +1,17 @@
+<svg width="140" height="140" viewBox="0 0 140 140"
+     xmlns="http://www.w3.org/2000/svg">
+  <circle cx="70" cy="70" r="45"
+    stroke="url(#orbitA)" stroke-width="3" fill="none"/>
+  <circle cx="70" cy="70" r="55"
+    stroke="url(#orbitB)" stroke-width="2" fill="none" stroke-dasharray="6 10"/>
+  <defs>
+    <linearGradient id="orbitA" x1="0" y1="0" x2="140" y2="140">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#6366F1"/>
+    </linearGradient>
+    <linearGradient id="orbitB" x1="0" y1="0" x2="140" y2="140">
+      <stop offset="0%" stop-color="#A78BFA"/>
+      <stop offset="100%" stop-color="#F472B6"/>
+    </linearGradient>
+  </defs>
+</svg>
