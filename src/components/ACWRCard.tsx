@@ -219,11 +219,16 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
         }}
       >
         {/* Header */}
-        <div className="flex items-start justify-between mb-4 flex-wrap gap-4">
-          <div>
-            <h3 className="text-lg font-semibold text-white mb-1">
+        <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
+          <div className="flex-1">
+            <h3 className="text-xl font-semibold text-white mb-2">
               ACWR (Acute:Chronic Workload Ratio)
             </h3>
+            <div className="flex items-center gap-3 text-xs text-slate-400 mb-3">
+              <span>Last 12 months</span>
+              <span>•</span>
+              <span>Last 12 weeks</span>
+            </div>
             <div className="flex items-center gap-2 flex-wrap">
               <div className="flex gap-1">
                 {timeFrames.map((tf) => (
@@ -251,23 +256,24 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
               </button>
             </div>
           </div>
-          {currentACWR !== null && status && (
+          {currentACWR !== null && (
             <div
-              className="px-3 py-1.5 rounded-full text-sm font-medium text-white"
+              className="px-4 py-2 rounded-full text-sm font-medium"
               style={{
-                background: status.bg,
-                border: `1px solid ${status.border}`,
+                background: 'transparent',
+                border: '1px solid rgba(148, 163, 184, 0.3)',
+                color: '#ffffff',
               }}
             >
-              <span className={status.color}>Current: {currentACWR.toFixed(2)}</span>
+              Current: {currentACWR.toFixed(2)}
             </div>
           )}
         </div>
 
         {/* Chart */}
         <div className="mt-6 mb-6">
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={acwrData} margin={{ top: 20, right: 80, bottom: 10, left: 10 }}>
+          <ResponsiveContainer width="100%" height={350}>
+            <LineChart data={acwrData} margin={{ top: 20, right: 100, bottom: 20, left: 10 }}>
               <defs>
                 <linearGradient id="acwrGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#fb923c" stopOpacity={0.8} />
@@ -277,7 +283,7 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
 
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="rgba(59, 130, 246, 0.08)"
+                stroke="rgba(148, 163, 184, 0.08)"
                 horizontal={true}
                 vertical={false}
               />
@@ -307,32 +313,42 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
               <ReferenceLine
                 y={1.5}
                 stroke="#ef4444"
-                strokeWidth={1.5}
+                strokeWidth={2}
                 strokeDasharray="5 5"
               >
                 <Label
                   value="High Risk"
                   position="right"
                   fill="#ef4444"
-                  fontSize={12}
-                  fontWeight={600}
+                  fontSize={13}
+                  fontWeight="bold"
+                  offset={10}
                 />
               </ReferenceLine>
 
               <ReferenceLine
                 y={zoneInfo.personalMax}
                 stroke={zoneInfo.hasPersonalZone ? "#a855f7" : "#fb923c"}
-                strokeWidth={1}
+                strokeWidth={1.5}
                 strokeDasharray="5 5"
               >
                 <Label
                   value={zoneInfo.hasPersonalZone ? "Your Max" : "Caution"}
                   position="right"
                   fill={zoneInfo.hasPersonalZone ? "#a855f7" : "#fb923c"}
-                  fontSize={12}
-                  fontWeight={600}
+                  fontSize={13}
+                  fontWeight="bold"
+                  offset={10}
                 />
               </ReferenceLine>
+
+              <ReferenceLine
+                y={0.5}
+                stroke="#ef4444"
+                strokeWidth={1}
+                strokeOpacity={0.3}
+                strokeDasharray="3 3"
+              />
 
               <XAxis
                 dataKey="date"
@@ -358,16 +374,16 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
                 stroke="#fb923c"
                 strokeWidth={3}
                 dot={{
-                  r: 4,
+                  r: 5,
                   fill: '#fb923c',
                   stroke: '#0b1221',
                   strokeWidth: 2,
                 }}
                 activeDot={{
-                  r: 6,
+                  r: 7,
                   fill: '#fb923c',
                   stroke: '#ffffff',
-                  strokeWidth: 2,
+                  strokeWidth: 3,
                 }}
               />
             </LineChart>
@@ -375,12 +391,12 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
         </div>
 
         {/* Feedback Box */}
-        {feedback && status && (
+        {feedback && (
           <div
-            className="rounded-xl p-4 mb-4"
+            className="rounded-xl p-4 mb-6"
             style={{
-              border: `1px solid ${status.border}`,
-              background: status.bg,
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: 'rgba(11, 18, 33, 0.4)',
             }}
           >
             <p className="text-white text-sm leading-relaxed">
@@ -390,29 +406,31 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
         )}
 
         {/* AI Coach Insight */}
-        <div className="pt-4 border-t border-white/10">
+        <div className="mt-6">
           <div className="flex items-start gap-3">
             <div className="mt-0.5">
               <TrendingUp className="w-5 h-5 text-cyan-400" />
             </div>
-            <div>
-              <h4 className="text-cyan-400 font-semibold text-sm mb-2">
-                {zoneInfo.hasPersonalZone ? 'Personalized Workload Insights' : 'AI Coach Insight'}
+            <div className="flex-1">
+              <h4 className="text-cyan-400 font-semibold text-base mb-3">
+                {zoneInfo.hasPersonalZone
+                  ? '/ AI Coach Insight: Personalized Workload Zone'
+                  : '/ AI Coach Insight: Workload Sweet Spot'}
               </h4>
-              <p className="text-slate-300 text-sm leading-relaxed mb-2">
+              <p className="text-slate-300 text-sm leading-relaxed mb-3">
                 {zoneInfo.hasPersonalZone ? (
                   <>
-                    Your optimal ACWR zone ({zoneInfo.personalMin.toFixed(1)}-{zoneInfo.personalMax.toFixed(1)}) has been personalized based on your training history and load patterns. This adaptation is especially important for trail and ultra runners.
+                    Your ACWR is {currentACWR?.toFixed(2)} — within your personalized optimal zone ({zoneInfo.personalMin.toFixed(1)}-{zoneInfo.personalMax.toFixed(1)}). This zone has been adapted based on your training history and load patterns, especially important for trail and ultra runners.
                   </>
                 ) : (
                   <>
-                    Research shows athletes with ACWR between 0.8-1.3 have the lowest injury risk while maintaining optimal fitness gains. Load spikes above 1.5 significantly increase injury probability.
+                    Your ACWR is {currentACWR?.toFixed(2)} — {status?.label === 'Optimal' ? 'within the optimal zone!' : status?.label === 'Caution' ? 'in the caution zone.' : 'outside the optimal zone.'} Research shows athletes with ACWR between 0.8-1.3 have the lowest injury risk while maintaining optimal fitness gains.
                   </>
                 )}
               </p>
               <button
                 onClick={() => setShowInfoModal(true)}
-                className="text-sm font-semibold text-white hover:text-cyan-400 transition-colors"
+                className="text-sm font-bold text-white hover:text-cyan-400 transition-colors inline-flex items-center gap-1"
               >
                 What is ACWR? →
               </button>
