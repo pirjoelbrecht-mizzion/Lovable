@@ -65,91 +65,181 @@ export default function ACWRChart({ weeklyMetrics, baselines, dateRangeLabel }: 
 
   if (chartData.length === 0 || chartData.every(d => d.acwr === null)) {
     return (
-      <section className="card">
-        <h3 className="h2">ACWR (Workload Ratio)</h3>
-        <div className="small" style={{ color: "var(--muted)", marginBottom: 8 }}>
+      <section style={{
+        background: '#050a14',
+        borderRadius: '16px',
+        padding: '32px',
+        border: '2px solid #22d3ee',
+        boxShadow: '0 0 30px rgba(34, 211, 238, 0.3)',
+        backdropFilter: 'blur(10px)',
+      }}>
+        <h3 style={{
+          fontSize: '24px',
+          fontWeight: 'bold',
+          color: '#ffffff',
+          marginBottom: '8px',
+          textShadow: '0 0 10px rgba(34, 211, 238, 0.3)'
+        }}>
+          ACWR (Acute:Chronic Workload Ratio)
+        </h3>
+        <div style={{
+          fontSize: '14px',
+          color: '#cbd5e1',
+          marginBottom: '24px'
+        }}>
           {dateRangeLabel}
         </div>
-        <p className="small" style={{ color: "var(--muted)", marginTop: 10 }}>
-          Not enough weekly data to calculate ACWR. Log runs consistently for at least 4 weeks to see this chart.
-        </p>
+        <div style={{
+          padding: '48px',
+          borderRadius: 12,
+          textAlign: 'center',
+          border: '2px solid rgba(34, 211, 238, 0.3)',
+          background: 'rgba(34, 211, 238, 0.05)',
+        }}>
+          <svg width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2" style={{ margin: '0 auto 32px', opacity: 0.7, filter: 'drop-shadow(0 0 10px rgba(34, 211, 238, 0.4))' }}>
+            <path d="M3 3v18h18" />
+            <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
+          </svg>
+          <p style={{
+            color: '#ffffff',
+            fontSize: '24px',
+            fontWeight: 'bold',
+            marginBottom: '20px'
+          }}>
+            No training data available
+          </p>
+          <p style={{
+            color: '#cbd5e1',
+            fontSize: '16px',
+            lineHeight: 1.6,
+            maxWidth: '600px',
+            margin: '0 auto'
+          }}>
+            ACWR requires at least 4 weeks of consistent training data to calculate your acute vs chronic workload ratio. Log your runs regularly to see your workload trends and injury risk insights.
+          </p>
+        </div>
       </section>
     );
   }
 
   return (
-    <section className="card">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+    <section style={{
+      background: '#050a14',
+      borderRadius: '16px',
+      padding: '32px',
+      border: '2px solid #22d3ee',
+      boxShadow: '0 0 30px rgba(34, 211, 238, 0.3)',
+      backdropFilter: 'blur(10px)',
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h3 className="h2">ACWR (Acute:Chronic Workload Ratio)</h3>
-          <div className="small" style={{ color: "var(--muted)" }}>
+          <h3 style={{
+            fontSize: '24px',
+            fontWeight: 'bold',
+            color: '#ffffff',
+            marginBottom: '8px',
+            textShadow: '0 0 10px rgba(34, 211, 238, 0.3)'
+          }}>
+            ACWR (Acute:Chronic Workload Ratio)
+          </h3>
+          <div style={{
+            fontSize: '14px',
+            color: '#cbd5e1',
+            marginBottom: '16px'
+          }}>
             {dateRangeLabel} • Last {chartData.length} weeks
           </div>
         </div>
         {currentACWR !== null && (
           <div style={{
-            padding: "6px 12px",
-            borderRadius: 8,
-            background: zone === 'sweet-spot' ? 'var(--acwr-sweet)' :
-                       zone === 'caution' ? 'var(--acwr-caution)' :
-                       zone === 'high-risk' || zone === 'extreme-risk' ? 'var(--acwr-risk)' :
-                       'var(--card)',
-            border: '1px solid var(--line)',
-            fontSize: 12,
-            fontWeight: 600,
+            padding: "10px 20px",
+            borderRadius: '8px',
+            background: 'rgba(34, 211, 238, 0.15)',
+            border: '2px solid #22d3ee',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            color: '#ffffff',
+            boxShadow: '0 0 15px rgba(34, 211, 238, 0.3)'
           }}>
             Current: {currentACWR.toFixed(2)} {trendEmoji}
           </div>
         )}
       </div>
 
-      <ResponsiveContainer width="100%" height={280}>
-        <LineChart data={chartData} margin={{ top: 20, right: 20, bottom: 20, left: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" opacity={0.3} />
+      <ResponsiveContainer width="100%" height={320}>
+        <LineChart data={chartData} margin={{ top: 30, right: 100, bottom: 30, left: 20 }}>
+          <CartesianGrid strokeDasharray="0" stroke="rgba(71, 85, 105, 0.4)" horizontal={true} vertical={false} />
           <XAxis
             dataKey="weekStart"
-            stroke="var(--muted)"
-            style={{ fontSize: 11 }}
+            stroke="rgba(148, 163, 184, 0.6)"
+            style={{ fontSize: 13, fill: '#e2e8f0', fontWeight: '500' }}
             angle={-45}
             textAnchor="end"
             height={60}
+            tickLine={false}
+            axisLine={{ stroke: 'rgba(71, 85, 105, 0.5)', strokeWidth: 1 }}
           />
           <YAxis
             domain={[0, 2]}
             ticks={[0, 0.5, 1.0, 1.5, 2.0]}
-            stroke="var(--muted)"
-            style={{ fontSize: 11 }}
+            stroke="rgba(148, 163, 184, 0.6)"
+            style={{ fontSize: 13, fill: '#e2e8f0', fontWeight: '500' }}
+            tickLine={false}
+            axisLine={false}
           />
 
           <ReferenceArea
+            y1={0}
+            y2={universalSweetMin}
+            fill="rgba(34, 211, 238, 0.05)"
+            fillOpacity={1}
+            strokeOpacity={0}
+          />
+          <ReferenceArea
             y1={universalSweetMin}
             y2={universalSweetMax}
-            fill="var(--acwr-sweet)"
-            fillOpacity={0.15}
+            fill="rgba(34, 211, 238, 0.08)"
+            fillOpacity={1}
             strokeOpacity={0}
           />
           <ReferenceArea
             y1={universalSweetMax}
             y2={cautionMax}
-            fill="var(--acwr-caution)"
-            fillOpacity={0.15}
+            fill="rgba(249, 115, 22, 0.1)"
+            fillOpacity={1}
             strokeOpacity={0}
           />
           <ReferenceArea
             y1={cautionMax}
             y2={riskMax}
-            fill="var(--acwr-risk)"
-            fillOpacity={0.15}
+            fill="rgba(239, 68, 68, 0.12)"
+            fillOpacity={1}
             strokeOpacity={0}
+          />
+
+          <ReferenceLine
+            y={universalSweetMax}
+            stroke="#F97316"
+            strokeWidth={2}
+            strokeDasharray="0"
+            label={{ value: 'Caution', position: 'right', fill: '#F97316', fontSize: 14, fontWeight: 700 }}
+          />
+
+          <ReferenceLine
+            y={cautionMax}
+            stroke="#ef4444"
+            strokeWidth={2}
+            strokeDasharray="0"
+            label={{ value: 'High Risk', position: 'insideTopRight', fill: '#ef4444', fontSize: 14, fontWeight: 700 }}
           />
 
           {showPersonalZone && (
             <ReferenceArea
               y1={personalMin}
               y2={personalMax}
-              fill="var(--acwr-personal)"
-              fillOpacity={0.1}
-              stroke="var(--acwr-personal-border)"
+              fill="rgba(34, 211, 238, 0.15)"
+              fillOpacity={1}
+              stroke="#22d3ee"
               strokeWidth={2}
               strokeDasharray="5 5"
             />
@@ -157,19 +247,21 @@ export default function ACWRChart({ weeklyMetrics, baselines, dateRangeLabel }: 
 
           <Tooltip
             contentStyle={{
-              background: "var(--card)",
-              border: "1px solid var(--line)",
-              borderRadius: 8,
-              fontSize: 12,
+              background: "rgba(5, 10, 20, 0.95)",
+              border: "2px solid #22d3ee",
+              borderRadius: 12,
+              fontSize: 14,
+              boxShadow: '0 0 20px rgba(34, 211, 238, 0.4)',
+              padding: '16px',
             }}
-            labelStyle={{ color: "var(--text)", fontWeight: 600 }}
-            itemStyle={{ color: "var(--primary)" }}
+            labelStyle={{ color: "#ffffff", fontWeight: 'bold', marginBottom: '8px' }}
+            itemStyle={{ color: "#22d3ee" }}
             formatter={(value: number | null, name: string) => {
               if (value === null) return ['N/A', 'ACWR'];
               if (name === 'acwrDisplay') {
                 const point = chartData.find(d => d.acwrDisplay === value);
                 const rawValue = point?.acwr ?? value;
-                return [rawValue.toFixed(2), 'ACWR'];
+                return [<span style={{ color: '#F97316', fontWeight: 'bold' }}>{rawValue.toFixed(2)}</span>, 'ACWR'];
               }
               return [value.toFixed(2), name];
             }}
@@ -182,80 +274,108 @@ export default function ACWRChart({ weeklyMetrics, baselines, dateRangeLabel }: 
           <Line
             type="monotone"
             dataKey="acwrDisplay"
-            stroke="var(--primary)"
-            strokeWidth={2}
-            dot={(props: any) => {
-              const { cx, cy, payload } = props;
-              const r = payload.isCurrentWeek ? 6 : 4;
-              const fill = payload.isCurrentWeek ? "var(--accent)" : "var(--primary)";
-              return <circle cx={cx} cy={cy} r={r} fill={fill} stroke="var(--card)" strokeWidth={2} />;
+            stroke="#F97316"
+            strokeWidth={4}
+            dot={{
+              r: 6,
+              fill: '#F97316',
+              stroke: '#ffffff',
+              strokeWidth: 2,
+            }}
+            activeDot={{
+              r: 8,
+              fill: '#F97316',
+              stroke: '#ffffff',
+              strokeWidth: 3,
+              filter: 'drop-shadow(0 0 8px rgba(249, 115, 22, 0.8))',
             }}
             connectNulls
           />
         </LineChart>
       </ResponsiveContainer>
 
-      <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: 11, color: 'var(--muted)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 16, height: 8, background: 'var(--acwr-sweet)', border: '1px solid rgba(42, 198, 113, 0.3)', borderRadius: 2 }} />
-          <span>Sweet Spot (0.8-1.3)</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 16, height: 8, background: 'var(--acwr-caution)', border: '1px solid rgba(255, 209, 102, 0.3)', borderRadius: 2 }} />
-          <span>Caution (1.3-1.5)</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 16, height: 8, background: 'var(--acwr-risk)', border: '1px solid rgba(255, 107, 107, 0.3)', borderRadius: 2 }} />
-          <span>High Risk (&gt;1.5)</span>
-        </div>
-        {showPersonalZone && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 16, height: 8, background: 'var(--acwr-personal)', border: '2px dashed var(--acwr-personal-border)', borderRadius: 2 }} />
-            <span>Your Zone ({personalMin.toFixed(1)}-{personalMax.toFixed(1)})</span>
-          </div>
-        )}
-      </div>
-
       {feedback && (
         <div style={{
-          marginTop: 16,
-          padding: 12,
-          background: zone === 'sweet-spot' ? 'var(--acwr-sweet)' :
-                     zone === 'caution' ? 'var(--acwr-caution)' :
-                     zone === 'high-risk' || zone === 'extreme-risk' ? 'var(--acwr-risk)' :
-                     'var(--card)',
-          borderRadius: 8,
-          border: '1px solid var(--line)',
+          marginTop: 24,
+          padding: '20px',
+          background: 'rgba(34, 211, 238, 0.05)',
+          borderRadius: 12,
+          border: '2px solid rgba(34, 211, 238, 0.3)',
         }}>
-          <div style={{ fontSize: 13, lineHeight: 1.5 }}>{feedback}</div>
+          <div style={{
+            fontSize: '16px',
+            lineHeight: 1.6,
+            color: '#cbd5e1',
+            fontWeight: '500'
+          }}>
+            {feedback}
+          </div>
           {trend !== 'stable' && (
-            <div style={{ fontSize: 12, marginTop: 6, color: 'var(--muted)' }}>
+            <div style={{
+              fontSize: 14,
+              marginTop: 12,
+              color: '#94a3b8'
+            }}>
               Trend: Your ACWR is {trendText} over the last 4 weeks.
             </div>
           )}
         </div>
       )}
 
-      <details style={{ marginTop: 16, fontSize: 12 }}>
-        <summary style={{ cursor: 'pointer', color: 'var(--primary)', userSelect: 'none' }}>
-          ℹ️ What is ACWR?
-        </summary>
-        <div style={{ marginTop: 8, color: 'var(--muted)', lineHeight: 1.6 }}>
-          <p>ACWR (Acute:Chronic Workload Ratio) compares your current week's training load to your 4-week average.</p>
-          <p style={{ marginTop: 8 }}>
-            <strong>Sweet Spot (0.8-1.3):</strong> Optimal zone for adaptation with minimal injury risk. Continue progressive training.
-          </p>
-          <p style={{ marginTop: 6 }}>
-            <strong>Caution Zone (1.3-1.5):</strong> Elevated load. Monitor recovery and consider extra rest days.
-          </p>
-          <p style={{ marginTop: 6 }}>
-            <strong>High Risk (&gt;1.5):</strong> Rapid load increase significantly elevates injury risk. Reduce volume or add recovery.
-          </p>
-          <p style={{ marginTop: 8, fontSize: 11 }}>
-            Note: Display capped at 2.0 for clarity. Hover over chart points to see exact values. Based on research by Gabbett (2016) and Malone et al. (2018).
-          </p>
+      <div style={{ marginTop: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'start', gap: 20 }}>
+          <div style={{ marginTop: 4 }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2">
+              <path d="M3 3v18h18" />
+              <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
+            </svg>
+          </div>
+          <div style={{ flex: 1 }}>
+            <h4 style={{
+              color: '#22d3ee',
+              fontWeight: 'bold',
+              fontSize: '20px',
+              marginBottom: '16px',
+              textShadow: '0 0 8px rgba(34, 211, 238, 0.4)'
+            }}>
+              {showPersonalZone ? 'AI Coach Insight: Personalized Workload Zone' : 'AI Coach Insight: Workload Sweet Spot'}
+            </h4>
+            <p style={{
+              color: '#cbd5e1',
+              fontSize: '16px',
+              lineHeight: 1.6,
+              marginBottom: '16px'
+            }}>
+              {showPersonalZone ? (
+                <>
+                  Your ACWR is {currentACWR?.toFixed(2)} — within your personalized optimal zone ({personalMin.toFixed(1)}-{personalMax.toFixed(1)}). This zone has been adapted based on your training history and load patterns.
+                </>
+              ) : (
+                <>
+                  Your ACWR is {currentACWR?.toFixed(2)} — {zone === 'sweet-spot' ? 'within the optimal zone!' : zone === 'caution' ? 'in the caution zone.' : 'outside the optimal zone.'} Your current load ({currentMetric?.totalDistanceKm.toFixed(1)} km) promotes adaptation while minimizing injury risk.
+                </>
+              )}
+            </p>
+            <button
+              onClick={() => {}}
+              style={{
+                fontSize: '16px',
+                fontWeight: 'bold',
+                color: '#22d3ee',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+                textShadow: '0 0 8px rgba(34, 211, 238, 0.6)',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#67e8f9'}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#22d3ee'}
+            >
+              What is ACWR? →
+            </button>
+          </div>
         </div>
-      </details>
+      </div>
     </section>
   );
 }
