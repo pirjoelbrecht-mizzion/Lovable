@@ -37,15 +37,6 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
     refresh,
   } = useACWRData(timeFrame);
 
-  console.log('[ACWRCard] State:', {
-    loading,
-    error: error?.message,
-    hasData,
-    needsMoreData,
-    totalWeeks,
-    dataLength: acwrData.length,
-    currentACWR
-  });
 
   const timeFrames: { key: TimeFrame; label: string }[] = [
     { key: '7d', label: '7d' },
@@ -167,7 +158,7 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
     );
   }
 
-  if (!hasData || needsMoreData) {
+  if (!hasData || totalWeeks === 0) {
     return (
       <>
         <div
@@ -191,7 +182,7 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
           >
             <TrendingUp className="w-16 h-16 text-cyan-400 mx-auto mb-6 opacity-60" />
             <p className="text-white text-lg font-semibold mb-3">
-              {totalWeeks === 0 ? 'No training data available' : `Need more data (${totalWeeks}/4 weeks)`}
+              No training data available
             </p>
             <p className="text-slate-300 text-sm leading-relaxed max-w-md mx-auto mb-6">
               ACWR requires at least 4 weeks of consistent training data to calculate your acute vs chronic workload ratio. Log your runs regularly to see your workload trends and injury risk insights.
@@ -286,6 +277,29 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
             </div>
           )}
         </div>
+
+        {/* Partial Data Banner */}
+        {needsMoreData && (
+          <div
+            className="mb-6 p-4 rounded-lg"
+            style={{
+              background: 'rgba(251, 146, 60, 0.08)',
+              border: '1px solid rgba(251, 146, 60, 0.3)',
+            }}
+          >
+            <div className="flex items-start gap-3">
+              <TrendingUp className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-white font-semibold text-sm mb-1">
+                  Limited Data Available ({totalWeeks} of 4 weeks needed)
+                </p>
+                <p className="text-slate-300 text-xs leading-relaxed">
+                  ACWR calculations become more accurate with 4+ weeks of data. Keep logging your runs to unlock full insights and personalized workload zones.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Chart */}
         <div className="mt-6 mb-6">
