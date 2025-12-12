@@ -21,6 +21,7 @@ import RouteExplorer from "./pages/RouteExplorer";
 import LearningDemo from "./pages/LearningDemo";
 import EnvironmentalLearning from "./pages/EnvironmentalLearning";
 import HeatImpactDemo from "./pages/HeatImpactDemo";
+import ACWRDemo from "./pages/ACWRDemo";
 
 // NEW triad pages
 import Quest from "./pages/Quest";
@@ -85,6 +86,9 @@ const router = createBrowserRouter([
 
       // Heat Impact Cosmic Demo
       { path: "heat-impact-demo", element: <HeatImpactDemo /> },
+
+      // ACWR Card Demo
+      { path: "acwr-demo", element: <ACWRDemo /> },
 
       // Legacy routes (still available)
       { path: "log", element: <Log /> },
