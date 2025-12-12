@@ -1,0 +1,459 @@
+.mirror-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.mirror-card {
+  background: linear-gradient(135deg, #0d1117 0%, #0a0e14 100%);
+  border: 1px solid var(--neon-cyan);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow:
+    0 0 15px rgba(0, 240, 255, 0.15),
+    inset 0 0 30px rgba(0, 240, 255, 0.03);
+}
+
+.mirror-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.mirror-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mirror-header-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--neon-cyan);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--neon-cyan);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+}
+
+.mirror-header-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+.mirror-header-nav {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mirror-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: transparent;
+  border: 1px solid var(--neon-cyan);
+  border-radius: 8px;
+  color: var(--neon-cyan);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.mirror-nav-btn:hover {
+  background: rgba(0, 240, 255, 0.1);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+  text-decoration: none;
+}
+
+.mirror-insights-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.mirror-insights-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+.mirror-timeframe-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mirror-pill {
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mirror-pill:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.mirror-pill.active {
+  background: rgba(0, 240, 255, 0.15);
+  border-color: var(--neon-cyan);
+  color: var(--neon-cyan);
+}
+
+.mirror-warning-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, rgba(255, 140, 0, 0.15) 0%, rgba(255, 100, 0, 0.08) 100%);
+  border: 1px solid rgba(255, 140, 0, 0.4);
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.mirror-warning-icon {
+  color: var(--neon-orange);
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.mirror-warning-text {
+  color: var(--neon-orange);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.mirror-tab-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.mirror-tab-btn {
+  padding: 10px 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mirror-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.mirror-tab-btn.active {
+  background: rgba(0, 240, 255, 0.12);
+  border-color: var(--neon-cyan);
+  color: var(--neon-cyan);
+}
+
+.mirror-chart-section {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .mirror-chart-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mirror-chart-card {
+  background: linear-gradient(135deg, #0d1117 0%, #0a0e14 100%);
+  border: 1px solid var(--neon-cyan);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.1);
+}
+
+.mirror-chart-header {
+  margin-bottom: 16px;
+}
+
+.mirror-chart-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 6px 0;
+}
+
+.mirror-chart-subtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+.mirror-chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.mirror-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.mirror-legend-line {
+  width: 20px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.mirror-legend-line.cyan {
+  background: var(--neon-cyan);
+}
+
+.mirror-legend-line.orange {
+  background: var(--neon-orange);
+}
+
+.mirror-load-box {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: rgba(0, 240, 255, 0.05);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 10px;
+}
+
+.mirror-load-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--neon-cyan);
+  margin: 0 0 6px 0;
+}
+
+.mirror-load-value {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.mirror-balance-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mirror-balance-icon {
+  color: var(--neon-yellow);
+  font-size: 16px;
+}
+
+.mirror-balance-text {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.mirror-feedback-card {
+  background: linear-gradient(135deg, #0d1117 0%, #0a0e14 100%);
+  border: 1px solid var(--neon-cyan);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.1);
+  height: fit-content;
+}
+
+.mirror-feedback-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 16px 0;
+}
+
+.mirror-feedback-rate {
+  margin-bottom: 16px;
+}
+
+.mirror-feedback-label {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0 0 8px 0;
+}
+
+.mirror-feedback-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--neon-cyan);
+}
+
+.mirror-feedback-empty {
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.mirror-feedback-empty-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #94a3b8;
+  margin: 0 0 8px 0;
+}
+
+.mirror-feedback-empty-text {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.mirror-recent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.mirror-recent-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+.mirror-view-all-btn {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.mirror-view-all-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.3);
+  text-decoration: none;
+}
+
+.mirror-activities-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 700px) {
+  .mirror-activities-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mirror-activity-card {
+  background: linear-gradient(135deg, #0d1117 0%, #0a0e14 100%);
+  border: 1px solid var(--neon-cyan);
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.08);
+}
+
+.mirror-activity-card:hover {
+  border-color: var(--neon-cyan-strong);
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.mirror-activity-media {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.mirror-activity-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mirror-photo-count {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mirror-activity-info {
+  padding: 14px 16px;
+}
+
+.mirror-activity-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 6px 0;
+}
+
+.mirror-activity-date {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0 0 4px 0;
+}
+
+.mirror-activity-stats {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.mirror-empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: #64748b;
+}
+
+.mirror-empty-state p {
+  margin: 0;
+  line-height: 1.6;
+}
