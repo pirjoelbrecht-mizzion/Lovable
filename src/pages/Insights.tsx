@@ -8,7 +8,7 @@ import { LineChart, Line as RechartLine, BarChart, Bar, XAxis, YAxis, CartesianG
 import { useAthleteBaselines } from "@/hooks/useAthleteBaselines";
 import { useWeeklyMetrics } from "@/hooks/useWeeklyMetrics";
 import AIInsight from "@/components/AIInsight";
-import ACWRChart from "@/components/ACWRChart";
+import ACWRCard from "@/components/ACWRCard";
 import WeeklyDistanceVertChart from "@/components/WeeklyDistanceVertChart";
 import ReadinessTrendChart from "@/components/ReadinessTrendChart";
 import ReadinessInputModal from "@/components/ReadinessInputModal";
@@ -751,13 +751,6 @@ function InsightsContent() {
         </div>
       </section>
     )}
-    {!isComputingMetrics && dateRange.resolution !== 'daily' && (
-      <ACWRChart
-        weeklyMetrics={weeklyMetrics}
-        baselines={baselines}
-        dateRangeLabel={dateRange.label}
-      />
-    )}
     {!isComputingMetrics && dateRange.resolution === 'daily' && (
       <section className="card">
         <h3 className="h2">ACWR (Workload Ratio)</h3>
@@ -765,6 +758,13 @@ function InsightsContent() {
           ACWR requires weekly aggregated data. Switch to 4W, 3M, or 12M view to see ACWR analysis.
         </p>
       </section>
+    )}
+    {!isComputingMetrics && dateRange.resolution !== 'daily' && (
+      <ACWRCard defaultTimeFrame={
+        globalTimeFrame.type === '3m' ? '3m' :
+        globalTimeFrame.type === '12m' ? '12m' :
+        '4w'
+      } />
     )}
     {!isComputingMetrics && baselines && weeklyMetrics.length > 0 && dateRange.resolution !== 'daily' && (
       <AIInsight metrics={weeklyMetrics} baselines={baselines} metricType="acwr" />
