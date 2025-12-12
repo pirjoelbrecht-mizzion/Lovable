@@ -186,13 +186,13 @@ export default function MirrorInsights() {
       )}
 
       {tab === "acwr" && (
-        <div className="mirror-chart-section">
+        <div style={{ marginTop: '2.5rem' }}>
           <ACWRCard />
         </div>
       )}
 
       {tab === "zones" && (
-        <div className="mirror-chart-section">
+        <div style={{ marginTop: '2.5rem' }}>
           <div className="mirror-chart-card">
             <div className="mirror-chart-header">
               <h3 className="mirror-chart-title">Training Zones</h3>
@@ -203,7 +203,7 @@ export default function MirrorInsights() {
       )}
 
       {tab === "efficiency" && (
-        <div className="mirror-chart-section">
+        <div style={{ marginTop: '2.5rem' }}>
           <div className="mirror-chart-card">
             <div className="mirror-chart-header">
               <h3 className="mirror-chart-title">Efficiency (Pace vs HR)</h3>
@@ -214,7 +214,7 @@ export default function MirrorInsights() {
       )}
 
       {tab === "projection" && (
-        <div className="mirror-chart-section">
+        <div style={{ marginTop: '2.5rem' }}>
           <div className="mirror-chart-card">
             <div className="mirror-chart-header">
               <h3 className="mirror-chart-title">Projection</h3>
@@ -225,7 +225,7 @@ export default function MirrorInsights() {
       )}
 
       {tab === "longrun" && (
-        <div className="mirror-chart-section">
+        <div style={{ marginTop: '2.5rem' }}>
           <div className="mirror-chart-card">
             <div className="mirror-chart-header">
               <h3 className="mirror-chart-title">Long Run</h3>

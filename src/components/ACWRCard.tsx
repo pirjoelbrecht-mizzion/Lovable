@@ -37,6 +37,16 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
     refresh,
   } = useACWRData(timeFrame);
 
+  console.log('[ACWRCard] State:', {
+    loading,
+    error: error?.message,
+    hasData,
+    needsMoreData,
+    totalWeeks,
+    dataLength: acwrData.length,
+    currentACWR
+  });
+
   const timeFrames: { key: TimeFrame; label: string }[] = [
     { key: '7d', label: '7d' },
     { key: '14d', label: '14d' },
@@ -159,37 +169,44 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
 
   if (!hasData || needsMoreData) {
     return (
-      <div
-        className="relative rounded-2xl p-6 backdrop-blur-sm"
-        style={{
-          background: 'rgba(11, 18, 33, 0.8)',
-          border: '1px solid #06b6d4',
-          boxShadow: '0 0 30px rgba(6, 182, 212, 0.15)',
-        }}
-      >
-        <h3 className="text-lg font-semibold text-white mb-3">
-          ACWR (Acute:Chronic Workload Ratio)
-        </h3>
+      <>
         <div
-          className="p-6 rounded-lg text-center"
+          className="relative rounded-2xl p-8 backdrop-blur-sm"
           style={{
-            background: 'rgba(6, 182, 212, 0.05)',
-            border: '1px solid rgba(6, 182, 212, 0.2)',
+            background: 'rgba(11, 18, 33, 0.8)',
+            border: '1px solid #06b6d4',
+            boxShadow: '0 0 30px rgba(6, 182, 212, 0.15)',
+            minHeight: '400px',
           }}
         >
-          <TrendingUp className="w-12 h-12 text-cyan-400 mx-auto mb-4 opacity-50" />
-          <p className="text-white text-sm mb-2">
-            {totalWeeks === 0 ? 'No training data available' : `Need more data (${totalWeeks}/4 weeks)`}
-          </p>
-          <p className="text-slate-400 text-xs leading-relaxed">
-            ACWR requires at least 4 weeks of consistent training data. Log your runs regularly to see your workload ratio and injury risk insights.
-          </p>
-          <button
-            onClick={() => setShowInfoModal(true)}
-            className="mt-4 text-sm font-semibold text-cyan-400 hover:text-cyan-300 transition-colors"
+          <h3 className="text-xl font-semibold text-white mb-6">
+            ACWR (Acute:Chronic Workload Ratio)
+          </h3>
+          <div
+            className="p-8 rounded-xl text-center"
+            style={{
+              background: 'rgba(6, 182, 212, 0.08)',
+              border: '1px solid rgba(6, 182, 212, 0.3)',
+            }}
           >
-            What is ACWR? →
-          </button>
+            <TrendingUp className="w-16 h-16 text-cyan-400 mx-auto mb-6 opacity-60" />
+            <p className="text-white text-lg font-semibold mb-3">
+              {totalWeeks === 0 ? 'No training data available' : `Need more data (${totalWeeks}/4 weeks)`}
+            </p>
+            <p className="text-slate-300 text-sm leading-relaxed max-w-md mx-auto mb-6">
+              ACWR requires at least 4 weeks of consistent training data to calculate your acute vs chronic workload ratio. Log your runs regularly to see your workload trends and injury risk insights.
+            </p>
+            <button
+              onClick={() => setShowInfoModal(true)}
+              className="px-6 py-3 rounded-lg text-sm font-bold text-white hover:text-cyan-300 transition-colors inline-flex items-center gap-2"
+              style={{
+                background: 'rgba(6, 182, 212, 0.2)',
+                border: '1px solid rgba(6, 182, 212, 0.4)',
+              }}
+            >
+              What is ACWR? →
+            </button>
+          </div>
         </div>
         <ACWRInfoModal
           isOpen={showInfoModal}
@@ -198,7 +215,7 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
           personalMin={zoneInfo.personalMin}
           personalMax={zoneInfo.personalMax}
         />
-      </div>
+      </>
     );
   }
 
