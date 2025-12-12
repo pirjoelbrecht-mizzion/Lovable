@@ -14,6 +14,7 @@ import type { UserProfile } from "@/types/onboarding";
 import { filterEntriesByDateRange, aggregateByWeek } from "@/utils/dataAggregation";
 import { AlertTriangle, Zap } from "lucide-react";
 import MirrorWeeklyChart from "./MirrorWeeklyChart";
+import ACWRCard from "./ACWRCard";
 
 type TabKey = "weekly" | "acwr" | "zones" | "efficiency" | "projection" | "longrun";
 
@@ -181,6 +182,56 @@ export default function MirrorInsights() {
           </div>
 
           <MirrorFeedbackPanel />
+        </div>
+      )}
+
+      {tab === "acwr" && (
+        <div className="mirror-chart-section">
+          <ACWRCard />
+        </div>
+      )}
+
+      {tab === "zones" && (
+        <div className="mirror-chart-section">
+          <div className="mirror-chart-card">
+            <div className="mirror-chart-header">
+              <h3 className="mirror-chart-title">Training Zones</h3>
+              <p className="mirror-chart-subtitle">Coming soon</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === "efficiency" && (
+        <div className="mirror-chart-section">
+          <div className="mirror-chart-card">
+            <div className="mirror-chart-header">
+              <h3 className="mirror-chart-title">Efficiency (Pace vs HR)</h3>
+              <p className="mirror-chart-subtitle">Coming soon</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === "projection" && (
+        <div className="mirror-chart-section">
+          <div className="mirror-chart-card">
+            <div className="mirror-chart-header">
+              <h3 className="mirror-chart-title">Projection</h3>
+              <p className="mirror-chart-subtitle">Coming soon</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === "longrun" && (
+        <div className="mirror-chart-section">
+          <div className="mirror-chart-card">
+            <div className="mirror-chart-header">
+              <h3 className="mirror-chart-title">Long Run</h3>
+              <p className="mirror-chart-subtitle">Coming soon</p>
+            </div>
+          </div>
         </div>
       )}
 

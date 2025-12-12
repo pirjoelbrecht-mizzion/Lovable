@@ -37,17 +37,6 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
     refresh,
   } = useACWRData(timeFrame);
 
-  console.log('[ACWRCard] Debug:', {
-    loading,
-    error: error?.message,
-    hasData,
-    needsMoreData,
-    totalWeeks,
-    acwrDataLength: acwrData.length,
-    currentACWR,
-    timeFrame
-  });
-
   const timeFrames: { key: TimeFrame; label: string }[] = [
     { key: '7d', label: '7d' },
     { key: '14d', label: '14d' },
