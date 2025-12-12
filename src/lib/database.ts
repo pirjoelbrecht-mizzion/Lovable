@@ -535,19 +535,21 @@ export async function syncLogEntries(): Promise<LogEntry[]> {
     return cleaned;
   }
 
-  // Select only essential fields to avoid JSON size limits with large polylines
+  // Select only essential fields to avoid JSON size limits and timeouts
+  // Exclude elevation_stream and distance_stream as they can be very large
   const { data, error} = await supabase
     .from('log_entries')
     .select(`
       id, user_id, date, type, title, duration_min, km, hr_avg,
       source, created_at, updated_at, external_id, data_source,
-      map_polyline, map_summary_polyline, elevation_gain, elevation_stream, distance_stream,
+      map_polyline, map_summary_polyline, elevation_gain,
       temperature, weather_conditions, location_name, humidity, altitude_m, terrain_type,
       weather_data, elevation_loss, elevation_low,
       sport_type, description, device_name, gear_id, has_photos, has_segments
     `)
     .eq('user_id', userId)
-    .order('date', { ascending: false });
+    .order('date', { ascending: false })
+    .limit(500);
 
   if (error) {
     console.error('Failed to sync log entries:', error);
@@ -556,7 +558,15 @@ export async function syncLogEntries(): Promise<LogEntry[]> {
     return cleaned;
   }
 
-  const dbEntries = (data || []).map(fromDbLogEntry);
+  let dbEntries: LogEntry[] = [];
+  try {
+    dbEntries = (data || []).map(fromDbLogEntry);
+  } catch (parseError) {
+    console.error('Failed to parse log entries:', parseError);
+    const cleaned = cleanupDuplicates(localEntries);
+    save('logEntries', cleaned);
+    return cleaned;
+  }
   console.log('[syncLogEntries] Local entries:', localEntries.length);
   console.log('[syncLogEntries] DB entries:', dbEntries.length);
 
@@ -602,11 +612,19 @@ export async function getLogEntriesByDateRange(startDate: string, endDate: strin
 
   const { data, error } = await supabase
     .from('log_entries')
-    .select('*')
+    .select(`
+      id, user_id, date, type, title, duration_min, km, hr_avg,
+      source, created_at, updated_at, external_id, data_source,
+      map_polyline, map_summary_polyline, elevation_gain,
+      temperature, weather_conditions, location_name, humidity, altitude_m, terrain_type,
+      weather_data, elevation_loss, elevation_low,
+      sport_type, description, device_name, gear_id, has_photos, has_segments
+    `)
     .eq('user_id', userId)
     .gte('date', startDate)
     .lte('date', endDate)
-    .order('date', { ascending: false });
+    .order('date', { ascending: false })
+    .limit(1000);
 
   if (error) {
     console.error('Failed to fetch log entries by date range:', error);
@@ -615,7 +633,43 @@ export async function getLogEntriesByDateRange(startDate: string, endDate: strin
   }
 
   console.log('[getLogEntriesByDateRange] Fetched', data?.length || 0, 'entries from database');
-  return (data || []).map(fromDbLogEntry);
+  try {
+    return (data || []).map(fromDbLogEntry);
+  } catch (parseError) {
+    console.error('Failed to parse log entries:', parseError);
+    const entries = load<LogEntry[]>('logEntries', []);
+    return entries.filter(e => e.dateISO >= startDate && e.dateISO <= endDate);
+  }
+}
+
+export async function getActivityStreams(activityId: string): Promise<{ elevationStream?: number[]; distanceStream?: number[] } | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
+  const userId = await getCurrentUserId();
+  if (!userId) return null;
+
+  const { data, error } = await supabase
+    .from('log_entries')
+    .select('elevation_stream, distance_stream')
+    .eq('user_id', userId)
+    .eq('id', activityId)
+    .maybeSingle();
+
+  if (error || !data) {
+    console.error('Failed to fetch activity streams:', error);
+    return null;
+  }
+
+  try {
+    return {
+      elevationStream: data.elevation_stream ? JSON.parse(data.elevation_stream) : undefined,
+      distanceStream: data.distance_stream ? JSON.parse(data.distance_stream) : undefined,
+    };
+  } catch (parseError) {
+    console.error('Failed to parse activity streams:', parseError);
+    return null;
+  }
 }
 
 export async function saveWeeklyMetric(metric: DbWeeklyMetric): Promise<boolean> {
