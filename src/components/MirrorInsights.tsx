@@ -15,6 +15,7 @@ import { filterEntriesByDateRange, aggregateByWeek } from "@/utils/dataAggregati
 import { AlertTriangle, Zap } from "lucide-react";
 import MirrorWeeklyChart from "./MirrorWeeklyChart";
 import ACWRCard from "./ACWRCard";
+import MirrorZonesChart from "./MirrorZonesChart";
 
 type TabKey = "weekly" | "acwr" | "zones" | "efficiency" | "projection" | "longrun";
 
@@ -192,13 +193,31 @@ export default function MirrorInsights() {
       )}
 
       {tab === "zones" && (
-        <div style={{ marginTop: '2.5rem' }}>
-          <div className="mirror-chart-card">
-            <div className="mirror-chart-header">
-              <h3 className="mirror-chart-title">Training Zones</h3>
-              <p className="mirror-chart-subtitle">Coming soon</p>
-            </div>
+        <div className="mirror-chart-card" style={{ marginTop: '2.5rem' }}>
+          <div className="mirror-chart-header">
+            <h3 className="mirror-chart-title">Heart Rate Zones</h3>
+            <p className="mirror-chart-subtitle">Training intensity distribution based on heart rate data</p>
           </div>
+          <MirrorZonesChart
+            entries={entries}
+            restingHR={userProfile?.deviceData?.hrResting || 60}
+            maxHR={userProfile?.deviceData?.hrMax || 190}
+          />
+          {(!userProfile?.deviceData?.hrResting || !userProfile?.deviceData?.hrMax) && (
+            <div
+              style={{
+                marginTop: '24px',
+                padding: '16px',
+                borderRadius: '8px',
+                background: 'rgba(249, 115, 22, 0.1)',
+                border: '1px solid rgba(249, 115, 22, 0.3)',
+              }}
+            >
+              <p style={{ color: 'rgb(148, 163, 184)', fontSize: '14px', lineHeight: '1.5' }}>
+                <strong style={{ color: '#ffffff' }}>Tip:</strong> Set your resting HR and max HR in Settings for personalized zone calculations.
+              </p>
+            </div>
+          )}
         </div>
       )}
 
