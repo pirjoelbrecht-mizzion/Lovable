@@ -211,7 +211,7 @@
 
 .mirror-chart-subtitle {
   font-size: 14px;
-  color: #64748b;
+  color: #a0b0c0;
   margin: 0;
 }
 
@@ -228,7 +228,7 @@
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #94a3b8;
+  color: #cbd5e1;
 }
 
 .mirror-legend-line {
@@ -262,7 +262,7 @@
 
 .mirror-load-value {
   font-size: 13px;
-  color: #94a3b8;
+  color: #cbd5e1;
   margin: 0;
 }
 
@@ -282,7 +282,7 @@
 
 .mirror-balance-text {
   font-size: 12px;
-  color: #64748b;
+  color: #a0b0c0;
   line-height: 1.5;
   margin: 0;
 }
@@ -309,7 +309,7 @@
 
 .mirror-feedback-label {
   font-size: 12px;
-  color: #64748b;
+  color: #a0b0c0;
   margin: 0 0 8px 0;
 }
 
@@ -336,7 +336,7 @@
 
 .mirror-feedback-empty-text {
   font-size: 13px;
-  color: #64748b;
+  color: #a0b0c0;
   margin: 0;
   line-height: 1.5;
 }
@@ -440,20 +440,20 @@
 
 .mirror-activity-date {
   font-size: 13px;
-  color: #64748b;
+  color: #a0b0c0;
   margin: 0 0 4px 0;
 }
 
 .mirror-activity-stats {
   font-size: 12px;
-  color: #94a3b8;
+  color: #cbd5e1;
   margin: 0;
 }
 
 .mirror-empty-state {
   padding: 40px 20px;
   text-align: center;
-  color: #64748b;
+  color: #a0b0c0;
 }
 
 .mirror-empty-state p {

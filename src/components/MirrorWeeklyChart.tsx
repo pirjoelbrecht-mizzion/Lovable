@@ -45,13 +45,13 @@ export default function MirrorWeeklyChart({ data }: Props) {
         <div style={{ fontWeight: 600, color: '#fff', marginBottom: 8 }}>
           {d.week}
         </div>
-        <div style={{ color: '#94a3b8', marginBottom: 4 }}>
+        <div style={{ color: '#cbd5e1', marginBottom: 4 }}>
           Distance: <span style={{ color: '#10b981' }}>{d.distance.toFixed(1)} km</span>
         </div>
-        <div style={{ color: '#94a3b8', marginBottom: 4 }}>
+        <div style={{ color: '#cbd5e1', marginBottom: 4 }}>
           Vertical: <span style={{ color: 'var(--neon-orange)' }}>{d.vertical.toFixed(0)} m</span>
         </div>
-        <div style={{ color: '#94a3b8' }}>
+        <div style={{ color: '#cbd5e1' }}>
           Combined Load: <span style={{ color: 'var(--neon-cyan)' }}>{d.combinedLoad.toFixed(1)} km-eq</span>
         </div>
       </div>
@@ -76,13 +76,13 @@ export default function MirrorWeeklyChart({ data }: Props) {
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.06)" />
           <XAxis
             dataKey="week"
-            stroke="#64748b"
+            stroke="#94a3b8"
             style={{ fontSize: 11 }}
             tickLine={false}
           />
           <YAxis
             yAxisId="left"
-            stroke="#64748b"
+            stroke="#94a3b8"
             style={{ fontSize: 11 }}
             tickLine={false}
             axisLine={false}
@@ -91,7 +91,7 @@ export default function MirrorWeeklyChart({ data }: Props) {
           <YAxis
             yAxisId="right"
             orientation="right"
-            stroke="#64748b"
+            stroke="#94a3b8"
             style={{ fontSize: 11 }}
             tickLine={false}
             axisLine={false}
