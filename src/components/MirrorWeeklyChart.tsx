@@ -23,7 +23,7 @@ export default function MirrorWeeklyChart({ data }: Props) {
     if (entry.combinedChangePercent !== undefined && entry.combinedChangePercent > 5) {
       return '#f97316';
     }
-    return '#8de5a3';
+    return 'url(#tealGradient)';
   };
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -34,25 +34,25 @@ export default function MirrorWeeklyChart({ data }: Props) {
     return (
       <div
         style={{
-          background: 'rgba(13, 17, 23, 0.95)',
-          border: '1px solid var(--neon-cyan)',
+          background: '#0b1221',
+          border: '1px solid rgba(59, 130, 246, 0.4)',
           borderRadius: 8,
           padding: 12,
           fontSize: 13,
-          boxShadow: '0 0 20px rgba(0, 240, 255, 0.2)',
+          boxShadow: '0 4px 20px rgba(59, 130, 246, 0.3)',
         }}
       >
-        <div style={{ fontWeight: 600, color: '#fff', marginBottom: 8 }}>
+        <div style={{ fontWeight: 600, color: '#ffffff', marginBottom: 8 }}>
           {d.week}
         </div>
-        <div style={{ color: '#cbd5e1', marginBottom: 4 }}>
-          Distance: <span style={{ color: '#8de5a3' }}>{d.distance.toFixed(1)} km</span>
+        <div style={{ color: 'rgb(148, 163, 184)', marginBottom: 4 }}>
+          Distance: <span style={{ color: '#22d3ee' }}>{d.distance.toFixed(1)} km</span>
         </div>
-        <div style={{ color: '#cbd5e1', marginBottom: 4 }}>
-          Vertical: <span style={{ color: '#ffa162' }}>{d.vertical.toFixed(0)} m</span>
+        <div style={{ color: 'rgb(148, 163, 184)', marginBottom: 4 }}>
+          Vertical: <span style={{ color: '#fb923c' }}>{d.vertical.toFixed(0)} m</span>
         </div>
-        <div style={{ color: '#cbd5e1' }}>
-          Combined Load: <span style={{ color: '#ff76ac' }}>{d.combinedLoad.toFixed(1)} km-eq</span>
+        <div style={{ color: 'rgb(148, 163, 184)' }}>
+          Combined Load: <span style={{ color: '#f43f5e' }}>{d.combinedLoad.toFixed(1)} km-eq</span>
         </div>
       </div>
     );
@@ -73,16 +73,22 @@ export default function MirrorWeeklyChart({ data }: Props) {
 
       <ResponsiveContainer width="100%" height={280}>
         <ComposedChart data={data} margin={{ top: 10, right: 30, bottom: 10, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.06)" />
+          <defs>
+            <linearGradient id="tealGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.8} />
+              <stop offset="100%" stopColor="#06b6d4" stopOpacity={0.4} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(59, 130, 246, 0.08)" />
           <XAxis
             dataKey="week"
-            stroke="rgba(255, 255, 255, 0.55)"
+            stroke="rgb(148, 163, 184)"
             style={{ fontSize: 12, letterSpacing: '0.05em' }}
             tickLine={false}
           />
           <YAxis
             yAxisId="left"
-            stroke="rgba(255, 255, 255, 0.55)"
+            stroke="rgb(148, 163, 184)"
             style={{ fontSize: 12, letterSpacing: '0.05em' }}
             tickLine={false}
             axisLine={false}
@@ -91,7 +97,7 @@ export default function MirrorWeeklyChart({ data }: Props) {
           <YAxis
             yAxisId="right"
             orientation="right"
-            stroke="rgba(255, 255, 255, 0.55)"
+            stroke="rgb(148, 163, 184)"
             style={{ fontSize: 12, letterSpacing: '0.05em' }}
             tickLine={false}
             axisLine={false}
@@ -114,19 +120,19 @@ export default function MirrorWeeklyChart({ data }: Props) {
             yAxisId="right"
             type="monotone"
             dataKey="vertical"
-            stroke="#ffa162"
-            strokeWidth={2.5}
+            stroke="#fb923c"
+            strokeWidth={3}
             dot={{
               r: 5,
-              stroke: '#ffa162',
+              stroke: '#fb923c',
               strokeWidth: 2,
-              fill: '#fff',
+              fill: '#0b1221',
             }}
             activeDot={{
               r: 7,
-              stroke: '#ffa162',
+              stroke: '#fb923c',
               strokeWidth: 2,
-              fill: '#fff',
+              fill: '#fb923c',
             }}
           />
         </ComposedChart>

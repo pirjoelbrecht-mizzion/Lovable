@@ -26,11 +26,11 @@
   --shadow-inset: inset 0 0 40px #0C1220;
 
   /* surfaces & text */
-  --bg: #0b0b0c;
-  --card: #16171a;
-  --text: #e7e7ea;
-  --muted: #a4a6ad;
-  --line: #26272b;
+  --bg: #050a14;
+  --card: #0b1221;
+  --text: #ffffff;
+  --muted: rgb(148, 163, 184);
+  --line: rgba(59, 130, 246, 0.2);
 
   /* brand accents */
   --primary: #6aa7ff;   /* bars, buttons, links */
