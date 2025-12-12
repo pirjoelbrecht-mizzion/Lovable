@@ -84,17 +84,17 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
         <div style={{ fontWeight: 700, color: '#ffffff', marginBottom: 10, fontSize: 15 }}>
           Week of {d.date}
         </div>
-        <div style={{ color: '#e2e8f0', marginBottom: 6 }}>
-          ACWR: <span style={{ color: '#FF9F43', fontWeight: 700, fontSize: 15 }}>{d.acwr.toFixed(2)}</span>
+        <div style={{ color: '#ffffff', marginBottom: 6 }}>
+          ACWR: <span style={{ color: '#F97316', fontWeight: 700, fontSize: 15 }}>{d.acwr.toFixed(2)}</span>
         </div>
-        <div style={{ color: '#e2e8f0', marginBottom: 6 }}>
+        <div style={{ color: '#ffffff', marginBottom: 6 }}>
           Acute: <span style={{ color: '#22d3ee', fontWeight: 600 }}>{d.acute.toFixed(1)} km</span>
         </div>
-        <div style={{ color: '#e2e8f0' }}>
-          Chronic: <span style={{ color: '#a78bfa', fontWeight: 600 }}>{d.chronic.toFixed(1)} km</span>
+        <div style={{ color: '#ffffff' }}>
+          Chronic: <span style={{ color: '#F97316', fontWeight: 600 }}>{d.chronic.toFixed(1)} km</span>
         </div>
         {zoneInfo.hasPersonalZone && (
-          <div style={{ color: '#cbd5e1', marginTop: 10, fontSize: 12, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 8 }}>
+          <div style={{ color: '#ffffff', marginTop: 10, fontSize: 12, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 8 }}>
             Your zone: {zoneInfo.personalMin.toFixed(1)}-{zoneInfo.personalMax.toFixed(1)}
           </div>
         )}
@@ -105,10 +105,10 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
   if (loading) {
     return (
       <div
-        className="relative rounded-2xl p-10 backdrop-blur-md border border-cyan-400/50 flex items-center justify-center"
+        className="relative rounded-2xl p-10 backdrop-blur-md border-2 border-cyan-400 flex items-center justify-center text-white"
         style={{
           background: 'rgba(11, 18, 33, 0.9)',
-          boxShadow: '0 0 28px rgba(255, 160, 50, 0.15), 0 0 40px rgba(34, 211, 238, 0.2)',
+          boxShadow: '0 0 25px rgba(34, 211, 238, 0.3)',
           minHeight: '500px',
         }}
       >
@@ -123,30 +123,30 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
   if (error) {
     return (
       <div
-        className="relative rounded-2xl p-10 backdrop-blur-md border border-red-400/50"
+        className="relative rounded-2xl p-10 backdrop-blur-md border-2 border-red-400 text-white"
         style={{
           background: 'rgba(11, 18, 33, 0.9)',
-          boxShadow: '0 0 28px rgba(255, 107, 107, 0.2)',
+          boxShadow: '0 0 25px rgba(239, 68, 68, 0.3)',
         }}
       >
-        <h3 className="text-3xl font-bold text-white mb-2">
+        <h3 className="text-2xl font-bold text-white mb-2">
           ACWR (Acute:Chronic Workload Ratio)
         </h3>
-        <p className="text-sm text-slate-400 mb-8">
+        <p className="text-sm text-white mb-8">
           Last 12 months • Last 12 weeks
         </p>
         <div
           className="p-8 rounded-xl border border-white/20"
           style={{
-            background: 'rgba(255, 107, 107, 0.1)',
+            background: 'rgba(239, 68, 68, 0.1)',
           }}
         >
-          <p className="text-red-300 text-base mb-5 font-medium">
+          <p className="text-white text-base mb-5 font-medium">
             Failed to load ACWR data: {error.message}
           </p>
           <button
             onClick={refresh}
-            className="px-8 py-3 rounded-lg text-base font-bold text-white transition-all hover:bg-cyan-400/30 border border-cyan-400/50"
+            className="px-8 py-3 rounded-lg text-base font-bold text-white transition-all hover:bg-cyan-400/40 border-2 border-cyan-400"
             style={{
               background: 'rgba(34, 211, 238, 0.15)',
             }}
@@ -162,17 +162,17 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
     return (
       <>
         <div
-          className="relative rounded-2xl p-10 backdrop-blur-md border border-cyan-400/50"
+          className="relative rounded-2xl p-10 backdrop-blur-md border-2 border-cyan-400 text-white"
           style={{
             background: 'rgba(11, 18, 33, 0.9)',
-            boxShadow: '0 0 28px rgba(255, 160, 50, 0.15), 0 0 40px rgba(34, 211, 238, 0.2)',
+            boxShadow: '0 0 25px rgba(34, 211, 238, 0.3)',
             minHeight: '400px',
           }}
         >
-          <h3 className="text-3xl font-bold text-white mb-2">
+          <h3 className="text-2xl font-bold text-white mb-2">
             ACWR (Acute:Chronic Workload Ratio)
           </h3>
-          <p className="text-sm text-slate-400 mb-10">
+          <p className="text-sm text-white mb-10">
             Last 12 months • Last 12 weeks
           </p>
           <div
@@ -185,12 +185,12 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
             <p className="text-white text-2xl font-bold mb-5">
               No training data available
             </p>
-            <p className="text-slate-200 text-base leading-relaxed max-w-xl mx-auto mb-10">
+            <p className="text-white text-base leading-relaxed max-w-xl mx-auto mb-10">
               ACWR requires at least 4 weeks of consistent training data to calculate your acute vs chronic workload ratio. Log your runs regularly to see your workload trends and injury risk insights.
             </p>
             <button
               onClick={() => setShowInfoModal(true)}
-              className="px-10 py-4 rounded-full text-base font-bold text-white hover:text-cyan-300 transition-all inline-flex items-center gap-2 border-2 border-cyan-400/50"
+              className="px-10 py-4 rounded-full text-base font-bold text-white hover:text-cyan-300 transition-all inline-flex items-center gap-2 border-2 border-cyan-400"
               style={{
                 background: 'rgba(34, 211, 238, 0.15)',
               }}
@@ -219,19 +219,19 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
   return (
     <>
       <div
-        className="relative rounded-2xl p-10 backdrop-blur-md border border-cyan-400/50"
+        className="relative rounded-2xl p-10 backdrop-blur-md border-2 border-cyan-400 text-white"
         style={{
           background: 'rgba(11, 18, 33, 0.9)',
-          boxShadow: '0 0 28px rgba(255, 160, 50, 0.15), 0 0 40px rgba(34, 211, 238, 0.2)',
+          boxShadow: '0 0 25px rgba(34, 211, 238, 0.3)',
         }}
       >
         {/* Header */}
         <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
           <div className="flex-1">
-            <h3 className="text-3xl font-bold text-white mb-2">
+            <h3 className="text-2xl font-bold text-white mb-2">
               ACWR (Acute:Chronic Workload Ratio)
             </h3>
-            <p className="text-sm text-slate-400 mb-6">
+            <p className="text-sm text-white mb-6">
               Last 12 months • Last 12 weeks
             </p>
             <div className="flex items-center gap-2 flex-wrap">
@@ -242,9 +242,9 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
                     onClick={() => setTimeFrame(tf.key)}
                     className="px-4 py-2 text-sm font-semibold rounded-full transition-all"
                     style={{
-                      background: timeFrame === tf.key ? 'rgba(255, 159, 67, 0.25)' : 'transparent',
-                      color: timeFrame === tf.key ? '#FF9F43' : '#94a3b8',
-                      border: timeFrame === tf.key ? '2px solid rgba(255, 159, 67, 0.6)' : '1px solid rgba(148, 163, 184, 0.3)',
+                      background: timeFrame === tf.key ? 'rgba(249, 115, 22, 0.25)' : 'transparent',
+                      color: timeFrame === tf.key ? '#ffffff' : '#94a3b8',
+                      border: timeFrame === tf.key ? '2px solid #F97316' : '1px solid rgba(148, 163, 184, 0.3)',
                     }}
                   >
                     {tf.label}
@@ -263,9 +263,9 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
           </div>
           {currentACWR !== null && (
             <div
-              className="border-2 border-slate-500 rounded-full px-5 py-2.5 text-base font-semibold text-white"
+              className="border-2 border-cyan-400 rounded-full px-5 py-2.5 text-base font-semibold text-white"
               style={{
-                background: 'rgba(255, 255, 255, 0.08)',
+                background: 'rgba(34, 211, 238, 0.15)',
               }}
             >
               Current: {currentACWR.toFixed(2)}
@@ -278,7 +278,7 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
           <div
             className="mb-10 p-6 rounded-xl border border-white/20"
             style={{
-              background: 'rgba(255, 159, 67, 0.12)',
+              background: 'rgba(249, 115, 22, 0.12)',
             }}
           >
             <div className="flex items-start gap-5">
@@ -287,7 +287,7 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
                 <p className="text-white font-bold text-lg mb-2">
                   Limited Data Available ({totalWeeks} of 4 weeks needed)
                 </p>
-                <p className="text-slate-200 text-base leading-relaxed">
+                <p className="text-white text-base leading-relaxed">
                   ACWR calculations become more accurate with 4+ weeks of data. Keep logging your runs to unlock full insights and personalized workload zones.
                 </p>
               </div>
@@ -299,101 +299,73 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
         <div className="mt-8 mb-8">
           <ResponsiveContainer width="100%" height={420}>
             <LineChart data={acwrData} margin={{ top: 30, right: 120, bottom: 30, left: 20 }}>
-              <defs>
-                <linearGradient id="orangeAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="rgba(251, 146, 60, 0.25)" stopOpacity={0.4} />
-                  <stop offset="100%" stopColor="rgba(234, 88, 12, 0.15)" stopOpacity={0.2} />
-                </linearGradient>
-              </defs>
-
               <CartesianGrid
                 strokeDasharray="0"
-                stroke="#334155"
+                stroke="#475569"
                 strokeOpacity={0.3}
                 horizontal={true}
                 vertical={false}
               />
 
-              {/* Orange Background Fill Area - Below Caution Line */}
+              {/* High Risk Zone (y > 1.3) */}
               <ReferenceArea
-                y1={0}
-                y2={1.0}
-                fill="url(#orangeAreaGradient)"
+                y1={1.3}
+                y2={1.8}
+                fill="rgba(239, 68, 68, 0.15)"
                 fillOpacity={1}
-              />
-
-              {/* Personalized Zone */}
-              {zoneInfo.hasPersonalZone && (
-                <ReferenceArea
-                  y1={zoneInfo.personalMin}
-                  y2={zoneInfo.personalMax}
-                  fill="rgba(168, 85, 247, 0.15)"
-                  stroke="rgba(168, 85, 247, 0.6)"
-                  strokeWidth={2}
-                />
-              )}
-
-              {/* Universal Optimal Zone */}
-              <ReferenceArea
-                y1={zoneInfo.universalMin}
-                y2={zoneInfo.universalMax}
-                fill="rgba(34, 197, 94, 0.12)"
-                fillOpacity={0.5}
-                strokeOpacity={0}
-              />
-
-              {/* Reference Lines - SOLID */}
-              <ReferenceLine
-                y={1.5}
-                stroke="#ef4444"
-                strokeWidth={3}
-                strokeDasharray="0"
               >
                 <Label
                   value="High Risk"
                   position="insideTopRight"
                   fill="#ef4444"
-                  fontSize={15}
+                  fontSize={16}
                   fontWeight="bold"
                   offset={10}
                 />
-              </ReferenceLine>
+              </ReferenceArea>
 
-              <ReferenceLine
-                y={1.0}
-                stroke={zoneInfo.hasPersonalZone ? "#a855f7" : "#FF9F43"}
-                strokeWidth={2.5}
-                strokeDasharray="0"
+              {/* Caution Zone (0.8 - 1.3) */}
+              <ReferenceArea
+                y1={0.8}
+                y2={1.3}
+                fill="rgba(249, 115, 22, 0.1)"
+                fillOpacity={1}
               >
                 <Label
-                  value={zoneInfo.hasPersonalZone ? "Your Max" : "Caution"}
-                  position="insideTopRight"
-                  fill={zoneInfo.hasPersonalZone ? "#a855f7" : "#FF9F43"}
-                  fontSize={15}
+                  value="Caution"
+                  position="center"
+                  fill="#F97316"
+                  fontSize={16}
                   fontWeight="bold"
-                  offset={10}
                 />
-              </ReferenceLine>
+              </ReferenceArea>
 
+              {/* Reference Lines */}
               <ReferenceLine
-                y={0.5}
+                y={1.3}
                 stroke="#ef4444"
                 strokeWidth={2}
-                strokeOpacity={0.5}
+                strokeDasharray="0"
+              />
+
+              <ReferenceLine
+                y={0.8}
+                stroke="#F97316"
+                strokeWidth={2}
                 strokeDasharray="0"
               />
 
               <XAxis
                 dataKey="date"
                 stroke="#94a3b8"
-                style={{ fontSize: 14, fill: '#94a3b8' }}
+                style={{ fontSize: 14, fill: '#ffffff' }}
                 tickLine={false}
-                axisLine={{ stroke: '#334155', strokeWidth: 1 }}
+                axisLine={{ stroke: '#475569', strokeWidth: 1 }}
               />
 
               <YAxis
                 stroke="#94a3b8"
-                style={{ fontSize: 14, fill: '#94a3b8' }}
+                style={{ fontSize: 14, fill: '#ffffff' }}
                 tickLine={false}
                 axisLine={false}
                 domain={[0, 1.8]}
@@ -405,20 +377,20 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
               <Line
                 type="monotone"
                 dataKey="acwr"
-                stroke="#FF9F43"
+                stroke="#F97316"
                 strokeWidth={5}
                 dot={{
                   r: 7,
-                  fill: '#FF9F43',
+                  fill: '#F97316',
                   stroke: '#ffffff',
                   strokeWidth: 3,
                 }}
                 activeDot={{
                   r: 10,
                   fill: '#ffffff',
-                  stroke: '#FF9F43',
+                  stroke: '#F97316',
                   strokeWidth: 4,
-                  filter: 'drop-shadow(0 0 8px rgba(255, 159, 67, 0.8))',
+                  filter: 'drop-shadow(0 0 8px rgba(249, 115, 22, 0.8))',
                 }}
               />
             </LineChart>
@@ -451,7 +423,7 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
                   ? 'AI Coach Insight: Personalized Workload Zone'
                   : 'AI Coach Insight: Workload Sweet Spot'}
               </h4>
-              <p className="text-slate-200 text-base leading-relaxed mb-5 font-normal">
+              <p className="text-white text-base leading-relaxed mb-5 font-normal">
                 {zoneInfo.hasPersonalZone ? (
                   <>
                     Your ACWR is {currentACWR?.toFixed(2)} — within your personalized optimal zone ({zoneInfo.personalMin.toFixed(1)}-{zoneInfo.personalMax.toFixed(1)}). This zone has been adapted based on your training history and load patterns, especially important for trail and ultra runners.
