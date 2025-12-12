@@ -1820,10 +1820,18 @@ export async function getDerivedMetricsWeekly(
   endDate: string
 ): Promise<DbDerivedMetricWeekly[]> {
   const supabase = getSupabase();
-  if (!supabase) return [];
+  if (!supabase) {
+    console.warn('[getDerivedMetricsWeekly] Supabase not available');
+    return [];
+  }
 
   const userId = await getCurrentUserId();
-  if (!userId) return [];
+  if (!userId) {
+    console.warn('[getDerivedMetricsWeekly] No user ID - user not authenticated');
+    return [];
+  }
+
+  console.log('[getDerivedMetricsWeekly] Querying for user:', userId, 'from', startDate, 'to', endDate);
 
   const { data, error } = await supabase
     .from('derived_metrics_weekly')
@@ -1834,10 +1842,11 @@ export async function getDerivedMetricsWeekly(
     .order('week_start_date', { ascending: true });
 
   if (error) {
-    console.error('Failed to fetch derived metrics weekly:', error);
+    console.error('[getDerivedMetricsWeekly] Failed to fetch:', error);
     return [];
   }
 
+  console.log('[getDerivedMetricsWeekly] Found', data?.length || 0, 'records');
   return data || [];
 }
 
