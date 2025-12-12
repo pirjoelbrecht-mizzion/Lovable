@@ -23,7 +23,7 @@ export default function MirrorWeeklyChart({ data }: Props) {
     if (entry.combinedChangePercent !== undefined && entry.combinedChangePercent > 5) {
       return '#f97316';
     }
-    return '#10b981';
+    return '#8ee6a1';
   };
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -46,13 +46,13 @@ export default function MirrorWeeklyChart({ data }: Props) {
           {d.week}
         </div>
         <div style={{ color: '#cbd5e1', marginBottom: 4 }}>
-          Distance: <span style={{ color: '#10b981' }}>{d.distance.toFixed(1)} km</span>
+          Distance: <span style={{ color: '#8ee6a1' }}>{d.distance.toFixed(1)} km</span>
         </div>
         <div style={{ color: '#cbd5e1', marginBottom: 4 }}>
-          Vertical: <span style={{ color: 'var(--neon-orange)' }}>{d.vertical.toFixed(0)} m</span>
+          Vertical: <span style={{ color: '#ff9b50' }}>{d.vertical.toFixed(0)} m</span>
         </div>
         <div style={{ color: '#cbd5e1' }}>
-          Combined Load: <span style={{ color: 'var(--neon-cyan)' }}>{d.combinedLoad.toFixed(1)} km-eq</span>
+          Combined Load: <span style={{ color: '#ff76ac' }}>{d.combinedLoad.toFixed(1)} km-eq</span>
         </div>
       </div>
     );
@@ -76,14 +76,14 @@ export default function MirrorWeeklyChart({ data }: Props) {
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.06)" />
           <XAxis
             dataKey="week"
-            stroke="#94a3b8"
-            style={{ fontSize: 11 }}
+            stroke="rgba(255, 255, 255, 0.55)"
+            style={{ fontSize: 12, letterSpacing: '0.05em' }}
             tickLine={false}
           />
           <YAxis
             yAxisId="left"
-            stroke="#94a3b8"
-            style={{ fontSize: 11 }}
+            stroke="rgba(255, 255, 255, 0.55)"
+            style={{ fontSize: 12, letterSpacing: '0.05em' }}
             tickLine={false}
             axisLine={false}
             domain={[0, 'auto']}
@@ -91,8 +91,8 @@ export default function MirrorWeeklyChart({ data }: Props) {
           <YAxis
             yAxisId="right"
             orientation="right"
-            stroke="#94a3b8"
-            style={{ fontSize: 11 }}
+            stroke="rgba(255, 255, 255, 0.55)"
+            style={{ fontSize: 12, letterSpacing: '0.05em' }}
             tickLine={false}
             axisLine={false}
             tickFormatter={(value) => `${value} m`}
@@ -114,17 +114,17 @@ export default function MirrorWeeklyChart({ data }: Props) {
             yAxisId="right"
             type="monotone"
             dataKey="vertical"
-            stroke="var(--neon-orange)"
+            stroke="#ff9b50"
             strokeWidth={2.5}
             dot={{
               r: 5,
-              stroke: 'var(--neon-orange)',
+              stroke: '#ff9b50',
               strokeWidth: 2,
               fill: '#fff',
             }}
             activeDot={{
               r: 7,
-              stroke: 'var(--neon-orange)',
+              stroke: '#ff9b50',
               strokeWidth: 2,
               fill: '#fff',
             }}
