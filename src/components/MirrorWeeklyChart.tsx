@@ -23,7 +23,7 @@ export default function MirrorWeeklyChart({ data }: Props) {
     if (entry.combinedChangePercent !== undefined && entry.combinedChangePercent > 5) {
       return '#f97316';
     }
-    return '#8ee6a1';
+    return '#8de5a3';
   };
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -46,10 +46,10 @@ export default function MirrorWeeklyChart({ data }: Props) {
           {d.week}
         </div>
         <div style={{ color: '#cbd5e1', marginBottom: 4 }}>
-          Distance: <span style={{ color: '#8ee6a1' }}>{d.distance.toFixed(1)} km</span>
+          Distance: <span style={{ color: '#8de5a3' }}>{d.distance.toFixed(1)} km</span>
         </div>
         <div style={{ color: '#cbd5e1', marginBottom: 4 }}>
-          Vertical: <span style={{ color: '#ff9b50' }}>{d.vertical.toFixed(0)} m</span>
+          Vertical: <span style={{ color: '#ffa162' }}>{d.vertical.toFixed(0)} m</span>
         </div>
         <div style={{ color: '#cbd5e1' }}>
           Combined Load: <span style={{ color: '#ff76ac' }}>{d.combinedLoad.toFixed(1)} km-eq</span>
@@ -114,17 +114,17 @@ export default function MirrorWeeklyChart({ data }: Props) {
             yAxisId="right"
             type="monotone"
             dataKey="vertical"
-            stroke="#ff9b50"
+            stroke="#ffa162"
             strokeWidth={2.5}
             dot={{
               r: 5,
-              stroke: '#ff9b50',
+              stroke: '#ffa162',
               strokeWidth: 2,
               fill: '#fff',
             }}
             activeDot={{
               r: 7,
-              stroke: '#ff9b50',
+              stroke: '#ffa162',
               strokeWidth: 2,
               fill: '#fff',
             }}
