@@ -186,7 +186,7 @@ export default function MirrorInsights() {
       )}
 
       {tab === "acwr" && (
-        <div style={{ marginTop: '2.5rem' }}>
+        <div className="mirror-chart-card" style={{ marginTop: '2.5rem' }}>
           <ACWRCard />
         </div>
       )}

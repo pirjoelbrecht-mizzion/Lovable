@@ -99,13 +99,10 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
 
   if (loading) {
     return (
-      <div
-        className="relative rounded-2xl p-8 backdrop-blur-md border-2 border-cyan-400 shadow-[0_0_30px_rgba(34,211,238,0.3)] flex items-center justify-center text-white bg-[#050a14]"
-        style={{ minHeight: '500px' }}
-      >
+      <div className="flex items-center justify-center" style={{ minHeight: '500px' }}>
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-cyan-400 animate-spin mx-auto mb-4 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
-          <p className="text-white text-lg font-medium">Loading ACWR data...</p>
+          <Loader2 className="w-12 h-12 text-cyan-400 animate-spin mx-auto mb-4" />
+          <p style={{ color: '#ffffff', fontSize: '18px', fontWeight: '500' }}>Loading ACWR data...</p>
         </div>
       </div>
     );
@@ -113,29 +110,35 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
 
   if (error) {
     return (
-      <div
-        className="relative rounded-2xl p-8 backdrop-blur-md border-2 border-red-400/80 shadow-[0_0_30px_rgba(239,68,68,0.3)] text-white bg-[#050a14]"
-      >
-        <h3 className="text-2xl font-bold text-white mb-2">
+      <div>
+        <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#ffffff', marginBottom: '8px' }}>
           ACWR (Acute:Chronic Workload Ratio)
         </h3>
-        <p className="text-sm text-slate-300 mb-8">
+        <p style={{ fontSize: '14px', color: 'rgb(148, 163, 184)', marginBottom: '32px' }}>
           Last 12 months • Last 12 weeks
         </p>
         <div
-          className="p-8 rounded-xl border-2 border-red-400/50"
           style={{
+            padding: '32px',
+            borderRadius: '12px',
+            border: '1px solid rgba(239, 68, 68, 0.5)',
             background: 'rgba(239, 68, 68, 0.08)',
           }}
         >
-          <p className="text-white text-base mb-6 font-medium">
+          <p style={{ color: '#ffffff', fontSize: '16px', marginBottom: '24px', fontWeight: '500' }}>
             Failed to load ACWR data: {error.message}
           </p>
           <button
             onClick={refresh}
-            className="px-8 py-3 rounded-lg text-base font-bold text-white transition-all hover:shadow-[0_0_20px_rgba(34,211,238,0.4)] border-2 border-cyan-400 hover:bg-cyan-400/20"
             style={{
+              padding: '12px 32px',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '600',
+              color: '#ffffff',
               background: 'rgba(34, 211, 238, 0.1)',
+              border: '1px solid rgba(34, 211, 238, 0.5)',
+              cursor: 'pointer',
             }}
           >
             Retry
@@ -148,34 +151,43 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
   if (!hasData || totalWeeks === 0) {
     return (
       <>
-        <div
-          className="relative rounded-2xl p-8 backdrop-blur-md border-2 border-cyan-400 shadow-[0_0_30px_rgba(34,211,238,0.3)] text-white bg-[#050a14]"
-          style={{ minHeight: '400px' }}
-        >
-          <h3 className="text-2xl font-bold text-white mb-2">
+        <div style={{ minHeight: '400px' }}>
+          <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#ffffff', marginBottom: '8px' }}>
             ACWR (Acute:Chronic Workload Ratio)
           </h3>
-          <p className="text-sm text-slate-300 mb-10">
+          <p style={{ fontSize: '14px', color: 'rgb(148, 163, 184)', marginBottom: '40px' }}>
             Last 12 months • Last 12 weeks
           </p>
           <div
-            className="p-12 rounded-xl text-center border-2 border-cyan-400/30"
             style={{
+              padding: '48px',
+              borderRadius: '12px',
+              textAlign: 'center',
+              border: '1px solid rgba(34, 211, 238, 0.3)',
               background: 'rgba(34, 211, 238, 0.05)',
             }}
           >
-            <TrendingUp className="w-24 h-24 text-cyan-400 mx-auto mb-8 opacity-70 drop-shadow-[0_0_10px_rgba(34,211,238,0.4)]" />
-            <p className="text-white text-2xl font-bold mb-5">
+            <TrendingUp style={{ width: '96px', height: '96px', color: '#22d3ee', margin: '0 auto 32px', opacity: 0.7 }} />
+            <p style={{ color: '#ffffff', fontSize: '24px', fontWeight: '700', marginBottom: '20px' }}>
               No training data available
             </p>
-            <p className="text-slate-300 text-base leading-relaxed max-w-xl mx-auto mb-10">
+            <p style={{ color: 'rgb(148, 163, 184)', fontSize: '16px', lineHeight: '1.65', maxWidth: '600px', margin: '0 auto 40px' }}>
               ACWR requires at least 4 weeks of consistent training data to calculate your acute vs chronic workload ratio. Log your runs regularly to see your workload trends and injury risk insights.
             </p>
             <button
               onClick={() => setShowInfoModal(true)}
-              className="px-10 py-4 rounded-lg text-base font-bold text-white hover:shadow-[0_0_20px_rgba(34,211,238,0.4)] transition-all inline-flex items-center gap-2 border-2 border-cyan-400 hover:bg-cyan-400/20"
               style={{
+                padding: '16px 40px',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#ffffff',
                 background: 'rgba(34, 211, 238, 0.1)',
+                border: '1px solid rgba(34, 211, 238, 0.5)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
               }}
             >
               What is ACWR? →
@@ -201,31 +213,32 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
 
   return (
     <>
-      <div
-        className="relative rounded-2xl p-8 backdrop-blur-md border-2 border-cyan-400 shadow-[0_0_30px_rgba(34,211,238,0.3)] text-white bg-[#050a14]"
-      >
+      <div>
         {/* Header */}
-        <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
-          <div className="flex-1">
-            <h3 className="text-2xl font-bold text-white mb-2">
+        <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ flex: '1' }}>
+            <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#ffffff', marginBottom: '8px' }}>
               ACWR (Acute:Chronic Workload Ratio)
             </h3>
-            <p className="text-sm text-slate-300 mb-6">
+            <p style={{ fontSize: '14px', color: 'rgb(148, 163, 184)', marginBottom: '24px' }}>
               Last 12 months • Last 12 weeks
             </p>
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex gap-2">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
                 {timeFrames.map((tf) => (
                   <button
                     key={tf.key}
                     onClick={() => setTimeFrame(tf.key)}
-                    className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
-                      timeFrame === tf.key
-                        ? 'border-2 border-orange-500 text-white shadow-[0_0_15px_rgba(249,115,22,0.3)]'
-                        : 'border border-slate-500/30 text-slate-400 hover:text-slate-300 hover:border-slate-400/50'
-                    }`}
                     style={{
+                      padding: '8px 16px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      borderRadius: '8px',
                       background: timeFrame === tf.key ? 'rgba(249, 115, 22, 0.2)' : 'rgba(15, 23, 42, 0.4)',
+                      border: timeFrame === tf.key ? '1px solid rgb(249, 115, 22)' : '1px solid rgba(71, 85, 105, 0.3)',
+                      color: timeFrame === tf.key ? '#ffffff' : 'rgb(148, 163, 184)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
                     }}
                   >
                     {tf.label}
@@ -235,7 +248,15 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
               <button
                 onClick={refresh}
                 disabled={isRefreshing}
-                className="p-2 text-slate-400 hover:text-cyan-400 hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] transition-all disabled:opacity-50 ml-2"
+                style={{
+                  padding: '8px',
+                  color: 'rgb(148, 163, 184)',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  marginLeft: '8px',
+                  opacity: isRefreshing ? 0.5 : 1,
+                }}
                 title="Refresh metrics"
               >
                 <RefreshCw size={18} className={isRefreshing ? 'animate-spin' : ''} />
@@ -244,8 +265,13 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
           </div>
           {currentACWR !== null && (
             <div
-              className="border-2 border-cyan-400 rounded-lg px-5 py-2.5 text-base font-bold text-white shadow-[0_0_15px_rgba(34,211,238,0.3)]"
               style={{
+                border: '1px solid rgba(34, 211, 238, 0.5)',
+                borderRadius: '8px',
+                padding: '10px 20px',
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#ffffff',
                 background: 'rgba(34, 211, 238, 0.15)',
               }}
             >
@@ -257,18 +283,21 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
         {/* Partial Data Banner */}
         {needsMoreData && (
           <div
-            className="mb-10 p-6 rounded-xl border-2 border-orange-500/40"
             style={{
+              marginBottom: '40px',
+              padding: '24px',
+              borderRadius: '12px',
+              border: '1px solid rgba(249, 115, 22, 0.4)',
               background: 'rgba(249, 115, 22, 0.1)',
             }}
           >
-            <div className="flex items-start gap-5">
-              <TrendingUp className="w-7 h-7 text-orange-500 flex-shrink-0 mt-0.5 drop-shadow-[0_0_8px_rgba(249,115,22,0.5)]" />
+            <div style={{ display: 'flex', alignItems: 'start', gap: '20px' }}>
+              <TrendingUp style={{ width: '28px', height: '28px', color: 'rgb(249, 115, 22)', flexShrink: 0, marginTop: '2px' }} />
               <div>
-                <p className="text-white font-bold text-lg mb-2">
+                <p style={{ color: '#ffffff', fontWeight: '600', fontSize: '18px', marginBottom: '8px' }}>
                   Limited Data Available ({totalWeeks} of 4 weeks needed)
                 </p>
-                <p className="text-slate-300 text-base leading-relaxed">
+                <p style={{ color: 'rgb(148, 163, 184)', fontSize: '16px', lineHeight: '1.65' }}>
                   ACWR calculations become more accurate with 4+ weeks of data. Keep logging your runs to unlock full insights and personalized workload zones.
                 </p>
               </div>
@@ -398,30 +427,33 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
         {/* Feedback Box */}
         {feedback && (
           <div
-            className="rounded-xl p-6 mb-8 border-2 border-cyan-400/30"
             style={{
+              borderRadius: '12px',
+              padding: '24px',
+              marginBottom: '32px',
+              border: '1px solid rgba(34, 211, 238, 0.3)',
               background: 'rgba(34, 211, 238, 0.05)',
             }}
           >
-            <p className="text-slate-200 text-base leading-relaxed font-medium">
+            <p style={{ color: 'rgb(226, 232, 240)', fontSize: '16px', lineHeight: '1.65', fontWeight: '500' }}>
               {feedback}
             </p>
           </div>
         )}
 
         {/* AI Coach Insight */}
-        <div className="mt-8">
-          <div className="flex items-start gap-5">
-            <div className="mt-1">
-              <TrendingUp className="w-7 h-7 text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.6)]" />
+        <div style={{ marginTop: '32px' }}>
+          <div style={{ display: 'flex', alignItems: 'start', gap: '20px' }}>
+            <div style={{ marginTop: '4px' }}>
+              <TrendingUp style={{ width: '28px', height: '28px', color: '#22d3ee' }} />
             </div>
-            <div className="flex-1">
-              <h4 className="text-cyan-400 font-bold text-xl mb-4 drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]">
+            <div style={{ flex: '1' }}>
+              <h4 style={{ color: '#22d3ee', fontWeight: '600', fontSize: '20px', marginBottom: '16px' }}>
                 {zoneInfo.hasPersonalZone
                   ? 'AI Coach Insight: Personalized Workload Zone'
                   : 'AI Coach Insight: Workload Sweet Spot'}
               </h4>
-              <p className="text-slate-300 text-base leading-relaxed mb-5 font-normal">
+              <p style={{ color: 'rgb(148, 163, 184)', fontSize: '16px', lineHeight: '1.65', marginBottom: '20px' }}>
                 {zoneInfo.hasPersonalZone ? (
                   <>
                     Your ACWR is {currentACWR?.toFixed(2)} — within your personalized optimal zone ({zoneInfo.personalMin.toFixed(1)}-{zoneInfo.personalMax.toFixed(1)}). This zone has been adapted based on your training history and load patterns, especially important for trail and ultra runners.
@@ -434,7 +466,17 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
               </p>
               <button
                 onClick={() => setShowInfoModal(true)}
-                className="text-base font-bold text-cyan-400 hover:text-cyan-300 transition-colors inline-flex items-center gap-2 hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]"
+                style={{
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: '#22d3ee',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
               >
                 What is ACWR? →
               </button>
