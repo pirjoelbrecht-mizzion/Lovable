@@ -9,7 +9,7 @@ import { TimeFrameProvider } from "@/contexts/TimeFrameContext";
 import RouteMap from "@/components/RouteMap";
 import { stravaRichDataService } from "@/services/stravaRichDataService";
 import MirrorInsights from "@/components/MirrorInsights";
-import { Calendar, Target } from "lucide-react";
+import { Calendar, Target, Flag } from "lucide-react";
 import "./Mirror.css";
 
 export default function Mirror() {
@@ -97,6 +97,10 @@ function MirrorContent() {
             <Link to="/season-plan" className="mirror-nav-btn">
               <Calendar size={16} />
               {t("mirror.season_plan", "Season Plan")}
+            </Link>
+            <Link to="/race-goals" className="mirror-nav-btn">
+              <Flag size={16} />
+              {t("mirror.goals", "Goc.")}
             </Link>
           </nav>
         </div>
