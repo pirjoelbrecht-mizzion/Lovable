@@ -1,21 +1,29 @@
+/* Mirror Page - Reference Design Match */
 .mirror-page {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  min-height: 100vh;
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
   background: #0b0b12;
-  padding: 20px;
+  padding: 2rem 1.5rem;
+}
+
+.mirror-page > section + section {
+  margin-top: 2.5rem;
 }
 
 .mirror-card {
-  background: linear-gradient(135deg, rgba(13, 17, 23, 0.8) 0%, rgba(10, 14, 20, 0.9) 100%);
-  border: 2px solid var(--neon-cyan);
+  background: rgba(8, 17, 25, 0.4);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  padding: 24px;
-  box-shadow:
-    0 0 30px rgba(0, 240, 255, 0.4),
-    0 0 60px rgba(0, 240, 255, 0.2),
-    inset 0 0 40px rgba(0, 240, 255, 0.05);
+  padding: 2rem;
+  box-shadow: 0 0 20px rgba(0, 150, 255, 0.15);
+}
+
+@media (min-width: 768px) {
+  .mirror-card {
+    padding: 2rem;
+  }
 }
 
 .mirror-header {
@@ -24,6 +32,8 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 16px;
+  margin-top: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .mirror-header-left {
@@ -36,27 +46,26 @@
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  border: 2px solid var(--neon-cyan);
+  border: 1.5px solid rgba(0, 150, 255, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--neon-cyan);
-  background: rgba(0, 240, 255, 0.12);
-  box-shadow:
-    0 0 25px rgba(0, 240, 255, 0.5),
-    inset 0 0 20px rgba(0, 240, 255, 0.15);
+  color: #7ec8ff;
+  background: rgba(0, 150, 255, 0.15);
+  box-shadow: 0 0 20px rgba(0, 150, 255, 0.3);
   flex-shrink: 0;
 }
 
 .mirror-header-icon svg {
-  filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.8));
+  filter: drop-shadow(0 0 6px rgba(0, 150, 255, 0.6));
 }
 
 .mirror-header-title {
   font-size: 24px;
   font-weight: 600;
-  color: #fff;
+  color: rgba(255, 255, 255, 0.95);
   margin: 0;
+  letter-spacing: 0.02em;
 }
 
 .mirror-header-nav {
@@ -69,26 +78,22 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 20px;
-  background: transparent;
-  border: 1.5px solid var(--neon-cyan);
-  border-radius: 10px;
-  color: var(--neon-cyan);
+  padding: 0.5rem 1rem;
+  background: rgba(0, 150, 255, 0.2);
+  border: 1px solid rgba(0, 150, 255, 0.4);
+  border-radius: 12px;
+  color: #7ec8ff;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   text-decoration: none;
-  box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
 }
 
 .mirror-nav-btn:hover {
-  background: rgba(0, 240, 255, 0.15);
-  box-shadow:
-    0 0 20px rgba(0, 240, 255, 0.5),
-    inset 0 0 15px rgba(0, 240, 255, 0.1);
+  background: rgba(0, 150, 255, 0.3);
+  border-color: rgba(0, 150, 255, 0.6);
   text-decoration: none;
-  text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
 }
 
 .mirror-insights-header {
@@ -103,133 +108,120 @@
 .mirror-insights-title {
   font-size: 20px;
   font-weight: 600;
-  color: #fff;
+  color: rgba(255, 255, 255, 0.95);
   margin: 0;
-  text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.02em;
 }
 
 .mirror-timeframe-pills {
   display: flex;
-  gap: 6px;
+  gap: 0.75rem;
   flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.25rem;
+  border-radius: 12px;
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .mirror-pill {
-  padding: 10px 20px;
+  padding: 0.5rem 1rem;
   background: transparent;
-  border: 1.5px solid rgba(100, 116, 139, 0.5);
-  border-radius: 8px;
-  color: #cbd5e1;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .mirror-pill:hover {
-  background: rgba(0, 240, 255, 0.08);
-  border-color: rgba(0, 240, 255, 0.6);
-  color: #e2e8f0;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .mirror-pill.active {
-  background: rgba(0, 240, 255, 0.2);
-  border-color: var(--neon-cyan);
-  color: var(--neon-cyan);
-  box-shadow:
-    0 0 20px rgba(0, 240, 255, 0.5),
-    inset 0 0 15px rgba(0, 240, 255, 0.15);
-  font-weight: 600;
-  text-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
+  background: rgba(0, 150, 255, 0.2);
+  border-color: rgba(0, 150, 255, 0.4);
+  color: #7ec8ff;
 }
 
 .mirror-warning-banner {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 16px 20px;
-  background: rgba(255, 100, 0, 0.08);
-  border: 2px solid var(--neon-orange);
+  padding: 1rem;
+  background: rgba(51, 28, 0, 0.6);
+  border: 1px solid rgba(255, 184, 92, 0.3);
   border-radius: 12px;
-  margin-bottom: 20px;
-  box-shadow:
-    0 0 20px rgba(255, 140, 0, 0.3),
-    inset 0 0 30px rgba(255, 140, 0, 0.05);
+  margin-bottom: 1.5rem;
+  box-shadow: 0 0 15px rgba(255, 180, 80, 0.2);
 }
 
 .mirror-warning-icon {
-  color: var(--neon-orange);
-  font-size: 20px;
+  color: #ffca85;
+  font-size: 18px;
   flex-shrink: 0;
   margin-top: 2px;
-  filter: drop-shadow(0 0 8px var(--neon-orange-glow));
 }
 
 .mirror-warning-text {
-  color: #ffb366;
+  color: #ffca85;
   font-size: 14px;
   line-height: 1.6;
   margin: 0;
-  text-shadow: 0 0 10px rgba(255, 140, 0, 0.3);
 }
 
 .mirror-tab-buttons {
   display: flex;
-  gap: 8px;
+  gap: 0.75rem;
   flex-wrap: wrap;
-  margin-top: 16px;
+  margin-top: 1rem;
 }
 
 .mirror-tab-btn {
-  padding: 12px 20px;
+  padding: 0.625rem 1.25rem;
   background: transparent;
-  border: 1.5px solid rgba(100, 116, 139, 0.5);
-  border-radius: 10px;
-  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.7);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .mirror-tab-btn:hover {
-  background: rgba(0, 240, 255, 0.08);
-  border-color: rgba(0, 240, 255, 0.6);
-  color: #e2e8f0;
+  color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .mirror-tab-btn.active {
-  background: rgba(0, 240, 255, 0.2);
-  border-color: var(--neon-cyan);
-  color: var(--neon-cyan);
-  box-shadow:
-    0 0 20px rgba(0, 240, 255, 0.5),
-    inset 0 0 15px rgba(0, 240, 255, 0.15);
-  font-weight: 600;
-  text-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
+  background: rgba(0, 150, 255, 0.2);
+  border-color: rgba(0, 150, 255, 0.4);
+  color: #7ec8ff;
 }
 
 .mirror-chart-section {
   display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 20px;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  margin-top: 2.5rem;
 }
 
-@media (max-width: 900px) {
+@media (min-width: 1280px) {
   .mirror-chart-section {
-    grid-template-columns: 1fr;
+    grid-template-columns: 2fr 1fr;
   }
 }
 
 .mirror-chart-card {
-  background: linear-gradient(135deg, rgba(13, 17, 23, 0.8) 0%, rgba(10, 14, 20, 0.9) 100%);
-  border: 2px solid var(--neon-cyan);
+  background: rgba(8, 17, 25, 0.4);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  padding: 24px;
-  box-shadow:
-    0 0 25px rgba(0, 240, 255, 0.3),
-    0 0 50px rgba(0, 240, 255, 0.15),
-    inset 0 0 40px rgba(0, 240, 255, 0.05);
+  padding: 2rem;
+  box-shadow: 0 0 25px rgba(0, 150, 255, 0.15);
 }
 
 .mirror-chart-header {
@@ -237,17 +229,18 @@
 }
 
 .mirror-chart-title {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
-  color: #fff;
+  color: rgba(255, 255, 255, 0.9);
   margin: 0 0 6px 0;
-  text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.02em;
 }
 
 .mirror-chart-subtitle {
   font-size: 14px;
-  color: #a0b0c0;
+  color: rgba(255, 255, 255, 0.7);
   margin: 0;
+  line-height: 1.6;
 }
 
 .mirror-chart-legend {
@@ -263,7 +256,7 @@
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #cbd5e1;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .mirror-legend-line {
@@ -273,35 +266,39 @@
 }
 
 .mirror-legend-line.cyan {
-  background: var(--neon-cyan);
+  background: #8be381;
 }
 
 .mirror-legend-line.orange {
-  background: var(--neon-orange);
+  background: #ff956e;
+}
+
+.mirror-chart-wrapper {
+  margin-top: 1.5rem;
+  padding: 0 1rem;
+  height: 300px;
+  position: relative;
 }
 
 .mirror-load-box {
-  margin-top: 20px;
-  padding: 16px 20px;
-  background: rgba(0, 240, 255, 0.08);
-  border: 2px solid rgba(0, 240, 255, 0.4);
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  box-shadow:
-    0 0 15px rgba(0, 240, 255, 0.2),
-    inset 0 0 20px rgba(0, 240, 255, 0.05);
+  width: 100%;
 }
 
 .mirror-load-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--neon-cyan);
+  color: rgba(255, 255, 255, 0.8);
   margin: 0 0 6px 0;
-  text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
 }
 
 .mirror-load-value {
   font-size: 13px;
-  color: #cbd5e1;
+  color: rgba(255, 255, 255, 0.7);
   margin: 0;
 }
 
@@ -309,42 +306,38 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(0, 240, 255, 0.2);
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .mirror-balance-icon {
-  color: var(--neon-yellow);
-  font-size: 18px;
-  filter: drop-shadow(0 0 8px var(--neon-yellow-glow));
+  color: #ffca85;
+  font-size: 16px;
 }
 
 .mirror-balance-text {
   font-size: 12px;
-  color: #a0b0c0;
-  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
   margin: 0;
 }
 
 .mirror-feedback-card {
-  background: linear-gradient(135deg, rgba(13, 17, 23, 0.8) 0%, rgba(10, 14, 20, 0.9) 100%);
-  border: 2px solid var(--neon-cyan);
+  background: rgba(8, 17, 25, 0.4);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  padding: 24px;
-  box-shadow:
-    0 0 25px rgba(0, 240, 255, 0.3),
-    0 0 50px rgba(0, 240, 255, 0.15),
-    inset 0 0 40px rgba(0, 240, 255, 0.05);
-  height: fit-content;
+  padding: 1.5rem;
+  box-shadow: 0 0 20px rgba(0, 150, 255, 0.15);
+  min-height: 200px;
 }
 
 .mirror-feedback-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #fff;
-  margin: 0 0 16px 0;
-  text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+  font-size: 16px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 1rem 0;
 }
 
 .mirror-feedback-rate {
@@ -353,21 +346,20 @@
 
 .mirror-feedback-label {
   font-size: 12px;
-  color: #a0b0c0;
+  color: rgba(255, 255, 255, 0.6);
   margin: 0 0 8px 0;
 }
 
 .mirror-feedback-value {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 600;
-  color: var(--neon-cyan);
-  text-shadow: 0 0 15px rgba(0, 240, 255, 0.6);
+  color: #7ec8ff;
 }
 
 .mirror-feedback-empty {
-  padding: 20px;
-  background: rgba(0, 240, 255, 0.03);
-  border: 1.5px solid rgba(0, 240, 255, 0.2);
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   text-align: center;
 }
@@ -375,13 +367,13 @@
 .mirror-feedback-empty-title {
   font-size: 14px;
   font-weight: 500;
-  color: #94a3b8;
+  color: rgba(255, 255, 255, 0.7);
   margin: 0 0 8px 0;
 }
 
 .mirror-feedback-empty-text {
   font-size: 13px;
-  color: #a0b0c0;
+  color: rgba(255, 255, 255, 0.6);
   margin: 0;
   line-height: 1.5;
 }
@@ -390,42 +382,40 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
 }
 
 .mirror-recent-title {
   font-size: 20px;
   font-weight: 600;
-  color: #fff;
+  color: rgba(255, 255, 255, 0.9);
   margin: 0;
-  text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.02em;
 }
 
 .mirror-view-all-btn {
-  padding: 10px 18px;
+  padding: 0.5rem 1rem;
   background: transparent;
-  border: 1.5px solid rgba(0, 240, 255, 0.3);
-  border-radius: 8px;
-  color: var(--neon-cyan);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.8);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   text-decoration: none;
-  box-shadow: 0 0 8px rgba(0, 240, 255, 0.15);
 }
 
 .mirror-view-all-btn:hover {
-  background: rgba(0, 240, 255, 0.1);
-  border-color: var(--neon-cyan);
-  box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.25);
   text-decoration: none;
 }
 
 .mirror-activities-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 1.5rem;
 }
 
 @media (max-width: 700px) {
@@ -435,31 +425,29 @@
 }
 
 .mirror-activity-card {
-  background: linear-gradient(135deg, rgba(13, 17, 23, 0.8) 0%, rgba(10, 14, 20, 0.9) 100%);
-  border: 2px solid var(--neon-cyan);
-  border-radius: 16px;
+  background: rgba(11, 20, 29, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow:
-    0 0 20px rgba(0, 240, 255, 0.2),
-    inset 0 0 30px rgba(0, 240, 255, 0.03);
+  transition: all 0.2s ease;
+  box-shadow: 0 0 20px rgba(0, 150, 255, 0.12);
+  min-height: 200px;
 }
 
 .mirror-activity-card:hover {
-  border-color: var(--neon-cyan-strong);
-  box-shadow:
-    0 0 35px rgba(0, 240, 255, 0.4),
-    0 0 60px rgba(0, 240, 255, 0.2),
-    inset 0 0 40px rgba(0, 240, 255, 0.05);
-  transform: translateY(-4px);
+  box-shadow: 0 0 25px rgba(0, 150, 255, 0.2);
+  transform: translateY(-2px);
 }
 
 .mirror-activity-media {
   position: relative;
   width: 100%;
-  height: 160px;
-  background: rgba(0, 0, 0, 0.3);
+  height: 200px;
+  overflow: hidden;
+  background: #0a0e14;
+  border-radius: 16px;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .mirror-activity-media img {
@@ -486,27 +474,27 @@
 
 .mirror-activity-title {
   font-size: 16px;
-  font-weight: 600;
-  color: #fff;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
   margin: 0 0 6px 0;
 }
 
 .mirror-activity-date {
   font-size: 13px;
-  color: #a0b0c0;
+  color: rgba(255, 255, 255, 0.6);
   margin: 0 0 4px 0;
 }
 
 .mirror-activity-stats {
   font-size: 12px;
-  color: #cbd5e1;
+  color: rgba(255, 255, 255, 0.6);
   margin: 0;
 }
 
 .mirror-empty-state {
   padding: 40px 20px;
   text-align: center;
-  color: #a0b0c0;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .mirror-empty-state p {
