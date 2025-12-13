@@ -16,6 +16,7 @@ import { AlertTriangle, Zap } from "lucide-react";
 import MirrorWeeklyChart from "./MirrorWeeklyChart";
 import ACWRCard from "./ACWRCard";
 import MirrorZonesChart from "./MirrorZonesChart";
+import MirrorEfficiencyChart from "./MirrorEfficiencyChart";
 
 type TabKey = "weekly" | "acwr" | "zones" | "efficiency" | "projection" | "longrun";
 
@@ -222,13 +223,15 @@ export default function MirrorInsights() {
       )}
 
       {tab === "efficiency" && (
-        <div style={{ marginTop: '2.5rem' }}>
-          <div className="mirror-chart-card">
-            <div className="mirror-chart-header">
-              <h3 className="mirror-chart-title">Efficiency (Pace vs HR)</h3>
-              <p className="mirror-chart-subtitle">Coming soon</p>
-            </div>
+        <div className="mirror-chart-card" style={{ marginTop: '2.5rem' }}>
+          <div className="mirror-chart-header">
+            <h3 className="mirror-chart-title">Efficiency (Pace vs HR)</h3>
+            <p className="mirror-chart-subtitle">Track your aerobic efficiency improvements over time</p>
           </div>
+          <MirrorEfficiencyChart
+            entries={entries}
+            timeRange={globalTimeFrame === 'custom' ? 'Custom Range' : TIME_PRESETS.find(p => p.key === globalTimeFrame)?.label || ''}
+          />
         </div>
       )}
 
