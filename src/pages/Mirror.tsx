@@ -25,6 +25,7 @@ function MirrorContent() {
   const navigate = useNavigate();
   const [all, setAll] = useState<LogEntry[]>(() => load<LogEntry[]>("logEntries", []));
   const [photosByActivity, setPhotosByActivity] = useState<Record<string, ActivityPhoto[]>>({});
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   const recent = useMemo(() => {
     return all.slice(0, 4);
@@ -125,7 +126,13 @@ function MirrorContent() {
           <div className="mirror-activities-grid">
             {recent.map((e, i) => {
               const photos = e.id ? photosByActivity[e.id] : undefined;
-              const hasPhotos = photos && photos.length > 0;
+              const photoUrl = photos?.[0]?.urls?.medium || photos?.[0]?.urls?.thumbnail;
+              const hasValidPhoto = photos && photos.length > 0 && photoUrl;
+              const activityId = e.id || `temp-${i}`;
+              const hasImageError = imageErrors[activityId];
+
+              const shouldShowPhoto = hasValidPhoto && !hasImageError;
+              const shouldShowMap = !shouldShowPhoto && (e.mapSummaryPolyline || e.mapPolyline);
 
               return (
                 <article
@@ -134,17 +141,18 @@ function MirrorContent() {
                   onClick={() => e.id && navigate(`/activity/${e.id}`)}
                 >
                   <div className="mirror-activity-media">
-                    {hasPhotos ? (
+                    {shouldShowPhoto ? (
                       <>
                         <img
-                          src={photos[0].urls?.medium || photos[0].urls?.thumbnail || ''}
+                          src={photoUrl}
                           alt={e.title || 'Activity photo'}
+                          onError={() => setImageErrors(prev => ({ ...prev, [activityId]: true }))}
                         />
-                        {photos.length > 1 && (
-                          <span className="mirror-photo-count">+{photos.length - 1}</span>
+                        {photos!.length > 1 && (
+                          <span className="mirror-photo-count">+{photos!.length - 1}</span>
                         )}
                       </>
-                    ) : (e.mapSummaryPolyline || e.mapPolyline) ? (
+                    ) : shouldShowMap ? (
                       <RouteMap
                         polyline={e.mapSummaryPolyline || e.mapPolyline}
                         width={400}
