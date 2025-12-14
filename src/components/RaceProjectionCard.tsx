@@ -42,13 +42,13 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
 
   if (!baseline) {
     return (
-      <div className="relative overflow-hidden rounded-2xl border-2 border-cyan-400 bg-[#050a14]/90 p-12 backdrop-blur-md shadow-[0_0_40px_rgba(34,211,238,0.4)]">
+      <div className="relative overflow-hidden rounded-2xl border-2 border-cyan-400 bg-[#050a14] p-12 backdrop-blur-md shadow-[0_0_40px_rgba(34,211,238,0.4)]">
         <div className="text-center">
           <h2 className="text-3xl font-extrabold text-white mb-4 tracking-wider">
             RACE PROJECTION
           </h2>
-          <p className="text-lg text-cyan-400 mb-4">No race data available</p>
-          <p className="text-sm text-slate-300">Complete a race or long run (10km+) to see projections</p>
+          <p className="text-lg text-cyan-400 mb-4 font-semibold">No race data available</p>
+          <p className="text-sm text-slate-200">Complete a race or long run (10km+) to see projections</p>
         </div>
       </div>
     );
@@ -59,21 +59,17 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
   const padding = (maxTime - minTime) * 0.2;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border-2 border-cyan-400 bg-[#050a14]/90 p-8 backdrop-blur-md shadow-[0_0_40px_rgba(34,211,238,0.4)] text-white">
-      {/* Starfield background effect */}
+    <div className="relative overflow-hidden rounded-2xl border-2 border-cyan-400 bg-[#050a14] p-8 backdrop-blur-md shadow-[0_0_40px_rgba(34,211,238,0.4)] text-white">
+      {/* Subtle starfield background effect */}
       <div
-        className="absolute inset-0 opacity-20"
+        className="absolute inset-0 opacity-10"
         style={{
           backgroundImage: `
             radial-gradient(1px 1px at 20% 30%, white, transparent),
             radial-gradient(1px 1px at 60% 70%, white, transparent),
-            radial-gradient(1px 1px at 50% 50%, white, transparent),
-            radial-gradient(1px 1px at 80% 10%, white, transparent),
-            radial-gradient(1px 1px at 90% 60%, white, transparent),
-            radial-gradient(1px 1px at 10% 90%, white, transparent),
-            radial-gradient(1px 1px at 70% 20%, white, transparent)
+            radial-gradient(1px 1px at 50% 50%, white, transparent)
           `,
-          backgroundSize: '200px 200px, 200px 200px, 300px 300px, 250px 250px, 280px 280px, 220px 220px, 260px 260px',
+          backgroundSize: '200px 200px, 200px 200px, 300px 300px',
         }}
       />
 
@@ -84,7 +80,7 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
             <h2 className="text-3xl font-extrabold text-white tracking-wider mb-2">
               RACE PROJECTION
             </h2>
-            <p className="text-sm text-slate-300">
+            <p className="text-sm text-slate-200">
               Time projections • 75% confidence
             </p>
           </div>
@@ -111,11 +107,11 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
                 </filter>
               </defs>
 
-              {/* Background zones */}
+              {/* Background zones - Very subtle */}
               <ReferenceArea
                 y1={minTime - padding}
                 y2={maxTime + padding}
-                fill="rgba(6, 182, 212, 0.05)"
+                fill="rgba(6, 182, 212, 0.03)"
                 fillOpacity={1}
               />
 
@@ -236,7 +232,7 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
             </div>
             <div className="flex-1">
               <h3 className="text-white font-bold mb-2">AI Coach Insight: Projection Analysis</h3>
-              <p className="text-slate-300 text-sm leading-relaxed">
+              <p className="text-slate-200 text-sm leading-relaxed">
                 Based on your recent {baseline.name} performance, these projections represent realistic target times
                 across different race distances. Your current fitness level shows strong potential for {' '}
                 {projectionData[2]?.distance || 'marathon'} distance events.
@@ -246,14 +242,14 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-3 flex-wrap">
             <div className="px-4 py-2 rounded-lg bg-cyan-400/10 border border-cyan-400/30">
               <p className="text-xs text-cyan-400 font-semibold">
                 Based on: <span className="text-white font-bold">{baseline.name}</span>
               </p>
             </div>
-            <div className="text-sm text-slate-400">
+            <div className="text-sm text-slate-200 font-medium">
               {baseline.distanceKm.toFixed(1)}km • {formatTime(baseline.timeMin)}
             </div>
           </div>
