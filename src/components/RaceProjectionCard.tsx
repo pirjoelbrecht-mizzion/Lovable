@@ -43,11 +43,28 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
   if (!baseline) {
     return (
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0a1628] to-[#050a14] p-12 text-center" style={{ border: '1px solid rgba(59, 130, 246, 0.3)' }}>
-        <h2 className="text-3xl font-bold text-white mb-4" style={{ letterSpacing: '0.2em' }}>
+        <h2
+          className="text-3xl font-bold mb-4"
+          style={{
+            color: '#ffffff',
+            letterSpacing: '0.2em',
+            textShadow: '0 2px 10px rgba(255, 255, 255, 0.3)'
+          }}
+        >
           RACE PROJECTION
         </h2>
-        <p className="text-lg text-cyan-400 mb-3 font-semibold">No race data available</p>
-        <p className="text-sm text-slate-400">Complete a race or long run (10km+) to see projections</p>
+        <p
+          className="text-lg mb-3 font-semibold"
+          style={{
+            color: '#22d3ee',
+            textShadow: '0 1px 4px rgba(34, 211, 238, 0.5)'
+          }}
+        >
+          No race data available
+        </p>
+        <p className="text-sm" style={{ color: '#94a3b8' }}>
+          Complete a race or long run (10km+) to see projections
+        </p>
       </div>
     );
   }
@@ -70,10 +87,23 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
       <div className="relative z-10">
         {/* Header */}
         <div className="text-center mb-6">
-          <h2 className="text-3xl font-bold text-white tracking-wider mb-2" style={{ letterSpacing: '0.2em' }}>
+          <h2
+            className="text-3xl font-bold mb-2"
+            style={{
+              color: '#ffffff',
+              letterSpacing: '0.2em',
+              textShadow: '0 2px 10px rgba(255, 255, 255, 0.3)'
+            }}
+          >
             RACE PROJECTION
           </h2>
-          <p className="text-cyan-400 text-sm font-medium">
+          <p
+            className="text-sm font-medium"
+            style={{
+              color: '#22d3ee',
+              textShadow: '0 1px 4px rgba(34, 211, 238, 0.5)'
+            }}
+          >
             Time projections with 75% confidence
           </p>
         </div>
@@ -104,7 +134,12 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
               <XAxis
                 dataKey="distance"
                 stroke="transparent"
-                tick={{ fill: '#ffffff', fontSize: 14, fontWeight: 700 }}
+                tick={{
+                  fill: '#ffffff',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  style: { textShadow: '0 1px 4px rgba(0, 0, 0, 0.5)' }
+                }}
                 axisLine={false}
                 tickLine={false}
               />
@@ -202,10 +237,23 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
                   boxShadow: `0 0 20px ${cardColor}20`
                 }}
               >
-                <div className="text-xs font-bold text-white mb-2 tracking-widest" style={{ opacity: 0.7 }}>
+                <div
+                  className="text-xs font-bold mb-2 tracking-widest"
+                  style={{
+                    color: '#ffffff',
+                    opacity: 0.9,
+                    textShadow: '0 1px 3px rgba(0, 0, 0, 0.5)'
+                  }}
+                >
                   {race.distance}
                 </div>
-                <div className="text-2xl font-bold text-white">
+                <div
+                  className="text-2xl font-bold"
+                  style={{
+                    color: '#ffffff',
+                    textShadow: '0 1px 4px rgba(0, 0, 0, 0.4)'
+                  }}
+                >
                   {race.time}
                 </div>
 
@@ -222,8 +270,8 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
 
         {/* Footer info */}
         <div className="text-center pt-4 border-t border-white/10">
-          <p className="text-sm text-slate-400">
-            Based on <span className="text-cyan-400 font-semibold">{baseline.name}</span> • {baseline.distanceKm.toFixed(1)}km in {formatTime(baseline.timeMin)}
+          <p className="text-sm" style={{ color: '#94a3b8' }}>
+            Based on <span className="font-semibold" style={{ color: '#22d3ee' }}>{baseline.name}</span> • {baseline.distanceKm.toFixed(1)}km in {formatTime(baseline.timeMin)}
           </p>
         </div>
       </div>
