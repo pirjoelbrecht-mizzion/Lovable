@@ -9,12 +9,14 @@ export default function MirrorProjectionChart() {
 
   useEffect(() => {
     const loadBaseline = async () => {
+      console.log('[MirrorProjectionChart] Starting to load baseline race...');
       setLoading(true);
       try {
         const result = await findBestBaselineRace();
+        console.log('[MirrorProjectionChart] Baseline race loaded:', result);
         setBaseline(result);
       } catch (error) {
-        console.error('Failed to load baseline race:', error);
+        console.error('[MirrorProjectionChart] Failed to load baseline race:', error);
         setBaseline(null);
       } finally {
         setLoading(false);
@@ -27,10 +29,11 @@ export default function MirrorProjectionChart() {
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '48px' }}>
-        <Activity style={{ width: '64px', height: '64px', color: 'rgb(148, 163, 184)', margin: '0 auto 24px', opacity: 0.5 }} />
+        <Activity style={{ width: '64px', height: '64px', color: '#3b82f6', margin: '0 auto 24px', opacity: 0.8, animation: 'pulse 2s infinite' }} />
         <p style={{ color: '#ffffff', fontSize: '20px', fontWeight: '600', marginBottom: '12px' }}>
-          Loading race projections...
+          🔄 Loading race projections...
         </p>
+        <p style={{ color: '#22d3ee', fontSize: '14px' }}>Analyzing your training data...</p>
       </div>
     );
   }
