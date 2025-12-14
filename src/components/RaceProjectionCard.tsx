@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Label } from 'recharts';
-import { findBestBaselineRace, generateProjections, formatTime, type BaselineRace } from '@/utils/raceProjection';
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { formatTime, type BaselineRace } from '@/utils/raceProjection';
 
 interface RaceProjectionCardProps {
   baseline: BaselineRace | null;
@@ -45,7 +45,11 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
       <div
         className="relative overflow-hidden rounded-2xl p-12"
         style={{
-          background: 'radial-gradient(ellipse at top, rgb(15, 23, 42), rgb(88, 28, 135), rgb(15, 23, 42))',
+          background: 'linear-gradient(180deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)',
+          minHeight: '400px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
         <div className="text-center">
@@ -66,112 +70,145 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
 
   const minTime = Math.min(...projectionData.map(d => d.timeMinutes));
   const maxTime = Math.max(...projectionData.map(d => d.timeMinutes));
-  const timeRange = maxTime - minTime;
+  const padding = (maxTime - minTime) * 0.3;
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl p-8"
+      className="relative overflow-hidden rounded-2xl"
       style={{
-        background: 'radial-gradient(ellipse at top, rgb(15, 23, 42), rgb(88, 28, 135), rgb(15, 23, 42))',
-        boxShadow: '0 0 40px rgba(139, 92, 246, 0.3)',
+        background: 'linear-gradient(180deg, #0a0e27 0%, #1a1042 50%, #0a0e27 100%)',
+        padding: '48px 32px',
+        boxShadow: '0 0 60px rgba(139, 92, 246, 0.4), inset 0 0 80px rgba(139, 92, 246, 0.1)',
       }}
     >
-      <div className="absolute inset-0 opacity-20" style={{
-        backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 50%)',
-      }} />
+      <div
+        className="absolute inset-0 opacity-30"
+        style={{
+          backgroundImage: `
+            radial-gradient(circle at 20% 30%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+            radial-gradient(circle at 80% 70%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+            radial-gradient(1px 1px at 20% 40%, white, transparent),
+            radial-gradient(1px 1px at 60% 70%, white, transparent),
+            radial-gradient(1px 1px at 50% 50%, white, transparent),
+            radial-gradient(1px 1px at 80% 10%, white, transparent),
+            radial-gradient(1px 1px at 90% 60%, white, transparent)
+          `,
+          backgroundSize: '100% 100%, 100% 100%, 200px 200px, 200px 200px, 300px 300px, 250px 250px, 280px 280px',
+        }}
+      />
 
       <div className="relative z-10">
         <h2
-          className="text-3xl font-extrabold text-white text-center mb-2 tracking-wider"
+          className="text-4xl font-extrabold text-white text-center mb-3 tracking-[0.3em]"
           style={{
-            textShadow: '0 0 20px rgba(59, 130, 246, 0.8), 0 0 40px rgba(59, 130, 246, 0.4)',
+            textShadow: '0 0 30px rgba(59, 130, 246, 1), 0 0 60px rgba(59, 130, 246, 0.6), 0 0 90px rgba(139, 92, 246, 0.4)',
+            letterSpacing: '0.3em',
+            fontWeight: 900,
           }}
         >
           RACE PROJECTION
         </h2>
-        <p className="text-lg text-cyan-400 text-center mb-8">
+        <p
+          className="text-lg text-center mb-12"
+          style={{
+            color: '#22d3ee',
+            textShadow: '0 0 10px rgba(34, 211, 238, 0.6)',
+          }}
+        >
           Time projections with 75% confidence
         </p>
 
-        <div style={{ height: '350px', marginBottom: '32px' }}>
+        <div style={{ height: '380px', marginBottom: '48px', position: 'relative' }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={projectionData}
-              margin={{ top: 60, right: 30, left: 30, bottom: 20 }}
+              margin={{ top: 80, right: 40, left: 40, bottom: 40 }}
             >
               <defs>
-                <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#a855f7" />
-                  <stop offset="50%" stopColor="#8b5cf6" />
-                  <stop offset="100%" stopColor="#3b82f6" />
+                <linearGradient id="projectionLineGradient" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#a855f7" stopOpacity={1} />
+                  <stop offset="25%" stopColor="#8b5cf6" stopOpacity={1} />
+                  <stop offset="75%" stopColor="#6366f1" stopOpacity={1} />
+                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={1} />
                 </linearGradient>
-                <filter id="glow">
-                  <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                <filter id="projectionGlow">
+                  <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
                   <feMerge>
+                    <feMergeNode in="coloredBlur"/>
                     <feMergeNode in="coloredBlur"/>
                     <feMergeNode in="SourceGraphic"/>
                   </feMerge>
                 </filter>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(100, 116, 139, 0.1)" />
+
               <XAxis
                 dataKey="distance"
-                stroke="rgba(34, 211, 238, 0.6)"
-                tick={{ fill: '#22d3ee', fontSize: 12, fontWeight: 600 }}
-                axisLine={{ stroke: 'rgba(34, 211, 238, 0.3)' }}
+                stroke="transparent"
+                tick={{ fill: '#22d3ee', fontSize: 13, fontWeight: 700 }}
+                axisLine={false}
+                tickLine={false}
               />
-              <YAxis hide domain={[minTime - timeRange * 0.2, maxTime + timeRange * 0.2]} />
-              <Tooltip
-                contentStyle={{
-                  background: 'rgba(15, 23, 42, 0.95)',
-                  border: '1px solid rgba(59, 130, 246, 0.5)',
-                  borderRadius: '8px',
-                  boxShadow: '0 0 20px rgba(59, 130, 246, 0.3)',
-                }}
-                labelStyle={{ color: '#ffffff', fontWeight: 'bold' }}
-                itemStyle={{ color: '#22d3ee' }}
-              />
+
+              <YAxis hide domain={[minTime - padding, maxTime + padding]} />
+
               <Line
                 type="monotone"
                 dataKey="timeMinutes"
-                stroke="url(#lineGradient)"
-                strokeWidth={4}
-                dot={{
-                  r: 8,
-                  fill: '#ffffff',
-                  stroke: '#3b82f6',
-                  strokeWidth: 3,
-                  filter: 'url(#glow)',
+                stroke="url(#projectionLineGradient)"
+                strokeWidth={5}
+                dot={(props) => {
+                  const { cx, cy } = props;
+                  return (
+                    <g>
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={12}
+                        fill="rgba(139, 92, 246, 0.4)"
+                        filter="url(#projectionGlow)"
+                      />
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={8}
+                        fill="#ffffff"
+                        stroke="#3b82f6"
+                        strokeWidth={3}
+                        filter="url(#projectionGlow)"
+                      />
+                    </g>
+                  );
                 }}
-                activeDot={{
-                  r: 10,
-                  fill: '#3b82f6',
-                  stroke: '#ffffff',
-                  strokeWidth: 2,
-                }}
-                label={({ x, y, value, index }) => {
+                label={(props) => {
+                  const { x, y, index } = props;
                   const dataPoint = projectionData[index];
+                  if (!dataPoint) return null;
+
                   return (
                     <g>
                       <text
                         x={x}
-                        y={y - 25}
+                        y={y - 35}
                         fill="#ffffff"
                         textAnchor="middle"
-                        fontSize={16}
+                        fontSize={18}
                         fontWeight="bold"
                         style={{
-                          filter: 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.8))',
+                          filter: 'drop-shadow(0 0 12px rgba(59, 130, 246, 1))',
                         }}
                       >
                         {dataPoint.time}
                       </text>
                       <text
                         x={x}
-                        y={y - 8}
+                        y={y - 16}
                         fill="#22d3ee"
                         textAnchor="middle"
                         fontSize={11}
+                        fontWeight="500"
+                        style={{
+                          filter: 'drop-shadow(0 0 6px rgba(34, 211, 238, 0.8))',
+                        }}
                       >
                         Confidence {dataPoint.confidence}%
                       </text>
@@ -183,28 +220,44 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
           </ResponsiveContainer>
         </div>
 
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-5 gap-4 mb-8">
           {projectionData.map((race) => (
             <div
               key={race.distance}
-              className="relative rounded-xl p-4 text-center"
+              className="relative rounded-xl overflow-hidden"
               style={{
-                background: 'transparent',
-                border: '2px solid rgba(59, 130, 246, 0.5)',
-                boxShadow: 'inset 0 0 20px rgba(59, 130, 246, 0.3), 0 0 20px rgba(59, 130, 246, 0.2)',
+                background: 'rgba(15, 23, 42, 0.6)',
+                border: '2px solid rgba(59, 130, 246, 0.6)',
+                boxShadow: `
+                  inset 0 0 30px rgba(59, 130, 246, 0.4),
+                  0 0 30px rgba(59, 130, 246, 0.3),
+                  0 0 60px rgba(139, 92, 246, 0.2)
+                `,
+                padding: '20px 16px',
               }}
             >
-              <div className="absolute inset-0 rounded-xl opacity-30" style={{
-                background: 'radial-gradient(circle at center, rgba(139, 92, 246, 0.2) 0%, transparent 70%)',
-              }} />
-              <div className="relative z-10">
-                <div className="text-white font-bold text-sm mb-2 tracking-wide">
+              <div
+                className="absolute inset-0 opacity-20"
+                style={{
+                  background: 'radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.4) 0%, transparent 70%)',
+                }}
+              />
+
+              <div className="relative z-10 text-center">
+                <div
+                  className="text-sm font-bold mb-3 tracking-wider"
+                  style={{
+                    color: '#ffffff',
+                    textShadow: '0 0 10px rgba(255, 255, 255, 0.8)',
+                  }}
+                >
                   {race.distance}
                 </div>
                 <div
-                  className="text-2xl text-white font-bold"
+                  className="text-3xl font-extrabold"
                   style={{
-                    textShadow: '0 0 10px rgba(255, 255, 255, 0.5)',
+                    color: '#ffffff',
+                    textShadow: '0 0 20px rgba(59, 130, 246, 0.8), 0 0 40px rgba(139, 92, 246, 0.4)',
                   }}
                 >
                   {race.time}
@@ -214,17 +267,20 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
           ))}
         </div>
 
-        <div
-          className="mt-8 p-4 rounded-lg text-center"
-          style={{
-            background: 'rgba(34, 211, 238, 0.1)',
-            border: '1px solid rgba(34, 211, 238, 0.3)',
-          }}
-        >
-          <p className="text-sm text-cyan-400">
-            Based on: <span className="font-bold text-white">{baseline.name}</span>
-            {' '}({baseline.distanceKm.toFixed(1)}km in {formatTime(baseline.timeMin)})
-          </p>
+        <div className="text-center">
+          <div
+            className="inline-block px-6 py-3 rounded-lg"
+            style={{
+              background: 'rgba(34, 211, 238, 0.1)',
+              border: '1px solid rgba(34, 211, 238, 0.4)',
+              boxShadow: '0 0 20px rgba(34, 211, 238, 0.2)',
+            }}
+          >
+            <p className="text-sm" style={{ color: '#22d3ee' }}>
+              Based on: <span className="font-bold text-white">{baseline.name}</span>
+              {' '}({baseline.distanceKm.toFixed(1)}km in {formatTime(baseline.timeMin)})
+            </p>
+          </div>
         </div>
       </div>
     </div>
