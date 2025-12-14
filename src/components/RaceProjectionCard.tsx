@@ -42,14 +42,12 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
 
   if (!baseline) {
     return (
-      <div className="relative overflow-hidden rounded-2xl border-2 border-cyan-400 bg-[#050a14] p-12 backdrop-blur-md shadow-[0_0_40px_rgba(34,211,238,0.4)]">
-        <div className="text-center">
-          <h2 className="text-3xl font-extrabold text-white mb-4 tracking-wider">
-            RACE PROJECTION
-          </h2>
-          <p className="text-lg text-cyan-400 mb-4 font-semibold">No race data available</p>
-          <p className="text-sm text-slate-200">Complete a race or long run (10km+) to see projections</p>
-        </div>
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0a1628] to-[#050a14] p-12 text-center" style={{ border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+        <h2 className="text-3xl font-bold text-white mb-4" style={{ letterSpacing: '0.2em' }}>
+          RACE PROJECTION
+        </h2>
+        <p className="text-lg text-cyan-400 mb-3 font-semibold">No race data available</p>
+        <p className="text-sm text-slate-400">Complete a race or long run (10km+) to see projections</p>
       </div>
     );
   }
@@ -59,34 +57,25 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
   const padding = (maxTime - minTime) * 0.2;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border-2 border-cyan-400 bg-[#050a14] p-8 backdrop-blur-md shadow-[0_0_40px_rgba(34,211,238,0.4)] text-white">
-      {/* Subtle starfield background effect */}
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0a1628] to-[#050a14] p-8 text-white" style={{ border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+      {/* Clean subtle starfield */}
       <div
-        className="absolute inset-0 opacity-10"
+        className="absolute inset-0 opacity-5"
         style={{
-          backgroundImage: `
-            radial-gradient(1px 1px at 20% 30%, white, transparent),
-            radial-gradient(1px 1px at 60% 70%, white, transparent),
-            radial-gradient(1px 1px at 50% 50%, white, transparent)
-          `,
-          backgroundSize: '200px 200px, 200px 200px, 300px 300px',
+          backgroundImage: `radial-gradient(1px 1px at 20% 30%, white, transparent), radial-gradient(1px 1px at 60% 70%, white, transparent)`,
+          backgroundSize: '200px 200px',
         }}
       />
 
       <div className="relative z-10">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-3xl font-extrabold text-white tracking-wider mb-2">
-              RACE PROJECTION
-            </h2>
-            <p className="text-sm text-slate-200">
-              Time projections • 75% confidence
-            </p>
-          </div>
-          <div className="px-4 py-2 rounded-lg border border-white/20 bg-white/5">
-            <span className="text-white font-bold">Confidence: 75%</span>
-          </div>
+        <div className="text-center mb-6">
+          <h2 className="text-3xl font-bold text-white tracking-wider mb-2" style={{ letterSpacing: '0.2em' }}>
+            RACE PROJECTION
+          </h2>
+          <p className="text-cyan-400 text-sm font-medium">
+            Time projections with 75% confidence
+          </p>
         </div>
 
         {/* Chart */}
@@ -97,8 +86,13 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
               margin={{ top: 60, right: 40, left: 40, bottom: 40 }}
             >
               <defs>
+                <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#a855f7" />
+                  <stop offset="50%" stopColor="#3b82f6" />
+                  <stop offset="100%" stopColor="#06b6d4" />
+                </linearGradient>
                 <filter id="neonGlow">
-                  <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                  <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
                   <feMerge>
                     <feMergeNode in="coloredBlur"/>
                     <feMergeNode in="coloredBlur"/>
@@ -106,14 +100,6 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
                   </feMerge>
                 </filter>
               </defs>
-
-              {/* Background zones - Very subtle */}
-              <ReferenceArea
-                y1={minTime - padding}
-                y2={maxTime + padding}
-                fill="rgba(6, 182, 212, 0.03)"
-                fillOpacity={1}
-              />
 
               <XAxis
                 dataKey="distance"
@@ -128,33 +114,35 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
                 domain={[minTime - padding, maxTime + padding]}
               />
 
-              {/* Main line - Thick Neon Orange */}
+              {/* Main line - Beautiful Gradient */}
               <Line
                 type="monotone"
                 dataKey="timeMinutes"
-                stroke="#F97316"
-                strokeWidth={4}
+                stroke="url(#lineGradient)"
+                strokeWidth={5}
                 filter="url(#neonGlow)"
                 dot={(props) => {
-                  const { cx, cy, key } = props;
+                  const { cx, cy, key, index } = props;
+                  const colors = ['#a855f7', '#8b5cf6', '#3b82f6', '#06b6d4', '#22d3ee'];
+                  const dotColor = colors[index] || '#3b82f6';
                   return (
                     <g key={key}>
                       {/* Outer glow */}
                       <circle
                         cx={cx}
                         cy={cy}
-                        r={10}
-                        fill="rgba(249, 115, 22, 0.3)"
+                        r={12}
+                        fill={`${dotColor}40`}
                         filter="url(#neonGlow)"
                       />
                       {/* Main dot */}
                       <circle
                         cx={cx}
                         cy={cy}
-                        r={6}
-                        fill="#F97316"
+                        r={7}
+                        fill={dotColor}
                         stroke="white"
-                        strokeWidth={2}
+                        strokeWidth={3}
                       />
                     </g>
                   );
@@ -166,27 +154,28 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
 
                   return (
                     <g>
-                      {/* Time value */}
+                      {/* Time value - Bright white */}
                       <text
                         x={x}
-                        y={y - 30}
+                        y={y - 32}
                         fill="#ffffff"
                         textAnchor="middle"
-                        fontSize={20}
-                        fontWeight="bold"
+                        fontSize={22}
+                        fontWeight="700"
+                        style={{ textShadow: '0 0 10px rgba(255, 255, 255, 0.5)' }}
                       >
                         {dataPoint.time}
                       </text>
-                      {/* Confidence label */}
+                      {/* Confidence label - Cyan */}
                       <text
                         x={x}
                         y={y - 12}
                         fill="#22d3ee"
                         textAnchor="middle"
-                        fontSize={11}
-                        fontWeight="600"
+                        fontSize={10}
+                        fontWeight="500"
                       >
-                        {dataPoint.confidence}% confidence
+                        Confidence {dataPoint.confidence}%
                       </text>
                     </g>
                   );
@@ -196,66 +185,46 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
           </ResponsiveContainer>
         </div>
 
-        {/* Distance cards */}
-        <div className="grid grid-cols-5 gap-4 mb-8">
-          {projectionData.map((race, idx) => (
-            <div
-              key={race.distance}
-              className="relative rounded-xl border-2 border-cyan-400/60 bg-[#0a1628]/80 p-4 shadow-[0_0_20px_rgba(34,211,238,0.2)]"
-            >
-              <div className="text-center">
-                <div className="text-xs font-bold text-white mb-3 tracking-wider opacity-80">
+        {/* Distance cards - Clean design */}
+        <div className="grid grid-cols-5 gap-3 mb-6">
+          {projectionData.map((race, idx) => {
+            const colors = ['#a855f7', '#8b5cf6', '#3b82f6', '#06b6d4', '#22d3ee'];
+            const cardColor = colors[idx] || '#3b82f6';
+            const isBaseline = Math.abs(race.km - baseline.distanceKm) < 0.5;
+
+            return (
+              <div
+                key={race.distance}
+                className="relative rounded-xl p-4 text-center"
+                style={{
+                  background: `linear-gradient(135deg, ${cardColor}15, ${cardColor}05)`,
+                  border: `2px solid ${cardColor}60`,
+                  boxShadow: `0 0 20px ${cardColor}20`
+                }}
+              >
+                <div className="text-xs font-bold text-white mb-2 tracking-widest" style={{ opacity: 0.7 }}>
                   {race.distance}
                 </div>
-                <div className="text-2xl font-extrabold text-white">
+                <div className="text-2xl font-bold text-white">
                   {race.time}
                 </div>
+
+                {/* Highlight baseline race */}
+                {isBaseline && (
+                  <div className="absolute top-2 right-2">
+                    <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" style={{ boxShadow: '0 0 8px #22d3ee' }} />
+                  </div>
+                )}
               </div>
-
-              {/* Highlight baseline race */}
-              {Math.abs(race.km - baseline.distanceKm) < 0.5 && (
-                <div className="absolute top-1 right-1">
-                  <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* Feedback section */}
-        <div className="border border-white/20 rounded-xl p-6 bg-white/5 mb-6">
-          <div className="flex items-start gap-4">
-            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-cyan-400/20 flex items-center justify-center">
-              <svg className="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-white font-bold mb-2">AI Coach Insight: Projection Analysis</h3>
-              <p className="text-slate-200 text-sm leading-relaxed">
-                Based on your recent {baseline.name} performance, these projections represent realistic target times
-                across different race distances. Your current fitness level shows strong potential for {' '}
-                {projectionData[2]?.distance || 'marathon'} distance events.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="px-4 py-2 rounded-lg bg-cyan-400/10 border border-cyan-400/30">
-              <p className="text-xs text-cyan-400 font-semibold">
-                Based on: <span className="text-white font-bold">{baseline.name}</span>
-              </p>
-            </div>
-            <div className="text-sm text-slate-200 font-medium">
-              {baseline.distanceKm.toFixed(1)}km • {formatTime(baseline.timeMin)}
-            </div>
-          </div>
-          <button className="text-white font-bold text-sm hover:text-cyan-400 transition-colors underline">
-            What is Race Projection?
-          </button>
+        {/* Footer info */}
+        <div className="text-center pt-4 border-t border-white/10">
+          <p className="text-sm text-slate-400">
+            Based on <span className="text-cyan-400 font-semibold">{baseline.name}</span> • {baseline.distanceKm.toFixed(1)}km in {formatTime(baseline.timeMin)}
+          </p>
         </div>
       </div>
     </div>
