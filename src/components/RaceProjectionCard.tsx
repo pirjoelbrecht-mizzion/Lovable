@@ -221,54 +221,6 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
           </ResponsiveContainer>
         </div>
 
-        {/* Projection Summary Cards */}
-        <div className="grid grid-cols-5 gap-3 mb-6">
-          {projectionData.map((race, idx) => {
-            const colors = ['#a855f7', '#8b5cf6', '#3b82f6', '#06b6d4', '#22d3ee'];
-            const cardColor = colors[idx] || '#3b82f6';
-            const isBaseline = Math.abs(race.km - baseline.distanceKm) < 0.5;
-
-            return (
-              <div
-                key={race.distance}
-                className="relative rounded-xl p-3 text-center"
-                style={{
-                  background: `linear-gradient(135deg, ${cardColor}20, ${cardColor}08)`,
-                  border: `1px solid ${cardColor}40`,
-                  boxShadow: `0 0 15px ${cardColor}15`
-                }}
-              >
-                <div
-                  className="text-xs font-bold mb-1 tracking-widest"
-                  style={{
-                    color: '#ffffff',
-                    opacity: 0.8,
-                    textShadow: '0 1px 3px rgba(0, 0, 0, 0.5)'
-                  }}
-                >
-                  {race.distance}
-                </div>
-                <div
-                  className="text-xl font-bold"
-                  style={{
-                    color: '#ffffff',
-                    textShadow: '0 1px 4px rgba(0, 0, 0, 0.4)'
-                  }}
-                >
-                  {race.time}
-                </div>
-
-                {/* Highlight baseline race */}
-                {isBaseline && (
-                  <div className="absolute top-1.5 right-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" style={{ boxShadow: '0 0 6px #22d3ee' }} />
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
         {/* Footer info */}
         <div className="text-center pt-4 border-t border-white/10">
           <p className="text-sm" style={{ color: '#94a3b8' }}>
