@@ -140,9 +140,9 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
                 strokeWidth={4}
                 filter="url(#neonGlow)"
                 dot={(props) => {
-                  const { cx, cy } = props;
+                  const { cx, cy, key } = props;
                   return (
-                    <g>
+                    <g key={key}>
                       {/* Outer glow */}
                       <circle
                         cx={cx}
