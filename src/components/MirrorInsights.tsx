@@ -17,6 +17,7 @@ import MirrorWeeklyChart from "./MirrorWeeklyChart";
 import ACWRCard from "./ACWRCard";
 import MirrorZonesChart from "./MirrorZonesChart";
 import MirrorEfficiencyChart from "./MirrorEfficiencyChart";
+import MirrorProjectionChart from "./MirrorProjectionChart";
 
 type TabKey = "weekly" | "acwr" | "zones" | "efficiency" | "projection" | "longrun";
 
@@ -237,12 +238,7 @@ export default function MirrorInsights() {
 
       {tab === "projection" && (
         <div style={{ marginTop: '2.5rem' }}>
-          <div className="mirror-chart-card">
-            <div className="mirror-chart-header">
-              <h3 className="mirror-chart-title">Projection</h3>
-              <p className="mirror-chart-subtitle">Coming soon</p>
-            </div>
-          </div>
+          <MirrorProjectionChart />
         </div>
       )}
 
