@@ -109,11 +109,11 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
         </div>
 
         {/* Chart */}
-        <div style={{ height: '400px', marginBottom: '32px' }}>
+        <div style={{ height: '450px', marginBottom: '32px' }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={projectionData}
-              margin={{ top: 60, right: 40, left: 40, bottom: 40 }}
+              margin={{ top: 60, right: 40, left: 40, bottom: 60 }}
             >
               <defs>
                 <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
@@ -136,10 +136,11 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
                 stroke="transparent"
                 tick={{
                   fill: '#ffffff',
-                  fontSize: 14,
+                  fontSize: 16,
                   fontWeight: 700,
                   style: { textShadow: '0 1px 4px rgba(0, 0, 0, 0.5)' }
                 }}
+                tickMargin={15}
                 axisLine={false}
                 tickLine={false}
               />
@@ -220,7 +221,7 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
           </ResponsiveContainer>
         </div>
 
-        {/* Distance cards - Clean design */}
+        {/* Projection Summary Cards */}
         <div className="grid grid-cols-5 gap-3 mb-6">
           {projectionData.map((race, idx) => {
             const colors = ['#a855f7', '#8b5cf6', '#3b82f6', '#06b6d4', '#22d3ee'];
@@ -230,25 +231,25 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
             return (
               <div
                 key={race.distance}
-                className="relative rounded-xl p-4 text-center"
+                className="relative rounded-xl p-3 text-center"
                 style={{
-                  background: `linear-gradient(135deg, ${cardColor}15, ${cardColor}05)`,
-                  border: `2px solid ${cardColor}60`,
-                  boxShadow: `0 0 20px ${cardColor}20`
+                  background: `linear-gradient(135deg, ${cardColor}20, ${cardColor}08)`,
+                  border: `1px solid ${cardColor}40`,
+                  boxShadow: `0 0 15px ${cardColor}15`
                 }}
               >
                 <div
-                  className="text-xs font-bold mb-2 tracking-widest"
+                  className="text-xs font-bold mb-1 tracking-widest"
                   style={{
                     color: '#ffffff',
-                    opacity: 0.9,
+                    opacity: 0.8,
                     textShadow: '0 1px 3px rgba(0, 0, 0, 0.5)'
                   }}
                 >
                   {race.distance}
                 </div>
                 <div
-                  className="text-2xl font-bold"
+                  className="text-xl font-bold"
                   style={{
                     color: '#ffffff',
                     textShadow: '0 1px 4px rgba(0, 0, 0, 0.4)'
@@ -259,8 +260,8 @@ export default function RaceProjectionCard({ baseline }: RaceProjectionCardProps
 
                 {/* Highlight baseline race */}
                 {isBaseline && (
-                  <div className="absolute top-2 right-2">
-                    <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" style={{ boxShadow: '0 0 8px #22d3ee' }} />
+                  <div className="absolute top-1.5 right-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" style={{ boxShadow: '0 0 6px #22d3ee' }} />
                   </div>
                 )}
               </div>
