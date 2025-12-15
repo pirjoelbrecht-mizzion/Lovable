@@ -1003,6 +1003,7 @@ export type DbEvent = {
   notes?: string;
   goal?: string;
   gpx_file_url?: string;
+  route_analysis?: any;
   created_at?: string;
   updated_at?: string;
 };

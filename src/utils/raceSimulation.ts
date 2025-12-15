@@ -42,6 +42,8 @@ export type RaceSimulation = {
   readinessScore: number;
   weeksToRace: number;
   confidence: 'high' | 'medium' | 'low';
+  calculationMethod: 'gpx' | 'manual' | 'projection' | 'default';
+  calculationConfidence: 'very-high' | 'high' | 'medium' | 'low' | 'very-low';
   extendedFactors?: ExtendedSimulationFactors;
   performanceFactors?: PerformanceFactor[];
   weatherDescription?: string;
@@ -263,12 +265,88 @@ export async function simulateRace(raceId?: string): Promise<RaceSimulation | nu
     },
   };
 
-  const distanceRatio = targetRace.distanceKm / baseline.distanceKm;
-  const basePrediction = baseline.timeMin * Math.pow(distanceRatio, 1.06);
+  let basePrediction: number;
+  let calculationMethod: 'gpx' | 'manual' | 'projection' | 'default' = 'default';
+  let calculationConfidence: 'very-high' | 'high' | 'medium' | 'low' | 'very-low' = 'medium';
+  let skipTerrainFactors = false;
+
+  const isGPXValid = (analysis: any, raceDistanceKm: number): boolean => {
+    if (!analysis || !analysis.totalTimeEstimate || analysis.totalTimeEstimate <= 0) {
+      return false;
+    }
+
+    if (!analysis.totalDistanceKm || analysis.totalDistanceKm <= 0) {
+      return false;
+    }
+
+    const distanceDiff = Math.abs(analysis.totalDistanceKm - raceDistanceKm) / raceDistanceKm;
+    if (distanceDiff > 0.1) {
+      console.warn('[simulateRace] GPX distance differs significantly from race distance:', analysis.totalDistanceKm, 'vs', raceDistanceKm);
+      return false;
+    }
+
+    const avgPace = analysis.totalTimeEstimate / analysis.totalDistanceKm;
+    if (avgPace < 3 || avgPace > 15) {
+      console.warn('[simulateRace] GPX pace seems unrealistic:', avgPace, 'min/km');
+      return false;
+    }
+
+    return true;
+  };
+
+  if (targetRace.routeAnalysis && isGPXValid(targetRace.routeAnalysis, targetRace.distanceKm)) {
+    basePrediction = targetRace.routeAnalysis.totalTimeEstimate;
+    calculationMethod = 'gpx';
+    skipTerrainFactors = true;
+
+    if (targetRace.routeAnalysis.usingPersonalizedPace) {
+      calculationConfidence = targetRace.routeAnalysis.paceConfidence === 'high' ? 'very-high' : 'high';
+    } else {
+      calculationConfidence = 'high';
+    }
+
+    console.log('[simulateRace] Using GPX-based time:', basePrediction, 'min');
+    console.log('[simulateRace] GPX analysis:', {
+      distance: targetRace.routeAnalysis.totalDistanceKm,
+      elevation: targetRace.routeAnalysis.totalElevationGainM,
+      personalized: targetRace.routeAnalysis.usingPersonalizedPace,
+      confidence: targetRace.routeAnalysis.paceConfidence
+    });
+  } else if (targetRace.expectedTimeMin && targetRace.expectedTimeMin > 0) {
+    basePrediction = targetRace.expectedTimeMin;
+    calculationMethod = 'manual';
+    calculationConfidence = 'medium';
+    console.log('[simulateRace] Using manual expected time:', basePrediction, 'min');
+  } else if (baseline) {
+    const distanceRatio = targetRace.distanceKm / baseline.distanceKm;
+    basePrediction = baseline.timeMin * Math.pow(distanceRatio, 1.06);
+    calculationMethod = 'projection';
+
+    const similarDistance = Math.abs(distanceRatio - 1.0) < 0.5;
+    const similarTerrain = baseline.source === 'race';
+    const isUltraDistance = targetRace.distanceKm > 50;
+
+    if (isUltraDistance && !similarDistance) {
+      calculationConfidence = 'very-low';
+    } else if (isUltraDistance || !similarDistance) {
+      calculationConfidence = 'low';
+    } else if (similarDistance && similarTerrain) {
+      calculationConfidence = 'medium';
+    } else {
+      calculationConfidence = 'low';
+    }
+
+    console.log('[simulateRace] Using Riegel projection:', basePrediction, 'min (confidence:', calculationConfidence, ')');
+  } else {
+    console.log('[simulateRace] No baseline data available');
+    return null;
+  }
 
   const { adjustedTime, factors: extendedFactors } = applyPerformanceModifiers(
     basePrediction,
-    performanceContext
+    performanceContext,
+    undefined,
+    skipTerrainFactors
   );
 
   const terrainFactor = calculateTerrainFactor(targetRace);
@@ -379,6 +457,8 @@ export async function simulateRace(raceId?: string): Promise<RaceSimulation | nu
     readinessScore: readiness.value,
     weeksToRace,
     confidence,
+    calculationMethod,
+    calculationConfidence,
     extendedFactors,
     performanceFactors,
     weatherDescription: weather ? getWeatherImpactDescription(weather) : undefined,

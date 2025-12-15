@@ -1,5 +1,6 @@
 // src/utils/races.ts
 import { getEvents, type DbEvent } from "@/lib/database";
+import type { GPXRouteAnalysis } from "@/utils/gpxParser";
 
 export type RacePriority = "A" | "B" | "C";
 export type RaceSurface = "road" | "trail" | "track";
@@ -15,7 +16,28 @@ export type Race = {
   notes?: string;
   goal?: string;
   location?: string;
+  gpxFileUrl?: string;
+  routeAnalysis?: GPXRouteAnalysis;
+  expectedTimeMin?: number;
 };
+
+/**
+ * Parse expected time string (HH:MM:SS or MM:SS) to minutes
+ */
+function parseExpectedTime(timeStr?: string): number | undefined {
+  if (!timeStr) return undefined;
+
+  const parts = timeStr.trim().split(':');
+  if (parts.length === 2) {
+    const [min, sec] = parts.map(Number);
+    return min + sec / 60;
+  } else if (parts.length === 3) {
+    const [hr, min, sec] = parts.map(Number);
+    return hr * 60 + min + sec / 60;
+  }
+
+  return undefined;
+}
 
 /**
  * Converts a DbEvent to a Race object
@@ -38,6 +60,9 @@ function eventToRace(event: DbEvent): Race {
     notes: event.notes,
     goal: event.goal,
     location: event.location,
+    gpxFileUrl: event.gpx_file_url,
+    routeAnalysis: event.route_analysis,
+    expectedTimeMin: parseExpectedTime(event.expected_time),
   };
 }
 

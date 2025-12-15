@@ -373,6 +373,35 @@ export default function RaceMode() {
               <div className="race-stat-label">Predicted Time</div>
               <div className="race-stat-value">{simulation.predictedTimeFormatted}</div>
               <div className="race-stat-sub">{simulation.paceFormatted}/km avg</div>
+              {simulation.calculationMethod && (
+                <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'center' }}>
+                  <span style={{
+                    padding: '4px 10px',
+                    borderRadius: '12px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    background: simulation.calculationMethod === 'gpx'
+                      ? 'rgba(76, 175, 80, 0.2)'
+                      : simulation.calculationMethod === 'manual'
+                      ? 'rgba(33, 150, 243, 0.2)'
+                      : 'rgba(255, 152, 0, 0.2)',
+                    color: simulation.calculationMethod === 'gpx'
+                      ? '#4CAF50'
+                      : simulation.calculationMethod === 'manual'
+                      ? '#2196F3'
+                      : '#FF9800',
+                    border: `1px solid ${simulation.calculationMethod === 'gpx'
+                      ? 'rgba(76, 175, 80, 0.4)'
+                      : simulation.calculationMethod === 'manual'
+                      ? 'rgba(33, 150, 243, 0.4)'
+                      : 'rgba(255, 152, 0, 0.4)'}`,
+                  }}>
+                    {simulation.calculationMethod === 'gpx' && '📍 GPX-Based'}
+                    {simulation.calculationMethod === 'manual' && '✏️ Manual Entry'}
+                    {simulation.calculationMethod === 'projection' && '📊 Projected'}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="race-stat-card">
@@ -381,6 +410,15 @@ export default function RaceMode() {
                 {simulation.confidence}
               </div>
               <div className="race-stat-sub">{Math.round(simulation.factors.confidenceScore * 100)}% certainty</div>
+              {simulation.calculationConfidence && (
+                <div style={{ marginTop: '4px', fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>
+                  {simulation.calculationConfidence === 'very-high' && 'Very High Accuracy'}
+                  {simulation.calculationConfidence === 'high' && 'High Accuracy'}
+                  {simulation.calculationConfidence === 'medium' && 'Moderate Accuracy'}
+                  {simulation.calculationConfidence === 'low' && 'Low Accuracy'}
+                  {simulation.calculationConfidence === 'very-low' && 'Very Low Accuracy'}
+                </div>
+              )}
             </div>
 
             <div className="race-stat-card">
@@ -396,6 +434,31 @@ export default function RaceMode() {
             <span className="race-hero-message-icon">💡</span>
             <p className="race-hero-message-text">{simulation.message}</p>
           </div>
+
+          {simulation.calculationMethod === 'projection' && (simulation.calculationConfidence === 'low' || simulation.calculationConfidence === 'very-low') && (
+            <div style={{
+              marginTop: '16px',
+              padding: '16px',
+              background: 'rgba(255, 152, 0, 0.1)',
+              border: '1px solid rgba(255, 152, 0, 0.3)',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              <span style={{ fontSize: '1.5rem' }}>⚠️</span>
+              <div>
+                <div style={{ fontWeight: 600, color: '#FF9800', marginBottom: '4px' }}>Low Confidence Projection</div>
+                <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>
+                  This prediction is based on mathematical projection from different race distances. For more accurate predictions:
+                  <ul style={{ marginTop: '8px', marginLeft: '20px', marginBottom: 0 }}>
+                    <li>Upload a GPX file of the race route in the Calendar</li>
+                    <li>Add similar distance race results to your training log</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {simulation.performanceFactors && simulation.performanceFactors.length > 0 && (

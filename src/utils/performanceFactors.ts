@@ -299,7 +299,8 @@ export function calculateTaperFactor(taper: TaperQuality): number {
 export function applyPerformanceModifiers(
   baseTime: number,
   context: PerformanceContext,
-  weights?: Partial<FactorWeights>
+  weights?: Partial<FactorWeights>,
+  skipTerrainFactors: boolean = false
 ): { adjustedTime: number; factors: ExtendedSimulationFactors } {
   const fitnessFactor = calculateFitnessFactor(context.fitnessScore);
   const consistencyFactor = calculateConsistencyFactor(context.consistency);
@@ -308,13 +309,17 @@ export function applyPerformanceModifiers(
   const weatherFactor = calculateWeatherFactor(context.weather);
   const altitudeFactor = calculateAltitudeFactor(context.altitude);
 
-  const courseFactor = 1 + (context.course.elevationGain / context.course.distanceKm / 100) * 0.02;
-
+  let courseFactor = 1.0;
   let terrainFactor = 1.0;
-  if (context.course.surface === 'trail') {
-    terrainFactor = 1.12;
-  } else if (context.course.surface === 'mixed') {
-    terrainFactor = 1.06;
+
+  if (!skipTerrainFactors) {
+    courseFactor = 1 + (context.course.elevationGain / context.course.distanceKm / 100) * 0.02;
+
+    if (context.course.surface === 'trail') {
+      terrainFactor = 1.12;
+    } else if (context.course.surface === 'mixed') {
+      terrainFactor = 1.06;
+    }
   }
 
   const totalFactor =
