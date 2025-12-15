@@ -88,9 +88,9 @@ async function calculateHistoricalVolume(userId: string): Promise<number> {
 
   const { data: activities } = await supabase
     .from('log_entries')
-    .select('dateISO, km')
+    .select('date, km')
     .eq('user_id', userId)
-    .gte('dateISO', eightWeeksAgo.toISOString().split('T')[0]);
+    .gte('date', eightWeeksAgo.toISOString().split('T')[0]);
 
   if (!activities || activities.length === 0) return 0;
 
@@ -98,7 +98,7 @@ async function calculateHistoricalVolume(userId: string): Promise<number> {
   const weeklyTotals: Record<string, number> = {};
 
   activities.forEach(activity => {
-    const date = new Date(activity.dateISO);
+    const date = new Date(activity.date);
     const weekStart = getMonday(date);
     const weekKey = weekStart.toISOString().split('T')[0];
 
@@ -128,16 +128,16 @@ async function calculateTrainingConsistency(userId: string): Promise<number> {
 
   const { data: activities } = await supabase
     .from('log_entries')
-    .select('dateISO')
+    .select('date')
     .eq('user_id', userId)
-    .gte('dateISO', eightWeeksAgo.toISOString().split('T')[0]);
+    .gte('date', eightWeeksAgo.toISOString().split('T')[0]);
 
   if (!activities || activities.length === 0) return 0;
 
   const weeksWithActivity = new Set<string>();
 
   activities.forEach(activity => {
-    const date = new Date(activity.dateISO);
+    const date = new Date(activity.date);
     const weekStart = getMonday(date);
     weeksWithActivity.add(weekStart.toISOString().split('T')[0]);
   });
