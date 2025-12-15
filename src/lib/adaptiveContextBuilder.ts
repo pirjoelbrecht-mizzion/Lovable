@@ -119,19 +119,18 @@ export function convertToLocalStoragePlan(adaptivePlan: AdaptiveWeeklyPlan): Loc
 
 /**
  * Calculate climate risk level from weather data
+ * Only flags HEAT stress levels - cold is not heat stress
  */
 function calculateClimateLevel(weather: CurrentWeather): 'green' | 'yellow' | 'orange' | 'red' | 'black' {
   const { heatIndex, temp } = weather;
 
   const effectiveTemp = heatIndex || temp;
 
-  if (effectiveTemp < 10) return 'yellow'; // Cold
-  if (effectiveTemp < 18) return 'green'; // Optimal
-  if (effectiveTemp < 25) return 'green'; // Good
-  if (effectiveTemp < 28) return 'yellow'; // Warm
-  if (effectiveTemp < 32) return 'orange'; // Hot
-  if (effectiveTemp < 38) return 'red'; // Very hot
-  return 'black'; // Extreme
+  if (effectiveTemp < 25) return 'green'; // Cool to comfortable - no heat stress
+  if (effectiveTemp < 28) return 'yellow'; // Warm - mild heat concern
+  if (effectiveTemp < 32) return 'orange'; // Hot - moderate heat stress
+  if (effectiveTemp < 38) return 'red'; // Very hot - high heat stress
+  return 'black'; // Extreme heat danger
 }
 
 /**

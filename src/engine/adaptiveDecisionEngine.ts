@@ -601,8 +601,8 @@ function applyClimateLogic(
 
   switch (level) {
     case 'green':
-      // Safe - add hydration tips only
-      reasoning = `Climate safe (WBGT ${wbgt.toFixed(1)}°C). Stay hydrated.`;
+      // Safe - no adjustment needed
+      reasoning = `Good conditions for training (${climate.currentTemp}°C). Stay hydrated.`;
       break;
 
     case 'yellow':
