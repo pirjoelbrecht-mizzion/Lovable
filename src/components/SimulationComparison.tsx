@@ -43,7 +43,7 @@ function formatDelta(delta: number, isTime: boolean = false): {
 
   return {
     text,
-    color: isFaster ? 'var(--good)' : 'var(--warning)',
+    color: isFaster ? '#46E7B1' : '#FF5C7A',
     arrow: isFaster ? '↓' : '↑',
   };
 }
@@ -58,131 +58,153 @@ export default function SimulationComparison({ comparison, distanceKm, startStra
   };
 
   return (
-    <div className="simulation-comparison">
+    <div>
       <div style={{
-        padding: 16,
-        background: 'var(--bg-secondary)',
-        borderRadius: 8,
-        borderLeft: '4px solid var(--brand)',
-        marginBottom: 16,
+        padding: 20,
+        background: 'linear-gradient(135deg, rgba(255, 92, 122, 0.1) 0%, rgba(30, 41, 59, 0.5) 100%)',
+        border: '1px solid rgba(255, 92, 122, 0.2)',
+        borderRadius: 12,
+        marginBottom: 20,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 16,
       }}>
-        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <div className="small" style={{ color: 'var(--muted)', marginBottom: 4 }}>Time Difference</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: timeDelta.color }}>
-              {timeDelta.arrow} {timeDelta.text}
-            </div>
-            <div className="small" style={{ color: 'var(--muted)', marginTop: 4 }}>
-              {pctChange > 0 ? '+' : ''}{pctChange.toFixed(2)}% change
-            </div>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>
+            Time Difference
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div className="small" style={{ color: 'var(--muted)', marginBottom: 4 }}>Pace Difference</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 600, color: paceDelta.color }}>
-              {paceDelta.arrow} {paceDelta.text} sec/km
-            </div>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: timeDelta.color, display: 'flex', alignItems: 'center', gap: 8 }}>
+            {timeDelta.arrow} {timeDelta.text}
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
+            {pctChange > 0 ? '+' : ''}{pctChange.toFixed(2)}% change
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>
+            Pace Difference
+          </div>
+          <div style={{ fontSize: '1.4rem', fontWeight: 700, color: paceDelta.color }}>
+            {paceDelta.arrow} {paceDelta.text} sec/km
           </div>
         </div>
       </div>
 
-      <div className="grid cols-2" style={{ gap: 16, marginBottom: 16 }}>
-        <div className="card" style={{ background: 'var(--bg)', border: '1px solid var(--line)' }}>
-          <div style={{ textAlign: 'center', marginBottom: 12 }}>
-            <div className="small" style={{ color: 'var(--muted)', marginBottom: 8, fontWeight: 600 }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: 16,
+      }}>
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 12,
+          padding: 20,
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: 16 }}>
+            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               Baseline Prediction
             </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: 4 }}>
+            <div style={{ fontSize: '2rem', fontWeight: 800, color: '#fff', marginBottom: 6 }}>
               {formatTime(comparison.baseline.predictedTimeMin)}
             </div>
-            <div className="small" style={{ color: 'var(--muted)' }}>
+            <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.5)' }}>
               {formatPace(comparison.baseline.avgPace)}/km avg
             </div>
           </div>
 
-          <div style={{ borderTop: '1px solid var(--line)', paddingTop: 12 }}>
-            <div className="small" style={{ fontWeight: 600, marginBottom: 8 }}>Factors:</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div className="row" style={{ justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                <span style={{ color: 'var(--muted)' }}>Terrain</span>
-                <b>{comparison.baseline.factors.terrain.toFixed(3)}×</b>
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16 }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: 10, color: 'rgba(255,255,255,0.6)' }}>Factors:</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                <span style={{ color: 'rgba(255,255,255,0.5)' }}>Terrain</span>
+                <b style={{ color: '#fff' }}>{comparison.baseline.factors.terrain.toFixed(3)}x</b>
               </div>
-              <div className="row" style={{ justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                <span style={{ color: 'var(--muted)' }}>Elevation</span>
-                <b>{comparison.baseline.factors.elevation.toFixed(3)}×</b>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                <span style={{ color: 'rgba(255,255,255,0.5)' }}>Elevation</span>
+                <b style={{ color: '#fff' }}>{comparison.baseline.factors.elevation.toFixed(3)}x</b>
               </div>
-              <div className="row" style={{ justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                <span style={{ color: 'var(--muted)' }}>Climate</span>
-                <b>{comparison.baseline.factors.climate.toFixed(3)}×</b>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                <span style={{ color: 'rgba(255,255,255,0.5)' }}>Climate</span>
+                <b style={{ color: '#fff' }}>{comparison.baseline.factors.climate.toFixed(3)}x</b>
               </div>
-              <div className="row" style={{ justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                <span style={{ color: 'var(--muted)' }}>Fatigue</span>
-                <b>{comparison.baseline.factors.fatigue.toFixed(3)}×</b>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                <span style={{ color: 'rgba(255,255,255,0.5)' }}>Fatigue</span>
+                <b style={{ color: '#fff' }}>{comparison.baseline.factors.fatigue.toFixed(3)}x</b>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="card" style={{ background: 'var(--brand-bg)', border: '2px solid var(--brand)' }}>
-          <div style={{ textAlign: 'center', marginBottom: 12 }}>
-            <div className="small" style={{ color: 'var(--brand)', marginBottom: 8, fontWeight: 600 }}>
+        <div style={{
+          background: 'rgba(255, 92, 122, 0.08)',
+          border: '2px solid rgba(255, 92, 122, 0.3)',
+          borderRadius: 12,
+          padding: 20,
+          boxShadow: '0 0 20px rgba(255, 92, 122, 0.1)',
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: 16 }}>
+            <div style={{ fontSize: '0.75rem', color: '#FF5C7A', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               What-If Prediction
             </div>
             {startStrategy && (
-              <div className="small" style={{ marginBottom: 8, fontWeight: 600 }}>
+              <div style={{ fontSize: '0.9rem', marginBottom: 10, fontWeight: 600, color: '#fff' }}>
                 {getStrategyEmoji(startStrategy)} {getStrategyLabel(startStrategy)}
               </div>
             )}
-            <div style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: 4 }}>
+            <div style={{ fontSize: '2rem', fontWeight: 800, color: '#fff', marginBottom: 6 }}>
               {formatTime(comparison.adjusted.predictedTimeMin)}
             </div>
-            <div className="small" style={{ color: 'var(--muted)' }}>
+            <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.5)' }}>
               {formatPace(comparison.adjusted.avgPace)}/km avg
             </div>
           </div>
 
-          <div style={{ borderTop: '1px solid var(--brand)', paddingTop: 12 }}>
-            <div className="small" style={{ fontWeight: 600, marginBottom: 8, color: 'var(--brand)' }}>
+          <div style={{ borderTop: '1px solid rgba(255, 92, 122, 0.2)', paddingTop: 16 }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: 10, color: '#FF5C7A' }}>
               Adjusted Factors:
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div className="row" style={{ justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                <span style={{ color: 'var(--muted)' }}>Terrain</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                <span style={{ color: 'rgba(255,255,255,0.5)' }}>Terrain</span>
                 <b style={{
                   color: factorChanged(comparison.baseline.factors.terrain, comparison.adjusted.factors.terrain)
-                    ? 'var(--brand)'
-                    : 'inherit'
+                    ? '#FF5C7A'
+                    : '#fff'
                 }}>
-                  {comparison.adjusted.factors.terrain.toFixed(3)}×
+                  {comparison.adjusted.factors.terrain.toFixed(3)}x
                 </b>
               </div>
-              <div className="row" style={{ justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                <span style={{ color: 'var(--muted)' }}>Elevation</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                <span style={{ color: 'rgba(255,255,255,0.5)' }}>Elevation</span>
                 <b style={{
                   color: factorChanged(comparison.baseline.factors.elevation, comparison.adjusted.factors.elevation)
-                    ? 'var(--brand)'
-                    : 'inherit'
+                    ? '#FF5C7A'
+                    : '#fff'
                 }}>
-                  {comparison.adjusted.factors.elevation.toFixed(3)}×
+                  {comparison.adjusted.factors.elevation.toFixed(3)}x
                 </b>
               </div>
-              <div className="row" style={{ justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                <span style={{ color: 'var(--muted)' }}>Climate</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                <span style={{ color: 'rgba(255,255,255,0.5)' }}>Climate</span>
                 <b style={{
                   color: factorChanged(comparison.baseline.factors.climate, comparison.adjusted.factors.climate)
-                    ? 'var(--brand)'
-                    : 'inherit'
+                    ? '#FF5C7A'
+                    : '#fff'
                 }}>
-                  {comparison.adjusted.factors.climate.toFixed(3)}×
+                  {comparison.adjusted.factors.climate.toFixed(3)}x
                 </b>
               </div>
-              <div className="row" style={{ justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                <span style={{ color: 'var(--muted)' }}>Fatigue</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                <span style={{ color: 'rgba(255,255,255,0.5)' }}>Fatigue</span>
                 <b style={{
                   color: factorChanged(comparison.baseline.factors.fatigue, comparison.adjusted.factors.fatigue)
-                    ? 'var(--brand)'
-                    : 'inherit'
+                    ? '#FF5C7A'
+                    : '#fff'
                 }}>
-                  {comparison.adjusted.factors.fatigue.toFixed(3)}×
+                  {comparison.adjusted.factors.fatigue.toFixed(3)}x
                 </b>
               </div>
             </div>

@@ -18,64 +18,100 @@ export default function PacingChart({ segments, title = 'Pacing Strategy' }: Pac
   const avgPace = segments.reduce((sum, s) => sum + s.targetPace, 0) / segments.length;
 
   return (
-    <div className="card">
-      <h3 className="h2" style={{ marginBottom: 16 }}>{title}</h3>
+    <div style={{
+      background: 'rgba(255,255,255,0.02)',
+      border: '1px solid rgba(255,255,255,0.06)',
+      borderRadius: 12,
+      padding: 20,
+    }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+        flexWrap: 'wrap',
+        gap: 12,
+      }}>
+        <h3 style={{
+          fontSize: '1rem',
+          fontWeight: 600,
+          color: '#fff',
+          margin: 0,
+        }}>
+          {title}
+        </h3>
+        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>
+            <div style={{ width: 20, height: 3, background: '#FF5C7A', borderRadius: 2 }} />
+            <span>Target Pace</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>
+            <div style={{ width: 20, height: 2, background: '#FFB74D', borderRadius: 2 }} />
+            <span>Target HR</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>
+            <div style={{ width: 20, height: 2, background: 'rgba(255, 92, 122, 0.4)', borderRadius: 2 }} />
+            <span>Average Pace</span>
+          </div>
+        </div>
+      </div>
 
       <ResponsiveContainer width="100%" height={280}>
         <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" opacity={0.3} />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" opacity={0.5} />
 
           <XAxis
             dataKey="distance"
-            stroke="var(--muted)"
-            style={{ fontSize: 12 }}
-            tick={{ fill: 'var(--muted)' }}
-            label={{ value: 'Distance (km)', position: 'insideBottom', offset: -5, fill: 'var(--muted)' }}
+            stroke="rgba(255,255,255,0.4)"
+            style={{ fontSize: 11 }}
+            tick={{ fill: 'rgba(255,255,255,0.5)' }}
+            label={{ value: 'Distance (km)', position: 'insideBottom', offset: -5, fill: 'rgba(255,255,255,0.4)', fontSize: 11 }}
           />
 
           <YAxis
             yAxisId="pace"
             domain={['dataMin - 0.5', 'dataMax + 0.5']}
             reversed
-            stroke="var(--muted)"
-            style={{ fontSize: 12 }}
-            tick={{ fill: 'var(--muted)' }}
+            stroke="rgba(255,255,255,0.4)"
+            style={{ fontSize: 11 }}
+            tick={{ fill: 'rgba(255,255,255,0.5)' }}
             tickFormatter={(value) => formatPace(value)}
-            label={{ value: 'Pace (min/km)', angle: -90, position: 'insideLeft', fill: 'var(--muted)' }}
+            label={{ value: 'Pace (min/km)', angle: -90, position: 'insideLeft', fill: 'rgba(255,255,255,0.4)', fontSize: 11 }}
           />
 
           <YAxis
             yAxisId="hr"
             orientation="right"
             domain={[100, 200]}
-            stroke="var(--muted)"
-            style={{ fontSize: 12 }}
-            tick={{ fill: 'var(--muted)' }}
-            label={{ value: 'HR (bpm)', angle: 90, position: 'insideRight', fill: 'var(--muted)' }}
+            stroke="rgba(255,255,255,0.4)"
+            style={{ fontSize: 11 }}
+            tick={{ fill: 'rgba(255,255,255,0.5)' }}
+            label={{ value: 'HR (bpm)', angle: 90, position: 'insideRight', fill: 'rgba(255,255,255,0.4)', fontSize: 11 }}
           />
 
           <ReferenceLine
             yAxisId="pace"
             y={avgPace}
-            stroke="var(--brand)"
+            stroke="#FF5C7A"
             strokeDasharray="5 5"
             opacity={0.4}
-            label={{ value: `Avg: ${formatPace(avgPace)}`, fill: 'var(--brand)', fontSize: 11 }}
+            label={{ value: `Avg: ${formatPace(avgPace)}`, fill: '#FF5C7A', fontSize: 10 }}
           />
 
           <Tooltip
             contentStyle={{
-              background: 'var(--card)',
-              border: '1px solid var(--line)',
+              background: 'rgba(22, 24, 41, 0.95)',
+              border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: 8,
               fontSize: 12,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
             }}
             formatter={(value: any, name: string) => {
               if (name === 'pace') return [formatPace(value), 'Target Pace'];
               if (name === 'hr') return [value ? `${value} bpm` : 'N/A', 'Target HR'];
               return [value, name];
             }}
-            labelStyle={{ color: 'var(--text)' }}
+            labelStyle={{ color: '#fff' }}
             labelFormatter={(label) => `${label} km`}
           />
 
@@ -83,10 +119,10 @@ export default function PacingChart({ segments, title = 'Pacing Strategy' }: Pac
             yAxisId="pace"
             type="monotone"
             dataKey="pace"
-            stroke="#46E7B1"
+            stroke="#FF5C7A"
             strokeWidth={3}
-            dot={{ fill: '#46E7B1', r: 4 }}
-            activeDot={{ r: 6 }}
+            dot={{ fill: '#FF5C7A', r: 4, strokeWidth: 2, stroke: 'rgba(255, 92, 122, 0.3)' }}
+            activeDot={{ r: 6, fill: '#FF5C7A', stroke: '#fff', strokeWidth: 2 }}
             name="pace"
           />
 
@@ -94,30 +130,15 @@ export default function PacingChart({ segments, title = 'Pacing Strategy' }: Pac
             yAxisId="hr"
             type="monotone"
             dataKey="hr"
-            stroke="#3b82f6"
+            stroke="#FFB74D"
             strokeWidth={2}
             strokeDasharray="4 4"
-            dot={{ fill: '#3b82f6', r: 3 }}
-            activeDot={{ r: 5 }}
+            dot={{ fill: '#FFB74D', r: 3 }}
+            activeDot={{ r: 5, fill: '#FFB74D', stroke: '#fff', strokeWidth: 2 }}
             name="hr"
           />
         </LineChart>
       </ResponsiveContainer>
-
-      <div className="row" style={{ gap: 20, marginTop: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-        <div className="row small" style={{ gap: 6, alignItems: 'center' }}>
-          <div style={{ width: 16, height: 3, background: '#46E7B1', borderRadius: 2 }} />
-          <span>Target Pace</span>
-        </div>
-        <div className="row small" style={{ gap: 6, alignItems: 'center' }}>
-          <div style={{ width: 16, height: 2, background: '#3b82f6', borderRadius: 2 }} />
-          <span>Target HR</span>
-        </div>
-        <div className="row small" style={{ gap: 6, alignItems: 'center' }}>
-          <div style={{ width: 16, height: 2, background: 'var(--brand)', borderRadius: 2, opacity: 0.4 }} />
-          <span>Average Pace</span>
-        </div>
-      </div>
     </div>
   );
 }

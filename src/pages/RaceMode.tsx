@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { Flag, Calendar, Map, TrendingUp, ChevronRight } from 'lucide-react';
 import { useT } from '@/i18n';
 import { useRaceSimulation } from '@/hooks/useRaceSimulation';
 import { useReadinessScore } from '@/hooks/useReadinessScore';
@@ -19,15 +20,13 @@ import {
 } from '@/utils/whatifSimulation';
 import { getPacingStrategy, type DbPacingStrategy } from '@/lib/database';
 import { generateAutoPacing } from '@/utils/pacingGeneration';
+import './RaceMode.css';
 
 export default function RaceMode() {
   const t = useT();
   const [selectedRaceId, setSelectedRaceId] = useState<string | undefined>(undefined);
-  const [showPaceBreakdown, setShowPaceBreakdown] = useState(false);
-  const [showFactors, setShowFactors] = useState(false);
   const [allRaces, setAllRaces] = useState<Race[]>([]);
   const [racesLoading, setRacesLoading] = useState(true);
-  const [showWhatIf, setShowWhatIf] = useState(true);
   const [overrides, setOverrides] = useState<SimulationOverrides>({});
   const [pacingStrategy, setPacingStrategy] = useState<DbPacingStrategy | null>(null);
   const [showPacingForm, setShowPacingForm] = useState(false);
@@ -63,7 +62,6 @@ export default function RaceMode() {
     }
     loadPacingStrategy();
 
-    // Listen for pacing strategy updates from other components
     const handlePacingUpdate = (e: CustomEvent) => {
       if (e.detail.raceId === simulation?.race.id) {
         loadPacingStrategy();
@@ -119,7 +117,6 @@ export default function RaceMode() {
   };
 
   const handlePacingSave = async (strategy: DbPacingStrategy) => {
-    // Reload from database to ensure consistency
     const reloadedStrategy = await getPacingStrategy(strategy.race_id);
     setPacingStrategy(reloadedStrategy);
     setPacingMode('view');
@@ -161,13 +158,43 @@ export default function RaceMode() {
 
   const hasOverrides = Object.keys(overrides).length > 0;
 
+  const getConfidenceColor = (confidence: string) => {
+    if (confidence === 'high') return 'race-stat-value-good';
+    if (confidence === 'medium') return 'race-stat-value-warning';
+    return 'race-stat-value-bad';
+  };
+
+  const getReadinessColor = (score: number) => {
+    if (score >= 80) return 'race-stat-value-good';
+    if (score >= 60) return 'race-stat-value-warning';
+    return 'race-stat-value-bad';
+  };
+
   if (loading || racesLoading) {
     return (
-      <div className="grid" style={{ gap: 20 }}>
-        <section className="card">
-          <h2 className="h2">Race Mode Simulation</h2>
-          <p className="small">Loading race simulation...</p>
-        </section>
+      <div className="race-container">
+        <div className="race-bg-orbs">
+          <div className="race-orb race-orb-coral" />
+          <div className="race-orb race-orb-orange" />
+          <div className="race-orb race-orb-amber" />
+        </div>
+        <div className="race-content">
+          <div className="race-header-card">
+            <div className="race-header-top">
+              <div className="race-header-left">
+                <div className="race-header-icon">
+                  <Flag size={20} />
+                </div>
+                <h1 className="race-header-title">Race Mode</h1>
+              </div>
+            </div>
+          </div>
+          <div className="race-section">
+            <div className="race-loading">
+              <div className="race-loading-spinner" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -176,278 +203,239 @@ export default function RaceMode() {
     const hasRaces = futureRaces.length > 0;
 
     return (
-      <div className="grid" style={{ gap: 20 }}>
-        <section className="card">
-          <h2 className="h2">Race Mode Simulation</h2>
-
-          {hasRaces ? (
-            <>
-              <div style={{ marginBottom: 16 }}>
-                <span style={{ fontSize: '2rem', marginRight: 12 }}>🏁</span>
-                <span style={{ fontWeight: 700, fontSize: '1.2rem' }}>
-                  {futureRaces[0].name}
-                </span>
-                <div className="small" style={{ color: 'var(--muted)', marginTop: 8 }}>
-                  {futureRaces[0].distanceKm} km • {futureRaces[0].dateISO}
+      <div className="race-container">
+        <div className="race-bg-orbs">
+          <div className="race-orb race-orb-coral" />
+          <div className="race-orb race-orb-orange" />
+          <div className="race-orb race-orb-amber" />
+        </div>
+        <div className="race-content">
+          <div className="race-header-card">
+            <div className="race-header-top">
+              <div className="race-header-left">
+                <div className="race-header-icon">
+                  <Flag size={20} />
                 </div>
+                <h1 className="race-header-title">Race Mode</h1>
               </div>
+              <div className="race-header-nav">
+                <Link to="/season-plan" className="race-nav-btn">
+                  <Calendar size={14} />
+                  <span>Season Plan</span>
+                </Link>
+                <Link to="/calendar" className="race-nav-btn">
+                  <TrendingUp size={14} />
+                  <span>Calendar</span>
+                </Link>
+              </div>
+            </div>
+          </div>
 
-              <div style={{
-                padding: 20,
-                background: 'var(--warning-bg)',
-                border: '2px solid var(--warning)',
-                borderRadius: 12,
-                marginTop: 16
-              }}>
-                <div style={{ fontWeight: 700, marginBottom: 12, color: 'var(--warning)' }}>
-                  ⚠️ Missing Baseline Data
+          <div className="race-section">
+            <div className="race-section-content">
+              {hasRaces ? (
+                <>
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                      <span style={{ fontSize: '2.5rem' }}>🏁</span>
+                      <div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fff' }}>
+                          {futureRaces[0].name}
+                        </div>
+                        <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.5)' }}>
+                          {futureRaces[0].distanceKm} km - {futureRaces[0].dateISO}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    padding: 20,
+                    background: 'rgba(255, 183, 77, 0.1)',
+                    border: '1px solid rgba(255, 183, 77, 0.3)',
+                    borderRadius: 12,
+                    marginBottom: 20
+                  }}>
+                    <div style={{ fontWeight: 700, marginBottom: 12, color: '#FFB74D', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>Missing Baseline Data</span>
+                    </div>
+                    <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, marginBottom: 12 }}>
+                      To generate race predictions, we need at least one of the following:
+                    </p>
+                    <ul style={{ marginLeft: 20, lineHeight: 1.8, color: 'rgba(255,255,255,0.6)' }}>
+                      <li>A past race result logged in your training log</li>
+                      <li>Recent training runs (5km or longer) with time data</li>
+                      <li>Imported activities from Strava or other platforms</li>
+                    </ul>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    <Link to="/log" className="race-section-btn race-section-btn-primary">
+                      Add Training Data
+                    </Link>
+                    <Link to="/settings" className="race-section-btn">
+                      Connect Strava
+                    </Link>
+                    <Link to="/calendar" className="race-section-btn">
+                      Manage Races
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <div className="race-empty-state">
+                  <div className="race-empty-icon">🏁</div>
+                  <p className="race-empty-text">
+                    No upcoming races found in your calendar.<br />
+                    Add a race to see personalized predictions and enable the What-If simulator.
+                  </p>
+                  <Link to="/calendar" className="race-section-btn race-section-btn-primary">
+                    Add Race to Calendar
+                  </Link>
                 </div>
-                <p className="small" style={{ lineHeight: 1.6, marginBottom: 12 }}>
-                  To generate race predictions, we need at least one of the following:
-                </p>
-                <ul style={{ marginLeft: 20, lineHeight: 1.8 }}>
-                  <li>A past race result logged in your training log</li>
-                  <li>Recent training runs (5km or longer) with time data</li>
-                  <li>Imported activities from Strava or other platforms</li>
-                </ul>
-              </div>
-
-              <div className="row" style={{ gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
-                <Link to="/log" className="btn primary">
-                  Add Training Data
-                </Link>
-                <Link to="/settings" className="btn">
-                  Connect Strava
-                </Link>
-                <Link to="/calendar" className="btn">
-                  Manage Races
-                </Link>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="small" style={{ color: 'var(--muted)', marginTop: 10 }}>
-                No upcoming races found in your calendar.
-              </p>
-              <p className="small" style={{ color: 'var(--muted)', marginTop: 8 }}>
-                Add a race to your calendar to see personalized predictions and enable the What-If simulator.
-              </p>
-              <Link to="/calendar" className="btn primary" style={{ marginTop: 12 }}>
-                Add Race to Calendar
-              </Link>
-            </>
-          )}
-        </section>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
-  const getConfidenceBadgeColor = (confidence: string) => {
-    if (confidence === 'high') return 'var(--good)';
-    if (confidence === 'medium') return 'var(--warning)';
-    return 'var(--bad)';
-  };
-
-  const getReadinessColor = (score: number) => {
-    if (score >= 80) return 'var(--good)';
-    if (score >= 60) return 'var(--warning)';
-    return 'var(--bad)';
-  };
-
-  const weeksText = simulation.weeksToRace > 0 
+  const weeksText = simulation.weeksToRace > 0
     ? (simulation.weeksToRace).toFixed(1) + ' weeks away'
     : 'Race day is here!';
 
   return (
-    <div className="grid" style={{ gap: 20 }}>
-      <section className="card">
-        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
-          <h2 className="h2">Race Mode Simulation</h2>
+    <div className="race-container">
+      <div className="race-bg-orbs">
+        <div className="race-orb race-orb-coral" />
+        <div className="race-orb race-orb-orange" />
+        <div className="race-orb race-orb-amber" />
+        <div className="race-orb race-orb-coral-bottom" />
+      </div>
 
-          <div className="row" style={{ gap: 8 }}>
-            {futureRaces.length > 1 && (
-              <select
-                value={selectedRaceId || ''}
-                onChange={(e) => setSelectedRaceId(e.target.value || undefined)}
-                className="btn"
-              >
-                <option value="">Next Priority Race</option>
-                {futureRaces.map(r => (
-                  <option key={r.id} value={r.id}>
-                    {r.name} - {r.dateISO}
-                  </option>
-                ))}
-              </select>
-            )}
-            <Link to="/season-plan" className="btn primary">
-              View Season Plan
-            </Link>
+      <div className="race-content">
+        <div className="race-header-card">
+          <div className="race-header-top">
+            <div className="race-header-left">
+              <div className="race-header-icon">
+                <Flag size={20} />
+              </div>
+              <h1 className="race-header-title">Race Mode</h1>
+            </div>
+            <div className="race-header-nav">
+              {futureRaces.length > 1 && (
+                <select
+                  value={selectedRaceId || ''}
+                  onChange={(e) => setSelectedRaceId(e.target.value || undefined)}
+                  className="race-selector"
+                >
+                  <option value="">Next Priority Race</option>
+                  {futureRaces.map(r => (
+                    <option key={r.id} value={r.id}>
+                      {r.name} - {r.dateISO}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <Link to="/season-plan" className="race-nav-btn">
+                <Calendar size={14} />
+                <span>Season Plan</span>
+              </Link>
+              <Link to="/calendar" className="race-nav-btn">
+                <TrendingUp size={14} />
+                <span>Calendar</span>
+              </Link>
+              <Link to="/route-explorer" className="race-nav-btn">
+                <Map size={14} />
+                <span>Routes</span>
+              </Link>
+            </div>
           </div>
         </div>
-      </section>
 
-      <section className="card">
-        <div style={{
-          background: 'linear-gradient(135deg, var(--brand-bg) 0%, var(--bg-secondary) 100%)',
-          borderRadius: 12,
-          padding: '24px',
-          marginBottom: 24,
-          border: '1px solid var(--border)'
-        }}>
-          <div className="row" style={{ gap: 12, alignItems: 'center', marginBottom: 16 }}>
-            <span style={{ fontSize: '2.5rem' }}>🏁</span>
-            <div style={{ flex: 1 }}>
-              <h3 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 700 }}>{simulation.race.name}</h3>
-              <div style={{ color: 'var(--muted)', marginTop: 6, fontSize: '0.95rem' }}>
-                {simulation.race.distanceKm} km • {simulation.race.dateISO} • {weeksText}
+        <div className="race-hero-card">
+          <div className="race-hero-header">
+            <span className="race-hero-emoji">🏁</span>
+            <div className="race-hero-info">
+              <h2 className="race-hero-name">{simulation.race.name}</h2>
+              <div className="race-hero-meta">
+                <span>{simulation.race.distanceKm} km</span>
+                <span>-</span>
+                <span>{simulation.race.dateISO}</span>
+                <span>-</span>
+                <span className="race-hero-countdown">{weeksText}</span>
               </div>
             </div>
           </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: 16,
-            marginTop: 20
-          }}>
-            <div style={{
-              padding: '20px',
-              background: 'var(--bg)',
-              borderRadius: 10,
-              border: '2px solid var(--border)',
-              textAlign: 'center',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-            }}>
-              <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--muted)', marginBottom: 10, fontWeight: 600 }}>
-                Predicted Time
-              </div>
-              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--brand)', marginBottom: 8 }}>
-                {simulation.predictedTimeFormatted}
-              </div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--muted)' }}>
-                {simulation.paceFormatted}/km avg
-              </div>
+          <div className="race-hero-stats">
+            <div className="race-stat-card race-stat-card-primary">
+              <div className="race-stat-label">Predicted Time</div>
+              <div className="race-stat-value">{simulation.predictedTimeFormatted}</div>
+              <div className="race-stat-sub">{simulation.paceFormatted}/km avg</div>
             </div>
 
-            <div style={{
-              padding: '20px',
-              background: 'var(--bg)',
-              borderRadius: 10,
-              border: '2px solid var(--border)',
-              textAlign: 'center',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-            }}>
-              <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--muted)', marginBottom: 10, fontWeight: 600 }}>
-                Confidence
-              </div>
-              <div style={{
-                fontSize: '1.75rem',
-                fontWeight: 800,
-                color: getConfidenceBadgeColor(simulation.confidence),
-                textTransform: 'uppercase',
-                letterSpacing: '1px',
-                marginBottom: 8
-              }}>
+            <div className="race-stat-card">
+              <div className="race-stat-label">Confidence</div>
+              <div className={`race-stat-value ${getConfidenceColor(simulation.confidence)}`} style={{ textTransform: 'uppercase', fontSize: '24px' }}>
                 {simulation.confidence}
               </div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--muted)' }}>
-                {Math.round(simulation.factors.confidenceScore * 100)}% certainty
-              </div>
+              <div className="race-stat-sub">{Math.round(simulation.factors.confidenceScore * 100)}% certainty</div>
             </div>
 
-            <div style={{
-              padding: '20px',
-              background: 'var(--bg)',
-              borderRadius: 10,
-              border: '2px solid var(--border)',
-              textAlign: 'center',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-            }}>
-              <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--muted)', marginBottom: 10, fontWeight: 600 }}>
-                Readiness
-              </div>
-              <div style={{
-                fontSize: '2.5rem',
-                fontWeight: 800,
-                color: getReadinessColor(simulation.readinessScore),
-                marginBottom: 8
-              }}>
+            <div className="race-stat-card">
+              <div className="race-stat-label">Readiness</div>
+              <div className={`race-stat-value ${getReadinessColor(simulation.readinessScore)}`}>
                 {simulation.readinessScore}
               </div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--muted)', textTransform: 'capitalize' }}>
-                {readiness?.category || 'moderate'}
-              </div>
+              <div className="race-stat-sub" style={{ textTransform: 'capitalize' }}>{readiness?.category || 'moderate'}</div>
             </div>
           </div>
-        </div>
 
-        <div style={{
-          padding: 20,
-          background: 'var(--bg-secondary)',
-          borderRadius: 10,
-          borderLeft: '4px solid var(--brand)',
-          marginBottom: 24
-        }}>
-          <div className="row" style={{ gap: 10, alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '1.5rem' }}>💡</span>
-            <p style={{ margin: 0, fontSize: '1rem', lineHeight: 1.7, flex: 1 }}>
-              {simulation.message}
-            </p>
+          <div className="race-hero-message">
+            <span className="race-hero-message-icon">💡</span>
+            <p className="race-hero-message-text">{simulation.message}</p>
           </div>
         </div>
 
         {simulation.performanceFactors && simulation.performanceFactors.length > 0 && (
-          <div style={{ marginBottom: 20 }}>
-            <FactorBreakdown
-              factors={simulation.performanceFactors}
-              title="Multi-Factor Performance Analysis"
-              groupByImpact={true}
-            />
-          </div>
-        )}
-
-        {simulation.weatherDescription && (
-          <div style={{
-            padding: 16,
-            background: 'var(--bg-secondary)',
-            borderRadius: 10,
-            borderLeft: '4px solid var(--warning)',
-            marginTop: 16
-          }}>
-            <div className="row" style={{ gap: 10, alignItems: 'flex-start' }}>
-              <span style={{ fontSize: '1.25rem' }}>🌡️</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: 6 }}>
-                  Weather Impact
-                </div>
-                <div style={{ fontSize: '0.9rem', color: 'var(--muted)', lineHeight: 1.6 }}>
-                  {simulation.weatherDescription}
+          <div className="race-section">
+            <div className="race-section-header">
+              <div className="race-section-title-group">
+                <div className="race-section-icon">📊</div>
+                <div>
+                  <h3 className="race-section-title">Performance Analysis</h3>
+                  <div className="race-section-subtitle">Multi-factor breakdown</div>
                 </div>
               </div>
             </div>
+            <div className="race-section-content">
+              <FactorBreakdown
+                factors={simulation.performanceFactors}
+                groupByImpact={true}
+              />
+            </div>
           </div>
         )}
-      </section>
 
-      <section className="card" style={{ background: hasOverrides ? 'var(--brand-bg)' : 'var(--bg)' }}>
-        <div
-          className="row"
-          style={{ justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-          onClick={() => setShowWhatIf(!showWhatIf)}
-        >
-          <div>
-            <h3 className="h2" style={{ margin: 0, color: hasOverrides ? 'var(--brand)' : 'inherit' }}>
-              🔮 What-If Simulator {hasOverrides && '✨'}
-            </h3>
-            <p className="small" style={{ margin: '4px 0 0 0', color: 'var(--muted)' }}>
-              Comprehensive race simulation with conditions, nutrition, energy, and strategy analysis
-            </p>
+        <div className={`race-section ${hasOverrides ? 'race-section-whatif-active' : ''}`}>
+          <div className="race-section-header">
+            <div className="race-section-title-group">
+              <div className="race-section-icon">🔮</div>
+              <div>
+                <h3 className="race-section-title">What-If Simulator {hasOverrides && '✨'}</h3>
+                <div className="race-section-subtitle">Explore conditions, nutrition, and strategy</div>
+              </div>
+            </div>
+            {hasOverrides && (
+              <div className="race-section-actions">
+                <button className="race-section-btn" onClick={handleResetOverrides}>
+                  Reset
+                </button>
+              </div>
+            )}
           </div>
-          <button className="btn">{showWhatIf ? '▲' : '▼'}</button>
-        </div>
-
-        {showWhatIf && simulation && (
-          <div style={{ marginTop: 20 }}>
+          <div className="race-section-content" style={{ maxHeight: '700px' }}>
             <WhatIfSimulatorTabs
               simulation={simulation}
               adjustedSimulation={adjustedSimulation}
@@ -456,60 +444,59 @@ export default function RaceMode() {
               onResetOverrides={handleResetOverrides}
             />
           </div>
-        )}
-      </section>
-
-      <section className="card">
-        <div
-          className="row"
-          style={{ justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-          onClick={() => setShowFactors(!showFactors)}
-        >
-          <h3 className="h2" style={{ margin: 0 }}>📊 Simulation Factors</h3>
-          <button className="btn">{showFactors ? '▲' : '▼'}</button>
         </div>
 
-        {showFactors && (
-          <SimulationFactorsCard
-            factors={simulation.factors}
-            terrainType={simulation.race.terrain}
-            elevationMeters={simulation.race.elevationM}
-            temperature={simulation.race.temperature}
-            readinessScore={simulation.readinessScore}
-          />
-        )}
-      </section>
-
-      <section className="card">
-        <div
-          className="row"
-          style={{ justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-          onClick={() => setShowPaceBreakdown(!showPaceBreakdown)}
-        >
-          <h3 className="h2" style={{ margin: 0 }}>Pacing Strategy</h3>
-          <div className="row" style={{ gap: 8 }}>
-            {pacingStrategy && pacingMode === 'view' && (
-              <button
-                className="btn small primary"
-                onClick={(e) => { e.stopPropagation(); handlePacingEdit(); }}
-              >
-                Edit Plan
-              </button>
-            )}
-            {!pacingStrategy && !showPacingForm && (
-              <button
-                className="btn small primary"
-                onClick={(e) => { e.stopPropagation(); setShowPacingForm(true); }}
-              >
-                Create Plan
-              </button>
-            )}
-            <button className="btn">{showPaceBreakdown ? '▲' : '▼'}</button>
+        <div className="race-section">
+          <div className="race-section-header">
+            <div className="race-section-title-group">
+              <div className="race-section-icon">📈</div>
+              <div>
+                <h3 className="race-section-title">Simulation Factors</h3>
+                <div className="race-section-subtitle">Environmental and physiological impacts</div>
+              </div>
+            </div>
+          </div>
+          <div className="race-section-content">
+            <SimulationFactorsCard
+              factors={simulation.factors}
+              terrainType={simulation.race.terrain}
+              elevationMeters={simulation.race.elevationM}
+              temperature={simulation.race.temperature}
+              readinessScore={simulation.readinessScore}
+            />
           </div>
         </div>
 
-        {showPaceBreakdown && (
-          <div style={{ marginTop: 16 }}>
+        <div className="race-section">
+          <div className="race-section-header">
+            <div className="race-section-title-group">
+              <div className="race-section-icon">⏱️</div>
+              <div>
+                <h3 className="race-section-title">Pacing Strategy</h3>
+                <div className="race-section-subtitle">
+                  {pacingStrategy ? `${pacingStrategy.segments.length} segments` : 'Create your race plan'}
+                </div>
+              </div>
+            </div>
+            <div className="race-section-actions">
+              {pacingStrategy && pacingMode === 'view' && (
+                <button className="race-section-btn" onClick={handlePacingEdit}>
+                  Edit Plan
+                </button>
+              )}
+              {!pacingStrategy && !showPacingForm && (
+                <>
+                  <button className="race-section-btn" onClick={handleGenerateAutoPacing}>
+                    Auto-Generate
+                  </button>
+                  <button className="race-section-btn race-section-btn-primary" onClick={() => setShowPacingForm(true)}>
+                    Create Plan
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="race-section-content">
             {showPacingForm ? (
               <PacingStrategyForm
                 raceId={simulation.race.id}
@@ -521,44 +508,87 @@ export default function RaceMode() {
                 onGenerateAuto={handleGenerateAutoPacing}
               />
             ) : pacingStrategy && pacingStrategy.segments.length > 0 ? (
-              <PacingChart segments={pacingStrategy.segments} />
+              <>
+                <PacingChart segments={pacingStrategy.segments} />
+                <div className="race-pacing-info">
+                  <strong>{pacingStrategy.name}</strong> - {pacingStrategy.segments.length} segments -
+                  {pacingStrategy.mode === 'auto' ? ' Auto-generated' : ' Custom plan'}
+                </div>
+              </>
             ) : (
-              <div style={{ padding: '40px 0', textAlign: 'center' }}>
-                <p className="small" style={{ color: 'var(--muted)', marginBottom: 16 }}>
-                  No custom pacing strategy yet. Create one to personalize your race plan.
+              <div className="race-empty-state">
+                <div className="race-empty-icon">⏱️</div>
+                <p className="race-empty-text">
+                  No pacing strategy yet. Create one to personalize your race plan.
                 </p>
-                <button className="btn primary" onClick={() => setShowPacingForm(true)}>
+                <button className="race-section-btn race-section-btn-primary" onClick={() => setShowPacingForm(true)}>
                   Create Pacing Strategy
                 </button>
               </div>
             )}
+          </div>
+        </div>
 
-            {pacingStrategy && pacingMode === 'view' && (
-              <div style={{ marginTop: 16, padding: 12, background: 'var(--bg-secondary)', borderRadius: 8 }}>
-                <div className="small" style={{ color: 'var(--muted)' }}>
-                  <strong>{pacingStrategy.name}</strong> • {pacingStrategy.segments.length} segments •
-                  {pacingStrategy.mode === 'auto' ? ' Auto-generated' : ' Custom plan'}
+        <div className="race-section">
+          <div className="race-section-header">
+            <div className="race-section-title-group">
+              <div className="race-section-icon">💡</div>
+              <div>
+                <h3 className="race-section-title">Race Day Tips</h3>
+                <div className="race-section-subtitle">Key strategies for success</div>
+              </div>
+            </div>
+          </div>
+          <div className="race-section-content">
+            <ul className="race-tips-list">
+              <li className="race-tip-item">
+                <span className="race-tip-icon">🚀</span>
+                <span className="race-tip-text">Start conservatively - aim for Z3 in the first 20%</span>
+              </li>
+              <li className="race-tip-item">
+                <span className="race-tip-icon">🍌</span>
+                <span className="race-tip-text">Fuel every 30-45 min (200-250 kcal/hour for ultras)</span>
+              </li>
+              <li className="race-tip-item">
+                <span className="race-tip-icon">❤️</span>
+                <span className="race-tip-text">Monitor HR drift - if zones climb, ease off pace</span>
+              </li>
+              {simulation.race.elevationM && simulation.race.elevationM > 500 && (
+                <li className="race-tip-item">
+                  <span className="race-tip-icon">⛰️</span>
+                  <span className="race-tip-text">Power-hike steep climbs to preserve leg strength</span>
+                </li>
+              )}
+              {simulation.factors.climateFactor > 1.03 && (
+                <li className="race-tip-item">
+                  <span className="race-tip-icon">🌡️</span>
+                  <span className="race-tip-text">Hot conditions expected - increase hydration by 20-30%</span>
+                </li>
+              )}
+            </ul>
+          </div>
+        </div>
+
+        {simulation.weatherDescription && (
+          <div className="race-section">
+            <div className="race-section-header">
+              <div className="race-section-title-group">
+                <div className="race-section-icon">🌤️</div>
+                <div>
+                  <h3 className="race-section-title">Weather Impact</h3>
+                  <div className="race-section-subtitle">Conditions forecast</div>
                 </div>
               </div>
-            )}
+            </div>
+            <div className="race-section-content">
+              <div className="race-hero-message">
+                <span className="race-hero-message-icon">🌡️</span>
+                <p className="race-hero-message-text">{simulation.weatherDescription}</p>
+              </div>
+            </div>
           </div>
         )}
-      </section>
-
-      <section className="card" style={{ background: 'var(--bg-secondary)' }}>
-        <h3 className="h2">Race Day Tips</h3>
-        <ul style={{ margin: 0, paddingLeft: 20, lineHeight: 1.8 }}>
-          <li>Start conservatively - aim for Z3 in the first 20%</li>
-          <li>Fuel every 30-45 min (200-250 kcal/hour for ultras)</li>
-          <li>Monitor HR drift - if zones climb, ease off pace</li>
-          {simulation.race.elevationM && simulation.race.elevationM > 500 && (
-            <li>Power-hike steep climbs to preserve leg strength</li>
-          )}
-          {simulation.factors.climateFactor > 1.03 && (
-            <li>Hot conditions expected - increase hydration by 20-30%</li>
-          )}
-        </ul>
-      </section>
+      </div>
     </div>
   );
 }

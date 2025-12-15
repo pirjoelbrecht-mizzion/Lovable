@@ -102,7 +102,6 @@ export default function WhatIfSimulatorTabs({
     const readinessScore = overrides.readiness ?? simulation.readinessScore;
     const selectedStrategy = overrides.startStrategy;
 
-    // Use pacing-aware simulation if pacing segments are defined
     if (pacingSegments.length > 0) {
       return runPhysiologicalSimulationWithPacing(
         simulation.race.distanceKm || 10,
@@ -238,264 +237,30 @@ export default function WhatIfSimulatorTabs({
     setPacingStrategy(autoStrategy);
   };
 
-  const TabButton = ({ tabId, label }: { tabId: typeof activeTab; label: string }) => (
-    <button
-      className="btn"
-      onClick={() => setActiveTab(tabId)}
-      style={{
-        padding: '10px 20px',
-        background: activeTab === tabId ? 'var(--brand)' : 'var(--bg-secondary)',
-        color: activeTab === tabId ? 'white' : 'inherit',
-        fontWeight: activeTab === tabId ? 600 : 400,
-        border: activeTab === tabId ? '2px solid var(--brand)' : '1px solid var(--line)',
-        flex: isMobile ? '1' : 'auto',
-        minWidth: isMobile ? 'auto' : 140,
-      }}
-    >
-      {label}
-    </button>
-  );
-
-  if (isMobile) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <details open>
-          <summary style={{
-            cursor: 'pointer',
-            padding: 12,
-            background: 'var(--bg-secondary)',
-            borderRadius: 8,
-            fontWeight: 600,
-            listStyle: 'none',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}>
-            <span>🌡️ Conditions</span>
-            <span>▼</span>
-          </summary>
-          <div style={{ padding: 12 }}>
-            <WhatIfControls
-              overrides={overrides}
-              onChange={onOverridesChange}
-              onReset={onResetOverrides}
-              currentValues={{
-                temperature: 20,
-                humidity: 50,
-                elevation: simulation.race.elevationM,
-                readiness: simulation.readinessScore,
-                surface: simulation.race.surface,
-              }}
-            />
-          </div>
-        </details>
-
-        <details>
-          <summary style={{
-            cursor: 'pointer',
-            padding: 12,
-            background: 'var(--bg-secondary)',
-            borderRadius: 8,
-            fontWeight: 600,
-            listStyle: 'none',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}>
-            <span>🍌 Nutrition</span>
-            <span>▼</span>
-          </summary>
-          <div style={{ padding: 12 }}>
-            <PhysiologicalControls
-              inputs={physiologicalInputs}
-              onChange={setPhysiologicalInputs}
-            />
-          </div>
-        </details>
-
-        <details>
-          <summary style={{
-            cursor: 'pointer',
-            padding: 12,
-            background: 'var(--bg-secondary)',
-            borderRadius: 8,
-            fontWeight: 600,
-            listStyle: 'none',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}>
-            <span>⚖️ Strategy</span>
-            <span>▼</span>
-          </summary>
-          <div style={{ padding: 12 }}>
-            <div style={{ marginBottom: 16 }}>
-              <div className="small" style={{ fontWeight: 600, marginBottom: 8 }}>
-                Starting Strategy
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {(['conservative', 'target', 'aggressive'] as const).map((strategy) => {
-                  const isSelected = overrides.startStrategy === strategy;
-                  const emoji = getStrategyEmoji(strategy);
-                  const label = getStrategyLabel(strategy);
-
-                  return (
-                    <button
-                      key={strategy}
-                      onClick={() => {
-                        const newOverrides = { ...overrides, startStrategy: strategy };
-                        onOverridesChange(newOverrides);
-                      }}
-                      style={{
-                        padding: '12px',
-                        textAlign: 'left',
-                        background: isSelected ? 'var(--brand-bg)' : 'var(--bg)',
-                        border: isSelected ? '2px solid var(--brand)' : '1px solid var(--line)',
-                        borderRadius: 8,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                      }}
-                    >
-                      <span style={{ fontSize: '1.2rem' }}>{emoji}</span>
-                      <span style={{
-                        fontSize: '0.9rem',
-                        fontWeight: isSelected ? 600 : 400,
-                        color: isSelected ? 'var(--brand)' : 'inherit',
-                      }}>
-                        {label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 8,
-              }}>
-                <div className="small" style={{ fontWeight: 600 }}>
-                  Pacing Strategy
-                </div>
-                {!showPacingEditor && (
-                  <button
-                    className="btn small"
-                    onClick={() => setShowPacingEditor(true)}
-                    style={{ padding: '4px 8px', fontSize: '0.8rem' }}
-                  >
-                    {pacingStrategy ? 'Edit' : 'Create'}
-                  </button>
-                )}
-              </div>
-
-              {showPacingEditor ? (
-                <PacingStrategyForm
-                  raceId={simulation.race.id}
-                  raceName={simulation.race.name}
-                  raceDistanceKm={simulation.race.distanceKm || 10}
-                  existingStrategy={pacingStrategy}
-                  onSave={handlePacingSave}
-                  onCancel={handlePacingCancel}
-                  onGenerateAuto={handleGenerateAutoPacing}
-                />
-              ) : pacingSegments.length > 0 ? (
-                <PacingChart segments={pacingSegments} />
-              ) : (
-                <div className="small" style={{ color: 'var(--muted)', padding: 8 }}>
-                  No pacing plan
-                </div>
-              )}
-            </div>
-
-            {overrides.startStrategy && (
-              <div style={{ marginBottom: 16 }}>
-                <StrategyRecommendation
-                  strategy={overrides.startStrategy}
-                  conditions={{
-                    temperature: overrides.temperature,
-                    humidity: overrides.humidity,
-                    elevation: overrides.elevation,
-                    readiness: overrides.readiness ?? simulation.readinessScore,
-                    distanceKm: simulation.race.distanceKm,
-                  }}
-                />
-              </div>
-            )}
-
-            {physiologicalSim && (
-              <div style={{ marginTop: 16 }}>
-                <EnergyFatigueDynamicsChart
-                  energyDynamics={physiologicalSim.energyDynamics}
-                  distanceKm={simulation.race.distanceKm || 10}
-                />
-              </div>
-            )}
-          </div>
-        </details>
-
-        <details>
-          <summary style={{
-            cursor: 'pointer',
-            padding: 12,
-            background: 'var(--bg-secondary)',
-            borderRadius: 8,
-            fontWeight: 600,
-            listStyle: 'none',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}>
-            <span>🏁 Results</span>
-            <span>▼</span>
-          </summary>
-          <div style={{ padding: 12 }}>
-            {comparison && (
-              <div style={{ marginBottom: 20 }}>
-                <SimulationComparison
-                  comparison={comparison}
-                  distanceKm={simulation.race.distanceKm || 10}
-                  startStrategy={overrides.startStrategy}
-                />
-              </div>
-            )}
-            {physiologicalSim && (
-              <>
-                <div className="grid cols-1" style={{ gap: 16, marginBottom: 20 }}>
-                  <HydrationElectrolytesCard hydration={physiologicalSim.hydration} />
-                  <GIDistressRiskCard giRisk={physiologicalSim.giRisk} />
-                  <PerformanceImpactCard performanceImpact={physiologicalSim.performanceImpact} />
-                </div>
-                <CoachInsightsFeed insights={physiologicalSim.insights} />
-              </>
-            )}
-          </div>
-        </details>
-      </div>
-    );
-  }
+  const tabItems = [
+    { id: 'conditions' as const, label: 'Conditions', icon: '🌡️' },
+    { id: 'nutrition' as const, label: 'Nutrition', icon: '🍌' },
+    { id: 'strategy' as const, label: 'Strategy', icon: '⚖️' },
+    { id: 'results' as const, label: 'Results', icon: '🏁' },
+  ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{
-        display: 'flex',
-        gap: 8,
-        borderBottom: '2px solid var(--line)',
-        paddingBottom: 8,
-        flexWrap: 'wrap',
-      }}>
-        <TabButton tabId="conditions" label="🌡️ Conditions" />
-        <TabButton tabId="nutrition" label="🍌 Nutrition" />
-        <TabButton tabId="strategy" label="⚖️ Strategy" />
-        <TabButton tabId="results" label="🏁 Results" />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      <div className="race-tabs" style={{ margin: '-20px -20px 20px -20px', padding: '16px 20px' }}>
+        {tabItems.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`race-tab ${activeTab === tab.id ? 'race-tab-active' : ''}`}
+          >
+            <span style={{ marginRight: 6 }}>{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {activeTab === 'conditions' && (
-        <div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <WhatIfControls
             overrides={overrides}
             onChange={onOverridesChange}
@@ -510,22 +275,35 @@ export default function WhatIfSimulatorTabs({
           />
 
           {hasOverrides && (
-            <div style={{ marginTop: 20 }}>
-              <button
-                className="btn primary"
-                onClick={() => setShowSaveDialog(!showSaveDialog)}
-                style={{ marginRight: 8 }}
-              >
-                Save Scenario
-              </button>
+            <div style={{
+              padding: 16,
+              background: 'rgba(255, 92, 122, 0.08)',
+              border: '1px solid rgba(255, 92, 122, 0.2)',
+              borderRadius: 12,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                <span style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)' }}>
+                  Save this configuration for later
+                </span>
+                <button
+                  onClick={() => setShowSaveDialog(!showSaveDialog)}
+                  style={{
+                    padding: '8px 16px',
+                    background: 'linear-gradient(135deg, #FF5C7A 0%, #FF8A65 100%)',
+                    border: 'none',
+                    borderRadius: 8,
+                    color: '#0B0B12',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Save Scenario
+                </button>
+              </div>
 
               {showSaveDialog && (
-                <div style={{
-                  marginTop: 12,
-                  padding: 16,
-                  background: 'var(--bg-secondary)',
-                  borderRadius: 8,
-                }}>
+                <div style={{ marginTop: 16 }}>
                   <input
                     type="text"
                     placeholder="Scenario name..."
@@ -533,25 +311,44 @@ export default function WhatIfSimulatorTabs({
                     onChange={(e) => setScenarioName(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: 4,
-                      border: '1px solid var(--line)',
-                      marginBottom: 8,
+                      padding: '10px 14px',
+                      borderRadius: 8,
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      background: 'rgba(255,255,255,0.05)',
+                      color: '#fff',
+                      fontSize: '0.9rem',
+                      marginBottom: 12,
                     }}
                   />
-                  <div className="row" style={{ gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 8 }}>
                     <button
-                      className="btn primary"
                       onClick={handleSaveScenario}
                       disabled={!scenarioName.trim()}
-                      style={{ flex: 1 }}
+                      style={{
+                        flex: 1,
+                        padding: '10px 16px',
+                        background: scenarioName.trim() ? 'linear-gradient(135deg, #FF5C7A 0%, #FF8A65 100%)' : 'rgba(255,255,255,0.1)',
+                        border: 'none',
+                        borderRadius: 8,
+                        color: scenarioName.trim() ? '#0B0B12' : 'rgba(255,255,255,0.4)',
+                        fontWeight: 600,
+                        cursor: scenarioName.trim() ? 'pointer' : 'not-allowed',
+                      }}
                     >
                       Save
                     </button>
                     <button
-                      className="btn"
                       onClick={() => setShowSaveDialog(false)}
-                      style={{ flex: 1 }}
+                      style={{
+                        flex: 1,
+                        padding: '10px 16px',
+                        background: 'rgba(255,255,255,0.1)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 8,
+                        color: '#fff',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                      }}
                     >
                       Cancel
                     </button>
@@ -562,46 +359,64 @@ export default function WhatIfSimulatorTabs({
           )}
 
           {savedScenarios.length > 0 && (
-            <div style={{ marginTop: 20 }}>
-              <div className="small" style={{ fontWeight: 600, marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.6)', marginBottom: 12 }}>
                 Saved Scenarios ({savedScenarios.length})
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {savedScenarios.map((scenario) => (
                   <div
                     key={scenario.id}
-                    className="card"
                     style={{
-                      background: 'var(--bg-secondary)',
-                      padding: 12,
-                      border: '1px solid var(--line)',
+                      padding: 14,
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: 10,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 12,
                     }}
                   >
-                    <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, marginBottom: 4 }}>{scenario.name}</div>
-                        <div className="small" style={{ color: 'var(--muted)' }}>
-                          {scenario.temperature && `${scenario.temperature}°C • `}
-                          {scenario.humidity && `${scenario.humidity}% • `}
-                          {scenario.fueling_rate && `${scenario.fueling_rate}g/h`}
-                        </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, color: '#fff', marginBottom: 4 }}>{scenario.name}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>
+                        {scenario.temperature && `${scenario.temperature}C`}
+                        {scenario.humidity && ` - ${scenario.humidity}%`}
+                        {scenario.fueling_rate && ` - ${scenario.fueling_rate}g/h`}
                       </div>
-                      <div className="row" style={{ gap: 8 }}>
-                        <button
-                          className="btn small"
-                          onClick={() => handleLoadScenario(scenario)}
-                          style={{ padding: '6px 12px' }}
-                        >
-                          Load
-                        </button>
-                        <button
-                          className="btn small"
-                          onClick={() => scenario.id && handleDeleteScenario(scenario.id)}
-                          style={{ padding: '6px 12px', background: 'var(--bad)' }}
-                        >
-                          Delete
-                        </button>
-                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        onClick={() => handleLoadScenario(scenario)}
+                        style={{
+                          padding: '6px 12px',
+                          background: 'rgba(255, 92, 122, 0.15)',
+                          border: '1px solid rgba(255, 92, 122, 0.3)',
+                          borderRadius: 6,
+                          color: '#FF5C7A',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Load
+                      </button>
+                      <button
+                        onClick={() => scenario.id && handleDeleteScenario(scenario.id)}
+                        style={{
+                          padding: '6px 12px',
+                          background: 'rgba(255, 92, 122, 0.1)',
+                          border: '1px solid rgba(255, 92, 122, 0.2)',
+                          borderRadius: 6,
+                          color: '#FF5C7A',
+                          fontSize: '0.8rem',
+                          fontWeight: 500,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -621,12 +436,12 @@ export default function WhatIfSimulatorTabs({
       )}
 
       {activeTab === 'strategy' && (
-        <div>
-          <div style={{ marginBottom: 24 }}>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div>
+            <div style={{ fontSize: '1rem', fontWeight: 600, color: '#fff', marginBottom: 16 }}>
               Starting Strategy
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
               {(['conservative', 'target', 'aggressive'] as const).map((strategy) => {
                 const isSelected = overrides.startStrategy === strategy;
                 const emoji = getStrategyEmoji(strategy);
@@ -641,19 +456,21 @@ export default function WhatIfSimulatorTabs({
                     }}
                     style={{
                       padding: '16px',
-                      textAlign: 'left',
-                      background: isSelected ? 'var(--brand-bg)' : 'var(--bg-secondary)',
-                      border: isSelected ? '2px solid var(--brand)' : '1px solid var(--line)',
-                      borderRadius: 8,
+                      textAlign: 'center',
+                      background: isSelected
+                        ? 'linear-gradient(135deg, rgba(255, 92, 122, 0.2) 0%, rgba(255, 138, 101, 0.1) 100%)'
+                        : 'rgba(255,255,255,0.03)',
+                      border: isSelected ? '2px solid #FF5C7A' : '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 12,
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease',
+                      transition: 'all 0.2s',
                     }}
                   >
-                    <div style={{ fontSize: '1.5rem', marginBottom: 4 }}>{emoji}</div>
+                    <div style={{ fontSize: '1.8rem', marginBottom: 8 }}>{emoji}</div>
                     <div style={{
-                      fontSize: '0.95rem',
+                      fontSize: '0.9rem',
                       fontWeight: 600,
-                      color: isSelected ? 'var(--brand)' : 'inherit',
+                      color: isSelected ? '#FF5C7A' : '#fff',
                     }}>
                       {label}
                     </div>
@@ -664,44 +481,58 @@ export default function WhatIfSimulatorTabs({
           </div>
 
           {overrides.startStrategy && (
-            <div style={{ marginBottom: 24 }}>
-              <StrategyRecommendation
-                strategy={overrides.startStrategy}
-                conditions={{
-                  temperature: overrides.temperature,
-                  humidity: overrides.humidity,
-                  elevation: overrides.elevation,
-                  readiness: overrides.readiness ?? simulation.readinessScore,
-                  distanceKm: simulation.race.distanceKm,
-                }}
-              />
-            </div>
+            <StrategyRecommendation
+              strategy={overrides.startStrategy}
+              conditions={{
+                temperature: overrides.temperature,
+                humidity: overrides.humidity,
+                elevation: overrides.elevation,
+                readiness: overrides.readiness ?? simulation.readinessScore,
+                distanceKm: simulation.race.distanceKm,
+              }}
+            />
           )}
 
-          <div style={{ marginBottom: 24 }}>
+          <div>
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: 12,
+              marginBottom: 16,
             }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 600, margin: 0 }}>
+              <div style={{ fontSize: '1rem', fontWeight: 600, color: '#fff' }}>
                 Pacing Strategy
-              </h3>
+              </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 {!showPacingEditor && !pacingStrategy && (
                   <>
                     <button
-                      className="btn small"
                       onClick={handleGenerateAutoPacing}
-                      style={{ padding: '6px 12px' }}
+                      style={{
+                        padding: '6px 12px',
+                        background: 'rgba(255, 92, 122, 0.15)',
+                        border: '1px solid rgba(255, 92, 122, 0.3)',
+                        borderRadius: 6,
+                        color: '#FF5C7A',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
                     >
                       Auto-Generate
                     </button>
                     <button
-                      className="btn small primary"
                       onClick={() => setShowPacingEditor(true)}
-                      style={{ padding: '6px 12px' }}
+                      style={{
+                        padding: '6px 12px',
+                        background: 'linear-gradient(135deg, #FF5C7A 0%, #FF8A65 100%)',
+                        border: 'none',
+                        borderRadius: 6,
+                        color: '#0B0B12',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
                     >
                       Create Plan
                     </button>
@@ -709,9 +540,17 @@ export default function WhatIfSimulatorTabs({
                 )}
                 {pacingStrategy && !showPacingEditor && (
                   <button
-                    className="btn small primary"
                     onClick={() => setShowPacingEditor(true)}
-                    style={{ padding: '6px 12px' }}
+                    style={{
+                      padding: '6px 12px',
+                      background: 'linear-gradient(135deg, #FF5C7A 0%, #FF8A65 100%)',
+                      border: 'none',
+                      borderRadius: 6,
+                      color: '#0B0B12',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
                   >
                     Edit Plan
                   </button>
@@ -732,20 +571,26 @@ export default function WhatIfSimulatorTabs({
             ) : pacingSegments.length > 0 ? (
               <div>
                 <PacingChart segments={pacingSegments} />
-                <div style={{ marginTop: 12, padding: 12, background: 'var(--bg-secondary)', borderRadius: 8 }}>
-                  <div className="small" style={{ color: 'var(--muted)' }}>
-                    {pacingStrategy?.name || 'Custom pacing plan'} • {pacingSegments.length} segments
-                  </div>
+                <div style={{
+                  marginTop: 12,
+                  padding: 12,
+                  background: 'rgba(255,255,255,0.03)',
+                  borderRadius: 8,
+                  fontSize: '0.85rem',
+                  color: 'rgba(255,255,255,0.5)',
+                }}>
+                  {pacingStrategy?.name || 'Custom pacing plan'} - {pacingSegments.length} segments
                 </div>
               </div>
             ) : (
               <div style={{
                 padding: '40px 20px',
                 textAlign: 'center',
-                background: 'var(--bg-secondary)',
-                borderRadius: 8,
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: 12,
               }}>
-                <p className="small" style={{ color: 'var(--muted)', marginBottom: 16 }}>
+                <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.5)', marginBottom: 0 }}>
                   No pacing strategy defined. Create a custom plan or auto-generate one based on conditions.
                 </p>
               </div>
@@ -754,9 +599,9 @@ export default function WhatIfSimulatorTabs({
 
           {physiologicalSim && (
             <div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: 16 }}>
+              <div style={{ fontSize: '1rem', fontWeight: 600, color: '#fff', marginBottom: 16 }}>
                 Energy & Fatigue Dynamics
-              </h3>
+              </div>
               <EnergyFatigueDynamicsChart
                 energyDynamics={physiologicalSim.energyDynamics}
                 distanceKm={simulation.race.distanceKm || 10}
@@ -767,25 +612,41 @@ export default function WhatIfSimulatorTabs({
       )}
 
       {activeTab === 'results' && (
-        <div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {comparison && (
-            <div style={{ marginBottom: 20 }}>
-              <SimulationComparison
-                comparison={comparison}
-                distanceKm={simulation.race.distanceKm || 10}
-                startStrategy={overrides.startStrategy}
-              />
-            </div>
+            <SimulationComparison
+              comparison={comparison}
+              distanceKm={simulation.race.distanceKm || 10}
+              startStrategy={overrides.startStrategy}
+            />
           )}
           {physiologicalSim && (
             <>
-              <div className="grid cols-3" style={{ gap: 16, marginBottom: 20 }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+                gap: 16,
+              }}>
                 <HydrationElectrolytesCard hydration={physiologicalSim.hydration} />
                 <GIDistressRiskCard giRisk={physiologicalSim.giRisk} />
                 <PerformanceImpactCard performanceImpact={physiologicalSim.performanceImpact} />
               </div>
               <CoachInsightsFeed insights={physiologicalSim.insights} />
             </>
+          )}
+          {!comparison && !physiologicalSim && (
+            <div style={{
+              padding: '60px 20px',
+              textAlign: 'center',
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: 12,
+            }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: 16, opacity: 0.5 }}>🔮</div>
+              <p style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.6)', marginBottom: 0 }}>
+                Adjust conditions in other tabs to see simulation results here
+              </p>
+            </div>
           )}
         </div>
       )}
