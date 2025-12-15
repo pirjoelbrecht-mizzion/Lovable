@@ -133,13 +133,14 @@ export default function AdaptiveCoachPanel({ onPlanGenerated }: AdaptiveCoachPan
     try {
       setLoading(true);
       const logEntries = await syncLogEntries();
-      const race = getActivePriorityRace();
+      const raceResult = await getActivePriorityRace();
 
-      if (!race) {
+      if (!raceResult.race) {
         setExplanation("Please set a race goal first to generate an adaptive training plan.");
         return;
       }
 
+      const race = raceResult.race;
       const raceEvent = convertRaceToEvent(race);
 
       // Calculate weeks to race
