@@ -6,6 +6,7 @@ import { syncLogEntries } from "@/lib/database";
 import { getActivePriorityRace } from "@/utils/races";
 import { getCurrentUserProfile } from "@/lib/userProfile";
 import { getUserSettings } from "@/lib/userSettings";
+import { supabase } from "@/lib/supabase";
 import {
   buildAthleteProfile,
   convertRaceToEvent,
@@ -26,6 +27,8 @@ import {
   type MicrocycleInput,
 } from "@/lib/adaptive-coach";
 import { useAdaptiveTrainingPlan } from "@/hooks/useAdaptiveTrainingPlan";
+import { detectTrainingMode, getMaintenanceVolume } from "@/services/trainingModeDetection";
+import { generateMaintenancePlan } from "@/lib/adaptive-coach/maintenancePlanGenerator";
 
 interface AdaptiveCoachPanelProps {
   onPlanGenerated?: (plan: WeeklyPlan) => void;
@@ -135,8 +138,37 @@ export default function AdaptiveCoachPanel({ onPlanGenerated }: AdaptiveCoachPan
       const logEntries = await syncLogEntries();
       const raceResult = await getActivePriorityRace();
 
+      // Handle no-race scenario: Generate maintenance plan
       if (!raceResult.race) {
-        setExplanation("Please set a race goal first to generate an adaptive training plan.");
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+          const targetVolume = await getMaintenanceVolume(user.id);
+          const maintenancePlan = generateMaintenancePlan({
+            athlete: athleteProfile as AthleteProfile,
+            targetWeeklyVolume: targetVolume,
+            includeWorkouts: true,
+            preferLongRunDay: 'sunday',
+          });
+
+          setCurrentPlan(maintenancePlan.plan);
+          setExplanation(maintenancePlan.explanation);
+
+          // Generate safety check
+          const safety = checkWeeklyPlanSafety(
+            maintenancePlan.plan,
+            athleteProfile as AthleteProfile,
+            athleteProfile.averageMileage
+          );
+          setSafetyCheck(safety);
+
+          if (onPlanGenerated) {
+            onPlanGenerated(maintenancePlan.plan);
+          }
+        } else {
+          setExplanation("Maintenance mode: Training without a race goal. Set a race in the Calendar to switch to race-focused training.");
+        }
+
         return;
       }
 
@@ -349,7 +381,7 @@ export default function AdaptiveCoachPanel({ onPlanGenerated }: AdaptiveCoachPan
           🧠 Adaptive Ultra Training Coach
         </h3>
         <div style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.6 }}>
-          AI-powered coaching with 10 integrated modules for ultramarathon training
+          AI-powered coaching for race-focused training and maintenance mode
         </div>
         {!athleteProfile && !loading && (
           <div style={{
