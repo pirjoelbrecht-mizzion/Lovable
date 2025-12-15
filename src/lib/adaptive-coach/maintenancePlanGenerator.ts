@@ -165,40 +165,21 @@ export function generateMaintenancePlan(input: MaintenancePlanInput): Maintenanc
     isHard: false,
   });
 
-  // Friday: Hill session or rest
-  if (includeWorkouts && athlete.averageVertical && athlete.averageVertical > 500) {
-    days.push({
-      day: 'Friday',
-      dayOfWeek: 5,
-      date: '',
-      workout: {
-        type: 'hill_repeats',
-        title: 'Hill Session',
-        distanceKm: moderateVolume * 0.40,
-        durationMin: Math.round(moderateVolume * 0.40 * 7),
-        description: 'Warm up 15min easy, 6-8 hill repeats (2-3min uphill at hard effort), recover jog down, cool down 10min easy.',
-        purpose: 'Vertical strength maintenance',
-        intensityZones: ['Zone 4-5'],
-        verticalGain: Math.round((athlete.averageVertical || 0) * 0.20),
-      },
-      isHard: true,
-    });
-  } else {
-    days.push({
-      day: 'Friday',
-      dayOfWeek: 5,
-      date: '',
-      workout: {
-        type: 'rest',
-        title: 'Rest Day',
-        distanceKm: 0,
-        durationMin: 0,
-        description: 'Complete rest or gentle cross-training (yoga, swimming).',
-        purpose: 'Recovery',
-      },
-      isHard: false,
-    });
-  }
+  // Friday: Rest day (mandatory for safety compliance)
+  days.push({
+    day: 'Friday',
+    dayOfWeek: 5,
+    date: '',
+    workout: {
+      type: 'rest',
+      title: 'Rest Day',
+      distanceKm: 0,
+      durationMin: 0,
+      description: 'Complete rest or gentle cross-training (yoga, swimming).',
+      purpose: 'Recovery',
+    },
+    isHard: false,
+  });
 
   // Saturday: Easy or long run
   if (longRunDay === 'saturday') {
@@ -265,7 +246,7 @@ export function generateMaintenancePlan(input: MaintenancePlanInput): Maintenanc
 **Key Sessions:**
 - Long Run: ${longRunVolume.toFixed(1)}km on ${longRunDay === 'sunday' ? 'Sunday' : 'Saturday'}
 ${includeWorkouts ? `- Tempo Run: ${(moderateVolume * 0.60).toFixed(1)}km on Wednesday` : ''}
-${includeWorkouts && athlete.averageVertical && athlete.averageVertical > 500 ? `- Hill Session: ${(moderateVolume * 0.40).toFixed(1)}km on Friday` : ''}
+- Rest Day: Friday (mandatory recovery)
 
 The goal is consistent training, not progressive overload. Adjust as needed based on how you feel.`;
 
