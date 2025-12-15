@@ -1,10 +1,16 @@
 /* ===== RACE MODE PAGE - CORAL/ORANGE THEME ===== */
 
 .race-container {
-  position: relative;
-  min-height: 100vh;
-  background: linear-gradient(to bottom right, #0B0B12 0%, #161829 50%, #000000 100%);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom right, #0B0B12 0%, #161829 50%, #000000 100%) !important;
   font-family: 'Inter', sans-serif;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 1;
 }
 
 /* ===== FLOATING BACKGROUND ORBS ===== */
