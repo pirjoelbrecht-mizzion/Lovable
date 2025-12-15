@@ -12,6 +12,8 @@ import {
   applyPerformanceModifiers,
   createPerformanceFactor,
   getFactorColor,
+  calculateTaperFactor,
+  calculateWeatherFactor,
 } from '@/utils/performanceFactors';
 import { getRaceWeatherForecast, getWeatherImpactDescription } from '@/utils/raceWeather';
 
@@ -342,12 +344,47 @@ export async function simulateRace(raceId?: string): Promise<RaceSimulation | nu
     return null;
   }
 
-  const { adjustedTime, factors: extendedFactors } = applyPerformanceModifiers(
-    basePrediction,
-    performanceContext,
-    undefined,
-    skipTerrainFactors
-  );
+  let adjustedTime: number;
+  let extendedFactors: ExtendedSimulationFactors;
+
+  if (calculationMethod === 'gpx') {
+    const taperFactor = calculateTaperFactor(taper);
+    const weatherFactor = calculateWeatherFactor(weather || performanceContext.weather);
+
+    const readinessAdjustment = 1 + (80 - readiness.value) / 800;
+
+    const gpxTotalFactor = taperFactor * weatherFactor * readinessAdjustment;
+    adjustedTime = basePrediction * gpxTotalFactor;
+
+    console.log('[simulateRace] GPX time adjustments:', {
+      baseTime: basePrediction,
+      taper: taperFactor,
+      weather: weatherFactor,
+      readiness: readinessAdjustment,
+      totalFactor: gpxTotalFactor,
+      adjustedTime
+    });
+
+    extendedFactors = {
+      fitness: 1.0,
+      consistency: 1.0,
+      longRun: 1.0,
+      taper: taperFactor,
+      weather: weatherFactor,
+      course: 1.0,
+      altitude: 1.0,
+      terrain: 1.0,
+    };
+  } else {
+    const result = applyPerformanceModifiers(
+      basePrediction,
+      performanceContext,
+      undefined,
+      skipTerrainFactors
+    );
+    adjustedTime = result.adjustedTime;
+    extendedFactors = result.factors;
+  }
 
   const terrainFactor = calculateTerrainFactor(targetRace);
   const elevationFactor = calculateElevationFactor(targetRace);
