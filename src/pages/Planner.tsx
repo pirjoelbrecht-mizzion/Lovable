@@ -662,6 +662,10 @@ export default function Planner() {
 
       <AdaptiveCoachPanel
         onPlanGenerated={(plan) => {
+          // Save the adaptive plan for DailyBanner integration
+          save("adaptive:weeklyPlan", plan);
+          save("adaptive:weeklyPlanDate", new Date().toISOString());
+
           const newWeek = week.map((day, i) => ({
             ...day,
             sessions: plan.days[i] ? [{
