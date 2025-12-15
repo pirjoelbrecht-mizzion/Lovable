@@ -4,16 +4,12 @@ import { useT } from "@/i18n";
 import QuickAddRace from "@/components/QuickAddRace";
 import WeatherAlertBanner from "@/components/WeatherAlertBanner";
 import AdaptiveCoachPanel from "@/components/AdaptiveCoachPanel";
-import ReadinessCard from "@/components/ReadinessCard";
-import DailyBanner from "@/components/DailyBanner";
-import MotivationHeader from "@/components/MotivationHeader";
 import { getWeekPlan, type WeekPlan, todayDayIndex } from "@/lib/plan";
 import { fetchDailyWeather, type DailyWeather, getWeatherForLocation, type CurrentWeather } from "@/utils/weather";
 import { loadUserProfile } from "@/state/userData";
-import { loadWeekPlan, type WeekItem } from "@/utils/weekPlan";
+import { loadWeekPlan } from "@/utils/weekPlan";
 import { listRaces, type Race } from "@/utils/races";
 import { load, save } from "@/utils/storage";
-import { type DbSavedRoute } from "@/lib/database";
 import { toast } from "@/components/ToastHost";
 import { getSavedLocation, detectLocation, saveLocation, ensureLocationLabel } from "@/utils/location";
 import { showImmediateWeatherAlert } from "@/services/weatherNotifications";
@@ -24,6 +20,7 @@ import { completeWorkoutWithFeedback, getCompletionStatusForWeek } from "@/servi
 import type { LogEntry } from "@/types";
 import { TodayTrainingMobile } from "@/components/today/TodayTrainingMobile";
 import { useTodayTrainingData } from "@/hooks/useTodayTrainingData";
+import { Calendar, Flag, Map, Thermometer, Users, Zap, ChevronRight } from "lucide-react";
 import "./Quest.css";
 
 type SessionNode = {
@@ -610,80 +607,43 @@ export default function Quest() {
       </div>
 
       <div className="quest-content">
-        {/* Location Debug */}
-        <div style={{
-          marginBottom: 12,
-          maxWidth: 448,
-          width: '100%',
-          margin: '0 auto 12px auto',
-          padding: '8px 12px',
-          background: 'rgba(59, 130, 246, 0.1)',
-          borderRadius: 8,
-          fontSize: 12,
-          color: 'rgba(255, 255, 255, 0.7)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div>
-            📍 Location: {(() => {
-              const loc = getSavedLocation();
-              return loc?.label || (loc ? `${loc.lat.toFixed(4)}, ${loc.lon.toFixed(4)}` : 'Not detected');
-            })()}
+        <section className="quest-header-card">
+          <div className="quest-header-top">
+            <div className="quest-header-left">
+              <div className="quest-header-icon">
+                <Zap size={20} />
+              </div>
+              <h1 className="quest-header-title">Quest</h1>
+            </div>
+            <nav className="quest-header-nav">
+              <Link to="/calendar" className="quest-nav-btn">
+                <Calendar size={14} />
+                <span>Calendar</span>
+              </Link>
+              <Link to="/race-mode" className="quest-nav-btn">
+                <Flag size={14} />
+                <span>Race</span>
+              </Link>
+              <Link to="/routes" className="quest-nav-btn">
+                <Map size={14} />
+                <span>Routes</span>
+              </Link>
+            </nav>
           </div>
-          <button
-            onClick={async () => {
-              try {
-                const loc = await detectLocation(5000);
-                saveLocation(loc);
-                toast(`Location updated: ${loc.label || 'Location detected'}`, 'success');
-                window.location.reload();
-              } catch (error: any) {
-                toast(`Location error: ${error.message}`, 'error');
-              }
-            }}
-            style={{
-              padding: '4px 8px',
-              background: 'rgba(59, 130, 246, 0.3)',
-              border: 'none',
-              borderRadius: 4,
-              color: 'white',
-              fontSize: 11,
-              cursor: 'pointer'
-            }}
-          >
-            Detect Now
-          </button>
-        </div>
+        </section>
 
         {currentWeather && (
-          <div style={{
-            marginBottom: 24,
-            maxWidth: 448,
-            width: '100%',
-            margin: '0 auto 24px auto',
-            position: 'relative',
-            zIndex: 100
-          }}>
+          <div style={{ marginBottom: 16, maxWidth: 800, margin: '0 auto 16px auto' }}>
             <WeatherAlertBanner weather={currentWeather} />
           </div>
         )}
 
-        <div style={{
-          marginBottom: 24,
-          maxWidth: 800,
-          width: '100%',
-          margin: '0 auto 24px auto',
-          position: 'relative',
-          zIndex: 200,
-          pointerEvents: 'auto'
-        }}>
+        <div style={{ marginBottom: 20, maxWidth: 800, margin: '0 auto 20px auto' }}>
           <AdaptiveCoachPanel
             onPlanGenerated={(plan) => {
-              console.log('[Quest] Adaptive plan generated:', plan);
+              if (!plan?.days) return;
 
-              // Convert adaptive plan to week plan format
-              const newWeek = plan.days.map((day, i) => ({
+              const newWeek = plan.days.map((day: any, i: number) => ({
                 day: DAYS[i],
                 date: day.date,
                 sessions: day.workout ? [{
@@ -697,13 +657,8 @@ export default function Quest() {
                 }] : []
               }));
 
-              console.log('[Quest] Converted week plan:', newWeek);
-
-              // Update state and save to localStorage
               setWeekPlan(newWeek);
               save("plan", newWeek);
-
-              toast("Adaptive training plan generated! Check your weekly schedule.", "success");
               window.dispatchEvent(new Event('planner:updated'));
             }}
           />
@@ -915,135 +870,16 @@ export default function Quest() {
           ))}
         </div>
 
-        <div className="quest-calendar-button-wrapper" style={{ marginBottom: 12 }}>
-          <Link to="/race-mode" className="quest-calendar-button" style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #2a4a6f 100%)', textDecoration: 'none', display: 'block' }}>
-            <div className="quest-calendar-bg"></div>
-            <div className="quest-calendar-border"></div>
-            <div className="quest-calendar-shimmer"></div>
-            <div className="quest-calendar-content">
-              <div className="quest-calendar-icon-container">
-                <span className="quest-calendar-emoji">🏁</span>
-              </div>
-              <div className="quest-calendar-text-container">
-                <div className="quest-calendar-main-label">RACE MODE SIMULATION</div>
-                <div className="quest-calendar-sub-label">Predict performance & pacing strategy</div>
-              </div>
-              <svg className="quest-calendar-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <div className="quest-calendar-corner quest-calendar-corner-tl"></div>
-            <div className="quest-calendar-corner quest-calendar-corner-br"></div>
+        <div className="quest-quick-links">
+          <Link to="/environmental" className="quest-quick-link">
+            <Thermometer size={16} />
+            <span>Climate</span>
+            <ChevronRight size={14} />
           </Link>
-        </div>
-
-        <div className="quest-calendar-button-wrapper" style={{ marginBottom: 12 }}>
-          <Link to="/routes" className="quest-calendar-button" style={{ background: 'linear-gradient(135deg, #047857 0%, #059669 100%)', textDecoration: 'none', display: 'block' }}>
-            <div className="quest-calendar-bg"></div>
-            <div className="quest-calendar-border"></div>
-            <div className="quest-calendar-shimmer"></div>
-            <div className="quest-calendar-content">
-              <div className="quest-calendar-icon-container">
-                <span className="quest-calendar-emoji">🗺️</span>
-              </div>
-              <div className="quest-calendar-text-container">
-                <div className="quest-calendar-main-label">DISCOVER ROUTES</div>
-                <div className="quest-calendar-sub-label">Find popular running routes nearby</div>
-              </div>
-              <svg className="quest-calendar-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <div className="quest-calendar-corner quest-calendar-corner-tl"></div>
-            <div className="quest-calendar-corner quest-calendar-corner-br"></div>
-          </Link>
-        </div>
-
-        <div className="quest-calendar-button-wrapper" style={{ marginBottom: 12 }}>
-          <Link to="/calendar" className="quest-calendar-button" style={{ textDecoration: 'none', display: 'block' }}>
-            <div className="quest-calendar-bg"></div>
-            <div className="quest-calendar-border"></div>
-            <div className="quest-calendar-shimmer"></div>
-            <div className="quest-calendar-content">
-              <div className="quest-calendar-icon-container">
-                <span className="quest-calendar-emoji">📅</span>
-              </div>
-              <div className="quest-calendar-text-container">
-                <div className="quest-calendar-main-label">MIZZION CALENDAR</div>
-                <div className="quest-calendar-sub-label">View races & travel dates</div>
-              </div>
-              <svg className="quest-calendar-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <div className="quest-calendar-corner quest-calendar-corner-tl"></div>
-            <div className="quest-calendar-corner quest-calendar-corner-br"></div>
-          </Link>
-        </div>
-
-        <div className="quest-calendar-button-wrapper" style={{ marginBottom: 12 }}>
-          <Link to="/routes" className="quest-calendar-button" style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)', textDecoration: 'none', display: 'block' }}>
-            <div className="quest-calendar-bg"></div>
-            <div className="quest-calendar-border"></div>
-            <div className="quest-calendar-shimmer"></div>
-            <div className="quest-calendar-content">
-              <div className="quest-calendar-icon-container">
-                <span className="quest-calendar-emoji">🎯</span>
-              </div>
-              <div className="quest-calendar-text-container">
-                <div className="quest-calendar-main-label">ROUTE SUGGESTIONS</div>
-                <div className="quest-calendar-sub-label">Get personalized route recommendations</div>
-              </div>
-              <svg className="quest-calendar-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <div className="quest-calendar-corner quest-calendar-corner-tl"></div>
-            <div className="quest-calendar-corner quest-calendar-corner-br"></div>
-          </Link>
-        </div>
-
-        <div className="quest-calendar-button-wrapper" style={{ marginBottom: 12 }}>
-          <Link to="/environmental" className="quest-calendar-button" style={{ background: 'linear-gradient(135deg, #ea580c 0%, #f97316 100%)', textDecoration: 'none', display: 'block' }}>
-            <div className="quest-calendar-bg"></div>
-            <div className="quest-calendar-border"></div>
-            <div className="quest-calendar-shimmer"></div>
-            <div className="quest-calendar-content">
-              <div className="quest-calendar-icon-container">
-                <span className="quest-calendar-emoji">🌡️</span>
-              </div>
-              <div className="quest-calendar-text-container">
-                <div className="quest-calendar-main-label">CLIMATE INSIGHTS</div>
-                <div className="quest-calendar-sub-label">Understand environmental impact on performance</div>
-              </div>
-              <svg className="quest-calendar-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <div className="quest-calendar-corner quest-calendar-corner-tl"></div>
-            <div className="quest-calendar-corner quest-calendar-corner-br"></div>
-          </Link>
-        </div>
-
-        <div className="quest-calendar-button-wrapper">
-          <Link to="/unity" className="quest-calendar-button" style={{ background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)', textDecoration: 'none', display: 'block' }}>
-            <div className="quest-calendar-bg"></div>
-            <div className="quest-calendar-border"></div>
-            <div className="quest-calendar-shimmer"></div>
-            <div className="quest-calendar-content">
-              <div className="quest-calendar-icon-container">
-                <span className="quest-calendar-emoji">👥</span>
-              </div>
-              <div className="quest-calendar-text-container">
-                <div className="quest-calendar-main-label">COMMUNITY ROUTES</div>
-                <div className="quest-calendar-sub-label">Find training partners & shared routes</div>
-              </div>
-              <svg className="quest-calendar-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <div className="quest-calendar-corner quest-calendar-corner-tl"></div>
-            <div className="quest-calendar-corner quest-calendar-corner-br"></div>
+          <Link to="/unity" className="quest-quick-link">
+            <Users size={16} />
+            <span>Community</span>
+            <ChevronRight size={14} />
           </Link>
         </div>
       </div>

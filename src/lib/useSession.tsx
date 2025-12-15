@@ -27,7 +27,14 @@ export default function useSession(): UseSession {
 
     // subscribe to changes
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      const wasSignedOut = !session;
       setSession(s);
+
+      // Dispatch sign-in event when user successfully authenticates
+      if (event === 'SIGNED_IN' && s && wasSignedOut) {
+        console.log('[useSession] User signed in, dispatching user:signed-in event');
+        window.dispatchEvent(new CustomEvent('user:signed-in', { detail: { userId: s.user?.id } }));
+      }
 
       // Clear localStorage when user signs out or session ends
       if (event === 'SIGNED_OUT' || (!s && session)) {

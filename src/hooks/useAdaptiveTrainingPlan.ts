@@ -310,6 +310,18 @@ export function useAdaptiveTrainingPlan(
       execute();
     };
 
+    const handleUserSignedIn = () => {
+      console.log('[Module 4] User signed in, triggering execution');
+      setNeedsExecution(true);
+      execute();
+    };
+
+    const handleLogImportComplete = () => {
+      console.log('[Module 4] Log import complete, triggering execution');
+      setNeedsExecution(true);
+      execute();
+    };
+
     // Listen for data change events
     window.addEventListener('acwr:updated', handleACWRUpdate);
     window.addEventListener('weather:updated', handleWeatherUpdate);
@@ -318,6 +330,8 @@ export function useAdaptiveTrainingPlan(
     window.addEventListener('location:updated', handleLocationUpdate);
     window.addEventListener('workout:completed', handleWorkoutCompleted);
     window.addEventListener('plan:adapted', handlePlanAdapted);
+    window.addEventListener('user:signed-in', handleUserSignedIn);
+    window.addEventListener('log:import-complete', handleLogImportComplete);
 
     return () => {
       window.removeEventListener('acwr:updated', handleACWRUpdate);
@@ -327,6 +341,8 @@ export function useAdaptiveTrainingPlan(
       window.removeEventListener('location:updated', handleLocationUpdate);
       window.removeEventListener('workout:completed', handleWorkoutCompleted);
       window.removeEventListener('plan:adapted', handlePlanAdapted);
+      window.removeEventListener('user:signed-in', handleUserSignedIn);
+      window.removeEventListener('log:import-complete', handleLogImportComplete);
     };
   }, [autoExecute, execute]);
 

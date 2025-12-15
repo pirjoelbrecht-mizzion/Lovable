@@ -7,6 +7,135 @@
   font-family: 'Inter', sans-serif;
 }
 
+/* ===== PAGE HEADER ===== */
+.quest-header-card {
+  max-width: 800px;
+  margin: 0 auto 20px auto;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.6) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 16px 20px;
+  backdrop-filter: blur(12px);
+}
+
+.quest-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.quest-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.quest-header-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #B9F227 0%, #46E7B1 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0B0B12;
+}
+
+.quest-header-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.quest-header-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quest-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.quest-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ===== QUICK LINKS ===== */
+.quest-quick-links {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.quest-quick-link {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.5) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.quest-quick-link:hover {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.7) 100%);
+  border-color: rgba(70, 231, 177, 0.3);
+  color: #fff;
+}
+
+.quest-quick-link svg:last-child {
+  margin-left: auto;
+  opacity: 0.5;
+}
+
+@media (max-width: 640px) {
+  .quest-header-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .quest-header-nav {
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .quest-nav-btn span {
+    display: none;
+  }
+
+  .quest-nav-btn {
+    padding: 8px;
+  }
+
+  .quest-quick-links {
+    flex-direction: column;
+  }
+}
+
 /* ===== FLOATING BACKGROUND ORBS ===== */
 .quest-bg-orbs {
   position: fixed;
