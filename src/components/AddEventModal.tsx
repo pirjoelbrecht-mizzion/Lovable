@@ -69,8 +69,8 @@ export default function AddEventModal({ onClose, onEventAdded, editEvent }: AddE
         }
       }
 
-      // Recalculate analysis if GPX data exists and it's an ultra distance
-      if (editEvent.gpx_parsed_data && editEvent.distance_km && editEvent.distance_km > 42) {
+      // Recalculate analysis if GPX data exists
+      if (editEvent.gpx_parsed_data) {
         recalculateStoredGPXAnalysis(editEvent);
       }
     }
@@ -93,9 +93,8 @@ export default function AddEventModal({ onClose, onEventAdded, editEvent }: AddE
       });
 
       setUltraAnalysis(ultraResult);
-      setExpectedTime(formatTime(ultraResult.ultraAdjusted.totalTimeMin));
 
-      toast('Analysis recalculated with updated athlete experience', 'info');
+      toast('Analysis recalculated with updated pace profile', 'info');
     } catch (err) {
       console.error('Error recalculating GPX analysis:', err);
     } finally {
@@ -155,7 +154,7 @@ export default function AddEventModal({ onClose, onEventAdded, editEvent }: AddE
         type: eventType,
         date,
         distance_km: distanceKm || undefined,
-        expected_time: expectedTime || undefined,
+        expected_time: (gpxFile || gpxAnalysis) ? undefined : (expectedTime || undefined),
         elevation_gain: elevationGain ? parseInt(elevationGain) : undefined,
         location: location || undefined,
         priority: isRaceEvent ? priority : undefined,
@@ -189,11 +188,15 @@ export default function AddEventModal({ onClose, onEventAdded, editEvent }: AddE
         }
       }
 
-      if (success && gpxFile && gpxAnalysis && (createdEventId || editEvent?.id)) {
+      if (success && gpxAnalysis && (createdEventId || editEvent?.id)) {
         const eventId = editEvent?.id || createdEventId!;
         try {
-          toast('Uploading GPX file...', 'info');
-          const gpxUrl = await uploadGPXFile(gpxFile, eventId);
+          if (gpxFile) {
+            toast('Uploading GPX file...', 'info');
+            const gpxUrl = await uploadGPXFile(gpxFile, eventId);
+            const { updateEvent: updateEventFn } = await import('@/lib/database');
+            await updateEventFn(eventId, { gpx_file_url: gpxUrl, expected_time: undefined });
+          }
 
           const analysisToSave = ultraAnalysis
             ? {
@@ -221,13 +224,13 @@ export default function AddEventModal({ onClose, onEventAdded, editEvent }: AddE
           })));
 
           const { updateEvent: updateEventFn } = await import('@/lib/database');
-          await updateEventFn(eventId, { gpx_file_url: gpxUrl });
+          await updateEventFn(eventId, { expected_time: undefined });
 
           toast('GPX analysis saved!', 'success');
           setSavedEventId(eventId);
         } catch (err) {
-          console.error('Error uploading GPX:', err);
-          toast('Event saved but GPX upload failed', 'warning');
+          console.error('Error saving GPX analysis:', err);
+          toast('Event saved but GPX analysis update failed', 'warning');
         }
       }
 
@@ -297,7 +300,6 @@ export default function AddEventModal({ onClose, onEventAdded, editEvent }: AddE
           athleteExperienceLevel: 'intermediate',
         });
         setUltraAnalysis(ultraResult);
-        setExpectedTime(formatTime(ultraResult.ultraAdjusted.totalTimeMin));
 
         const confidenceLabel = ultraResult.confidence.overall >= 80 ? 'high' :
           ultraResult.confidence.overall >= 60 ? 'medium' : 'low';
@@ -313,8 +315,6 @@ export default function AddEventModal({ onClose, onEventAdded, editEvent }: AddE
           }, 1500);
         }
       } else {
-        setExpectedTime(formatTime(analysis.totalTimeEstimate));
-
         const message = basicResult.hasPersonalizedPace
           ? `GPX analyzed with your personalized pace (${analysis.paceConfidence} confidence)!`
           : 'GPX analyzed successfully!';
