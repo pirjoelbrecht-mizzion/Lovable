@@ -244,6 +244,24 @@ export default function Quest() {
         const recentFatigueScores: number[] = [];
         const now = new Date();
 
+        const currentWeekMonday = new Date(now);
+        const dayOfWeek = currentWeekMonday.getDay();
+        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        currentWeekMonday.setDate(currentWeekMonday.getDate() - daysToMonday);
+        currentWeekMonday.setHours(0, 0, 0, 0);
+
+        const currentWeekSunday = new Date(currentWeekMonday);
+        currentWeekSunday.setDate(currentWeekSunday.getDate() + 6);
+        currentWeekSunday.setHours(23, 59, 59, 999);
+
+        const currentWeekEntries = logEntries.filter(e => {
+          const entryDate = new Date(e.dateISO);
+          return entryDate >= currentWeekMonday && entryDate <= currentWeekSunday;
+        });
+
+        const currentWeekKm = currentWeekEntries.reduce((sum, e) => sum + (e.km || 0), 0);
+        const currentWeekVertical = currentWeekEntries.reduce((sum, e) => sum + (e.elevationGain || 0), 0);
+
         for (let i = 0; i < 8; i++) {
           const weekStart = new Date(now);
           weekStart.setDate(weekStart.getDate() - (i + 1) * 7);
@@ -278,8 +296,8 @@ export default function Quest() {
         setAthleteStats({
           readiness: readinessState,
           readinessScore: readiness.overallScore,
-          weeklyVolume: profile.averageMileage || 0,
-          vertical: Math.round(profile.averageVertical || 0),
+          weeklyVolume: currentWeekKm,
+          vertical: Math.round(currentWeekVertical),
           units: settings.units,
         });
       } catch (error) {
