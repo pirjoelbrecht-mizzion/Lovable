@@ -219,6 +219,7 @@ export const TodayTrainingTabs: FC<Props> = ({ activeTab, onTabChange, children 
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
+        className="scrollbar-hide"
         style={{
           flex: 1,
           overflowY: 'auto',
