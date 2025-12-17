@@ -93,12 +93,15 @@ export const TodayTrainingMobile: FC<Props> = ({
 
   return (
     <>
-      <div style={{
-        width: '100%',
-        minHeight: '100vh',
-        backgroundColor: '#0a0b0e',
-        overflow: 'hidden'
-      }}>
+      <div
+        className="scrollbar-hide"
+        style={{
+          width: '100%',
+          height: '100vh',
+          backgroundColor: '#0a0b0e',
+          overflow: 'hidden'
+        }}
+      >
         <TodayTrainingTabs activeTab={activeTab} onTabChange={setActiveTab}>
           {activeTab === 'overview' && (
             <OverviewTab

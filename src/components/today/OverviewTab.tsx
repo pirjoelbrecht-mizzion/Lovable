@@ -49,16 +49,8 @@ export const OverviewTab: FC<Props> = ({
   return (
     <div style={{
       backgroundColor: '#0a0b0e',
-      height: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden'
+      paddingBottom: '12px'
     }}>
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        overflowX: 'hidden'
-      }} className="scrollbar-hide">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -301,13 +293,8 @@ export const OverviewTab: FC<Props> = ({
           <WeatherSection weather={weather} />
         </motion.div>
       )}
-      </div>
 
-      <div style={{
-        padding: '12px',
-        background: 'linear-gradient(to top, #0a0b0e 0%, #0a0b0eee 80%, transparent 100%)',
-        paddingTop: '20px'
-      }}>
+      <div style={{ padding: '12px' }}>
         <button
           onClick={onStart}
           style={{
