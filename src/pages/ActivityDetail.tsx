@@ -5,7 +5,8 @@ import RouteMap from '@/components/RouteMap';
 import { stravaRichDataService } from '@/services/stravaRichDataService';
 import { supabase, getCurrentUserId } from '@/lib/supabase';
 import { analyzeTerrainFromStreams } from '@/engine/trailAnalysis';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Mountain, ChevronDown, Camera, Thermometer, Droplets, Wind, Heart, TrendingUp, TrendingDown } from 'lucide-react';
+import './ActivityDetail.css';
 
 export default function ActivityDetail() {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +15,7 @@ export default function ActivityDetail() {
   const [activity, setActivity] = useState<LogEntry | null>(null);
   const [photos, setPhotos] = useState<ActivityPhoto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [terrainExpanded, setTerrainExpanded] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -25,8 +27,6 @@ export default function ActivityDetail() {
 
     try {
       setLoading(true);
-
-      const currentUserId = await getCurrentUserId();
 
       const { data, error } = await supabase
         .from('log_entries')
@@ -82,25 +82,16 @@ export default function ActivityDetail() {
   function formatDate(dateISO: string): string {
     const date = new Date(dateISO);
     return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
+      weekday: 'short',
+      month: 'short',
       day: 'numeric'
-    });
-  }
-
-  function formatTime(dateISO: string): string {
-    const date = new Date(dateISO);
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
     });
   }
 
   function formatDuration(minutes: number): string {
     const hours = Math.floor(minutes / 60);
     const mins = Math.round(minutes % 60);
+    if (hours === 0) return `${mins}m`;
     return `${hours}h ${mins}m`;
   }
 
@@ -109,7 +100,7 @@ export default function ActivityDetail() {
     const paceMin = minutes / km;
     const mins = Math.floor(paceMin);
     const secs = Math.round((paceMin - mins) * 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}/km`;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
   const terrainAnalysis = useMemo(() => {
@@ -132,12 +123,18 @@ export default function ActivityDetail() {
     );
   }, [activity]);
 
+  const hasWeatherData = activity && (activity.temperature !== undefined || activity.humidity !== undefined);
+  const hasMapData = activity && (activity.mapPolyline || activity.mapSummaryPolyline);
+  const hasElevationData = activity && activity.elevationStream && activity.distanceStream;
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0f1a]">
-        <div className="text-center">
-          <div className="inline-block w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
-          <p className="mt-4 text-sm text-slate-400">Loading activity...</p>
+      <div className="activity-page">
+        <div className="activity-container">
+          <div className="activity-loading">
+            <div className="activity-loading-spinner" />
+            <span className="activity-loading-text">Loading activity...</span>
+          </div>
         </div>
       </div>
     );
@@ -145,319 +142,307 @@ export default function ActivityDetail() {
 
   if (!activity) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0f1a]">
-        <div className="text-center">
-          <p className="text-slate-400 mb-4">Activity not found</p>
-          <button
-            onClick={() => navigate('/log')}
-            className="px-6 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors"
-          >
-            Back to Log
-          </button>
+      <div className="activity-page">
+        <div className="activity-container">
+          <div className="activity-empty">
+            <p className="activity-empty-text">Activity not found</p>
+            <button className="activity-empty-btn" onClick={() => navigate('/log')}>
+              Back to Log
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  const getTerrainColor = (type: string) => {
-    switch(type) {
-      case 'flat': return 'bg-green-500';
-      case 'rolling': return 'bg-blue-500';
-      case 'hilly': return 'bg-orange-500';
-      case 'steep': return 'bg-red-500';
-      default: return 'bg-purple-500';
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-[#0a0f1a] text-white pb-8">
-      <div className="max-w-[1200px] mx-auto px-4 py-6">
-        {/* Header Section */}
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <h1 className="text-2xl font-bold text-white mb-1">
-              {activity.title} 💪
-            </h1>
-            <p className="text-sm text-slate-400">{formatDate(activity.dateISO)}</p>
+    <div className="activity-page">
+      <div className="activity-container">
+        <header className="activity-header">
+          <button className="activity-back-btn" onClick={() => navigate(-1)}>
+            <ArrowLeft size={18} />
+          </button>
+          <div className="activity-header-info">
+            <h1 className="activity-title">{activity.title}</h1>
+            <p className="activity-date">{formatDate(activity.dateISO)}</p>
           </div>
+        </header>
 
-          {/* Stat Pills */}
-          <div className="flex gap-2">
-            <div className="bg-[#1a2332] border border-cyan-500/30 rounded-lg px-3 py-2">
-              <div className="text-[9px] uppercase tracking-wider text-slate-400 mb-0.5">Distance</div>
-              <div className="text-sm font-bold text-white">{activity.km.toFixed(2)} km</div>
-            </div>
-            {activity.durationMin && (
-              <div className="bg-[#1a2332] border border-cyan-500/30 rounded-lg px-3 py-2">
-                <div className="text-[9px] uppercase tracking-wider text-slate-400 mb-0.5">Time</div>
-                <div className="text-sm font-bold text-white">{formatDuration(activity.durationMin)}</div>
-              </div>
-            )}
-            {activity.durationMin && (
-              <div className="bg-[#1a2332] border border-cyan-500/30 rounded-lg px-3 py-2">
-                <div className="text-[9px] uppercase tracking-wider text-slate-400 mb-0.5">Pace</div>
-                <div className="text-sm font-bold text-cyan-400">{calculatePace(activity.km, activity.durationMin)}</div>
-              </div>
-            )}
-            {activity.hrAvg && (
-              <div className="bg-[#1a2332] border border-cyan-500/30 rounded-lg px-3 py-2">
-                <div className="text-[9px] uppercase tracking-wider text-slate-400 mb-0.5">Avg HR</div>
-                <div className="text-sm font-bold text-white">{activity.hrAvg} bpm</div>
-              </div>
-            )}
+        <div className="activity-stats-row">
+          <div className="activity-stat-pill">
+            <span className="activity-stat-label">Distance</span>
+            <span className="activity-stat-value">{activity.km.toFixed(1)} km</span>
           </div>
+          {activity.durationMin && (
+            <div className="activity-stat-pill">
+              <span className="activity-stat-label">Time</span>
+              <span className="activity-stat-value">{formatDuration(activity.durationMin)}</span>
+            </div>
+          )}
+          {activity.durationMin && activity.km > 0 && (
+            <div className="activity-stat-pill">
+              <span className="activity-stat-label">Pace</span>
+              <span className="activity-stat-value highlight">{calculatePace(activity.km, activity.durationMin)}/km</span>
+            </div>
+          )}
+          {activity.hrAvg && (
+            <div className="activity-stat-pill">
+              <span className="activity-stat-label">Avg HR</span>
+              <span className="activity-stat-value">{activity.hrAvg}</span>
+            </div>
+          )}
+          {activity.elevationGain && (
+            <div className="activity-stat-pill">
+              <span className="activity-stat-label">Gain</span>
+              <span className="activity-stat-value">{Math.round(activity.elevationGain)}m</span>
+            </div>
+          )}
         </div>
 
-        {/* Started At */}
-        <div className="flex justify-end mb-4">
-          <div className="bg-[#1a2332] border border-slate-700/50 rounded-md px-3 py-1 text-xs text-slate-300">
-            Started at {formatTime(activity.dateISO)}
-          </div>
-        </div>
-
-        {/* Main Grid: Map (Left) + Heat Impact (Right) */}
-        <div className="grid grid-cols-12 gap-4 mb-4">
-          {/* Left Column: Map & Elevation */}
-          <div className="col-span-7 space-y-3">
-            {/* Trail Conditions Header */}
-            <div className="flex items-center gap-2 px-2">
-              <span className="text-lg">🌤️</span>
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Trail Conditions</span>
-            </div>
-
-            {/* Map Card - SINGLE MAP */}
-            <div className="bg-[#0f1520] border-2 border-cyan-500/40 rounded-xl overflow-hidden shadow-[0_0_30px_rgba(6,182,212,0.15)]">
-              {(activity.mapPolyline || activity.mapSummaryPolyline) ? (
-                <RouteMap
-                  polyline={activity.mapSummaryPolyline || activity.mapPolyline}
-                  width={700}
-                  height={350}
-                  durationMin={activity.durationMin}
-                  elevationStream={activity.elevationStream}
-                  distanceStream={activity.distanceStream}
-                  showElevation={false}
-                />
-              ) : (
-                <div className="flex items-center justify-center h-[350px] text-slate-400">
-                  No map data available
+        <div className="activity-main-grid">
+          <div className="activity-main-content">
+            {hasMapData && (
+              <div className="activity-map-card">
+                <div className="activity-map-wrapper">
+                  <RouteMap
+                    polyline={activity.mapSummaryPolyline || activity.mapPolyline}
+                    width={800}
+                    height={400}
+                    durationMin={activity.durationMin}
+                    elevationStream={activity.elevationStream}
+                    distanceStream={activity.distanceStream}
+                    showElevation={false}
+                  />
                 </div>
-              )}
-            </div>
-
-            {/* Elevation Profile - SINGLE ELEVATION CHART */}
-            {activity.elevationStream && activity.distanceStream && (
-              <div className="bg-[#0f1520] border-2 border-cyan-500/40 rounded-xl p-3 shadow-[0_0_30px_rgba(6,182,212,0.15)]">
-                <RouteMap
-                  polyline={activity.mapSummaryPolyline || activity.mapPolyline}
-                  width={650}
-                  height={120}
-                  durationMin={activity.durationMin}
-                  elevationStream={activity.elevationStream}
-                  distanceStream={activity.distanceStream}
-                  showElevation={true}
-                  showMap={false}
-                />
               </div>
             )}
-          </div>
 
-          {/* Right Column: Heat Impact */}
-          <div className="col-span-5">
-            <div className="bg-[#0f1520] border-2 border-cyan-500/40 rounded-xl p-5 shadow-[0_0_30px_rgba(6,182,212,0.15)] h-full">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-6">Heat & Humidity Impact</h3>
-
-              {/* Circular Heat Gauge */}
-              <div className="flex items-center justify-center mb-6">
-                <div className="relative">
-                  <div className="w-32 h-32 rounded-full border-4 border-orange-500/30 flex items-center justify-center">
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-[0_0_40px_rgba(249,115,22,0.6)]">
-                      <div className="text-center">
-                        <div className="text-xs text-white/80 uppercase">Level</div>
-                        <div className="text-3xl font-bold text-white">2</div>
+            {hasElevationData && (
+              <div className="activity-elevation-card">
+                <div className="activity-elevation-header">
+                  <Mountain className="activity-elevation-icon" size={16} />
+                  <span className="activity-elevation-title">Elevation</span>
+                  <div className="activity-elevation-stats">
+                    {activity.elevationGain && (
+                      <div className="activity-elevation-stat">
+                        <div className="activity-elevation-stat-label">Gain</div>
+                        <div className="activity-elevation-stat-value gain">+{Math.round(activity.elevationGain)}m</div>
                       </div>
-                    </div>
-                  </div>
-                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center text-cyan-400 text-xs">
-                    ▲
-                  </div>
-                  <div className="absolute top-1/2 -right-2 -translate-y-1/2 w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center text-cyan-400 text-xs">
-                    +
-                  </div>
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center text-cyan-400 text-xs">
-                    ▼
-                  </div>
-                </div>
-              </div>
-
-              {/* Temperature & Humidity */}
-              <div className="flex justify-center gap-6 mb-6">
-                {activity.temperature !== undefined && (
-                  <div className="text-center">
-                    <div className="w-16 h-16 rounded-full bg-cyan-500/10 border-2 border-cyan-500/40 flex items-center justify-center mb-2">
-                      <div>
-                        <div className="text-[9px] text-cyan-400 uppercase">Temp</div>
-                        <div className="text-base font-bold text-white">{Math.round(activity.temperature)}°</div>
+                    )}
+                    {activity.elevationLoss && (
+                      <div className="activity-elevation-stat">
+                        <div className="activity-elevation-stat-label">Loss</div>
+                        <div className="activity-elevation-stat-value loss">-{Math.round(activity.elevationLoss)}m</div>
                       </div>
+                    )}
+                  </div>
+                </div>
+                <div className="activity-elevation-chart">
+                  <RouteMap
+                    polyline={activity.mapSummaryPolyline || activity.mapPolyline}
+                    width={800}
+                    height={80}
+                    durationMin={activity.durationMin}
+                    elevationStream={activity.elevationStream}
+                    distanceStream={activity.distanceStream}
+                    showElevation={true}
+                    showMap={false}
+                  />
+                </div>
+              </div>
+            )}
+
+            {terrainAnalysis && terrainAnalysis.breakdown && terrainAnalysis.breakdown.length > 0 && (
+              <div className="activity-terrain-card">
+                <div
+                  className="activity-terrain-header"
+                  onClick={() => setTerrainExpanded(!terrainExpanded)}
+                >
+                  <div className="activity-terrain-title-row">
+                    <span className="activity-terrain-icon">terrain</span>
+                    <span className="activity-terrain-title">Terrain Breakdown</span>
+                  </div>
+                  <ChevronDown
+                    size={18}
+                    className={`activity-terrain-toggle ${terrainExpanded ? 'expanded' : ''}`}
+                  />
+                </div>
+
+                {terrainExpanded && (
+                  <div className="activity-terrain-content">
+                    <div className="activity-terrain-bar">
+                      {terrainAnalysis.breakdown.map((terrain: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className={`activity-terrain-segment ${terrain.type}`}
+                          style={{ width: `${terrain.percentage}%` }}
+                        >
+                          {terrain.percentage > 12 && (
+                            <span className="activity-terrain-segment-label">{terrain.percentage.toFixed(0)}%</span>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                )}
-                {activity.humidity !== undefined && (
-                  <div className="text-center">
-                    <div className="w-16 h-16 rounded-full bg-cyan-500/10 border-2 border-cyan-500/40 flex items-center justify-center mb-2">
-                      <div>
-                        <div className="text-[9px] text-cyan-400 uppercase">Humid</div>
-                        <div className="text-base font-bold text-white">{activity.humidity}%</div>
-                      </div>
+
+                    <div className="activity-terrain-legend">
+                      {terrainAnalysis.breakdown.map((terrain: any, idx: number) => (
+                        <div key={idx} className="activity-terrain-legend-item">
+                          <div className={`activity-terrain-legend-dot ${terrain.type}`} />
+                          <span className="activity-terrain-legend-text">{terrain.type}</span>
+                          <span className="activity-terrain-legend-value">{terrain.distance.toFixed(1)}km</span>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                )}
-              </div>
 
-              {/* Impact Stats */}
-              <div className="space-y-2 mb-4">
-                <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg px-3 py-2 text-xs text-center">
-                  <span className="text-orange-400 font-medium">-5% of 10 bpm slowed</span>
-                </div>
-                <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg px-3 py-2 text-xs text-center">
-                  <span className="text-cyan-400 font-medium">Pace slowed 10%</span>
-                </div>
-              </div>
-
-              {/* Recommendations */}
-              <div className="text-xs text-slate-400 leading-relaxed">
-                • <span className="text-slate-300">Recommendations for extremely hot days include hydrating at double solar coolant thingies.</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Terrain Breakdown */}
-        {terrainAnalysis && (
-          <div className="mb-4">
-            <div className="bg-[#0f1520] border-2 border-cyan-500/40 rounded-xl p-5 shadow-[0_0_30px_rgba(6,182,212,0.15)]">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">🏔️ Terrain Breakdown</h3>
-                <button className="text-xs text-cyan-400 hover:text-cyan-300">View All Climbs</button>
-              </div>
-
-              <div className="text-xs text-slate-400 mb-6">
-                172Km from significant climbs +6068 trailing medium downhills smaller climbs
-                <br />
-                <span className="text-cyan-400">+48% rolling terrain = +25% gain total elevation change</span>
-              </div>
-
-              {/* VAM Stats Grid */}
-              <div className="grid grid-cols-4 gap-4 mb-6">
-                <div>
-                  <div className="text-xs text-slate-400 mb-1">Flat VAM</div>
-                  <div className="text-2xl font-bold text-green-400">752 m/hr</div>
-                  <div className="text-[10px] text-slate-500">Moving climbing</div>
-                </div>
-                <div>
-                  <div className="text-xs text-slate-400 mb-1">Average VAM</div>
-                  <div className="text-2xl font-bold text-white">634 m/hr</div>
-                  <div className="text-[10px] text-slate-500">All vertical meters</div>
-                </div>
-                <div>
-                  <div className="text-xs text-slate-400 mb-1">Fatigue Resistance</div>
-                  <div className="text-2xl font-bold text-cyan-400">7%</div>
-                  <div className="text-[10px] text-slate-500">Avg rating on some</div>
-                </div>
-                <div>
-                  <div className="text-xs text-slate-400 mb-1">Climb Time</div>
-                  <div className="text-2xl font-bold text-white">9h 33m</div>
-                  <div className="text-[10px] text-slate-500">17.4 km</div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                  <div className="text-xs text-slate-400 mb-1">Trail Resistance</div>
-                  <div className="text-2xl font-bold text-green-400">39%</div>
-                  <div className="text-[10px] text-slate-500">Significant rough climbing</div>
-                  <div className="flex items-center gap-1 mt-2">
-                    <span className="text-xs text-green-400">✓</span>
-                    <span className="text-[10px] text-slate-400">Trail Technicality</span>
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-slate-400 mb-1">Trail Spending Force</div>
-                  <div className="text-2xl font-bold text-cyan-400">95%</div>
-                  <div className="text-[10px] text-slate-500">Average current on some</div>
-                </div>
-              </div>
-
-              {/* Colorful Terrain Bar */}
-              {terrainAnalysis.breakdown && terrainAnalysis.breakdown.length > 0 && (
-                <div className="mb-4">
-                  <h4 className="text-xs font-bold text-slate-400 mb-3">🏃 Terrain Breakdown</h4>
-                  <div className="flex h-10 rounded-lg overflow-hidden mb-3">
-                    {terrainAnalysis.breakdown.map((terrain: any, idx: number) => (
-                      <div
-                        key={idx}
-                        className={`${getTerrainColor(terrain.type)} flex items-center justify-center`}
-                        style={{ width: `${terrain.percentage}%` }}
-                      >
-                        {terrain.percentage > 8 && (
-                          <span className="text-xs font-bold text-white drop-shadow-lg px-1">
-                            {terrain.type === 'flat' ? '🏃' : terrain.type === 'rolling' ? '📊' : terrain.type === 'hilly' ? '⛰️' : '🔺'} {terrain.percentage.toFixed(0)}%
-                          </span>
+                    {terrainAnalysis.vamStats && (
+                      <div className="activity-vam-grid">
+                        {terrainAnalysis.vamStats.peakVAM && (
+                          <div className="activity-vam-item">
+                            <div className="activity-vam-value">{terrainAnalysis.vamStats.peakVAM.toFixed(0)}</div>
+                            <div className="activity-vam-label">Peak VAM (m/hr)</div>
+                          </div>
+                        )}
+                        {terrainAnalysis.vamStats.averageVAM && (
+                          <div className="activity-vam-item">
+                            <div className="activity-vam-value">{terrainAnalysis.vamStats.averageVAM.toFixed(0)}</div>
+                            <div className="activity-vam-label">Avg VAM (m/hr)</div>
+                          </div>
+                        )}
+                        {terrainAnalysis.vamStats.climbTime && (
+                          <div className="activity-vam-item">
+                            <div className="activity-vam-value">{formatDuration(terrainAnalysis.vamStats.climbTime)}</div>
+                            <div className="activity-vam-label">Climb Time</div>
+                          </div>
+                        )}
+                        {terrainAnalysis.vamStats.climbDistance && (
+                          <div className="activity-vam-item">
+                            <div className="activity-vam-value">{terrainAnalysis.vamStats.climbDistance.toFixed(1)}</div>
+                            <div className="activity-vam-label">Climb Dist (km)</div>
+                          </div>
                         )}
                       </div>
-                    ))}
+                    )}
                   </div>
+                )}
+              </div>
+            )}
 
-                  {/* Terrain Stats */}
-                  <div className="grid grid-cols-5 gap-2 text-[10px]">
-                    {terrainAnalysis.breakdown.map((terrain: any, idx: number) => (
-                      <div key={idx} className="text-center">
-                        <div className="text-white font-semibold capitalize mb-1">{terrain.type} ({terrain.percentage.toFixed(0)}%)</div>
-                        <div className="text-slate-400">{terrain.distance.toFixed(1)} km</div>
-                        {terrain.vam && (
-                          <div className="text-slate-400">{terrain.vam.toFixed(0)} m/hr</div>
-                        )}
-                      </div>
-                    ))}
+            {photos.length > 0 && (
+              <div className="activity-photos-card">
+                <div className="activity-photos-header">
+                  <Camera className="activity-photos-icon" size={16} />
+                  <span className="activity-photos-title">Photos</span>
+                  <span className="activity-photos-count">{photos.length} photos</span>
+                </div>
+                <div className="activity-photos-grid">
+                  {photos.slice(0, 6).map((photo, idx) => (
+                    <div key={idx} className="activity-photo-item">
+                      <img
+                        src={photo.urls?.['600'] || photo.urls?.['2048']}
+                        alt={`Activity photo ${idx + 1}`}
+                        loading="lazy"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="activity-sidebar">
+            {hasWeatherData && (
+              <div className="activity-conditions-card">
+                <div className="activity-conditions-header">
+                  <span className="activity-conditions-icon">weather</span>
+                  <span className="activity-conditions-title">Conditions</span>
+                </div>
+                <div className="activity-conditions-grid">
+                  {activity.temperature !== undefined && (
+                    <div className="activity-condition-item">
+                      <div className="activity-condition-value">{Math.round(activity.temperature)}C</div>
+                      <div className="activity-condition-label">Temp</div>
+                    </div>
+                  )}
+                  {activity.humidity !== undefined && (
+                    <div className="activity-condition-item">
+                      <div className="activity-condition-value">{activity.humidity}%</div>
+                      <div className="activity-condition-label">Humidity</div>
+                    </div>
+                  )}
+                  {activity.weather && (
+                    <div className="activity-condition-item">
+                      <div className="activity-condition-value" style={{ fontSize: '14px' }}>{activity.weather}</div>
+                      <div className="activity-condition-label">Weather</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activity.temperature !== undefined && activity.temperature > 25 && (
+              <div className="activity-heat-card">
+                <div className="activity-heat-header">
+                  <div className="activity-heat-title-row">
+                    <span className="activity-heat-icon">fire</span>
+                    <span className="activity-heat-title">Heat Impact</span>
+                  </div>
+                  <div className="activity-heat-level">
+                    <span className="activity-heat-level-text">Level</span>
+                    <span className="activity-heat-level-value">
+                      {activity.temperature >= 35 ? 4 : activity.temperature >= 30 ? 3 : 2}
+                    </span>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
-        )}
 
-        {/* Trail Technicality Warning */}
-        <div className="bg-yellow-500/10 border-2 border-yellow-500/40 rounded-xl p-4 mb-4">
-          <div className="flex items-start gap-3">
-            <span className="text-2xl">⚠️</span>
-            <div>
-              <div className="text-xs font-bold text-yellow-400 mb-2">Trail Technicality</div>
-              <p className="text-xs text-slate-300 leading-relaxed mb-2">
-                Some technical terrain, moderate trail flow; no prolonged sections that bring significant effort, and technical challenges spread well throughout to keep engaged.
-              </p>
-              <p className="text-xs text-slate-400">
-                💬 Highly technical terrain heavily downhill. Practice Good managing cautious speed via conditions!
-              </p>
-            </div>
+                <div className="activity-heat-metrics">
+                  <div className="activity-heat-metric">
+                    <div className="activity-heat-metric-value">{Math.round(activity.temperature)}C</div>
+                    <div className="activity-heat-metric-label">Temp</div>
+                  </div>
+                  {activity.humidity !== undefined && (
+                    <div className="activity-heat-metric">
+                      <div className="activity-heat-metric-value">{activity.humidity}%</div>
+                      <div className="activity-heat-metric-label">Humidity</div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="activity-heat-impacts">
+                  <div className="activity-heat-impact">
+                    <Heart className="activity-heat-impact-icon" size={14} style={{ color: '#ef4444' }} />
+                    <span className="activity-heat-impact-text">HR elevated</span>
+                    <span className="activity-heat-impact-value">+5-10 bpm</span>
+                  </div>
+                  <div className="activity-heat-impact">
+                    <TrendingDown className="activity-heat-impact-icon" size={14} style={{ color: '#f97316' }} />
+                    <span className="activity-heat-impact-text">Pace impact</span>
+                    <span className="activity-heat-impact-value">-5-10%</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activity.location && (
+              <div className="activity-conditions-card">
+                <div className="activity-conditions-header">
+                  <span className="activity-conditions-icon">location</span>
+                  <span className="activity-conditions-title">Location</span>
+                </div>
+                <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>{activity.location}</p>
+              </div>
+            )}
+
+            {activity.description && (
+              <div className="activity-conditions-card">
+                <div className="activity-conditions-header">
+                  <span className="activity-conditions-icon">description</span>
+                  <span className="activity-conditions-title">Notes</span>
+                </div>
+                <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0, lineHeight: 1.5 }}>{activity.description}</p>
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Photo Gallery */}
-        {photos.length > 0 && (
-          <div className="grid grid-cols-4 gap-3">
-            {photos.slice(0, 8).map((photo, idx) => (
-              <div
-                key={idx}
-                className="aspect-square bg-[#0f1520] border border-cyan-500/30 rounded-lg overflow-hidden"
-              >
-                <img
-                  src={photo.urls?.['600'] || photo.urls?.['2048']}
-                  alt={`Activity photo ${idx + 1}`}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
