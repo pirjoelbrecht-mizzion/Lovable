@@ -49,64 +49,71 @@ export const OverviewTab: FC<Props> = ({
   return (
     <div style={{
       backgroundColor: '#0a0b0e',
-      minHeight: '100%',
-      paddingBottom: '80px'
+      height: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden'
     }}>
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        style={{
-          margin: '16px',
-          padding: '14px 16px',
-          borderRadius: '12px',
-          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.02) 100%)',
-          border: '1px solid rgba(16, 185, 129, 0.15)',
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: '12px'
-        }}
-      >
-        <div style={{
-          width: '32px',
-          height: '32px',
-          borderRadius: '8px',
-          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0
-        }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
-        </div>
-        <p style={{
-          fontSize: '13px',
-          lineHeight: '1.6',
-          color: '#e5e7eb',
-          margin: 0,
-          fontWeight: 400
-        }}>
-          {coachMessage}
-        </p>
-      </motion.div>
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        overflowX: 'hidden'
+      }} className="scrollbar-hide">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          style={{
+            margin: '12px 12px 8px',
+            padding: '10px 12px',
+            borderRadius: '10px',
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.02) 100%)',
+            border: '1px solid rgba(16, 185, 129, 0.15)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '10px'
+          }}
+        >
+          <div style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '7px',
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <p style={{
+            fontSize: '12px',
+            lineHeight: '1.4',
+            color: '#e5e7eb',
+            margin: 0,
+            fontWeight: 400
+          }}>
+            {coachMessage}
+          </p>
+        </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
-        style={{ padding: '0 16px 16px' }}
+        style={{ padding: '0 12px 8px' }}
       >
         <div style={{
-          borderRadius: '20px',
+          borderRadius: '16px',
           background: 'linear-gradient(145deg, #12151a 0%, #0d0f12 100%)',
           border: '1px solid rgba(255, 255, 255, 0.06)',
           overflow: 'hidden',
           boxShadow: '0 4px 24px rgba(0, 0, 0, 0.4)'
         }}>
           <div style={{
-            padding: '20px',
+            padding: '14px 16px',
             background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, transparent 60%)',
             position: 'relative'
           }}>
@@ -160,7 +167,7 @@ export const OverviewTab: FC<Props> = ({
             </div>
 
             <h1 style={{
-              fontSize: '24px',
+              fontSize: '20px',
               fontWeight: 700,
               color: '#ffffff',
               margin: '0 0 4px 0',
@@ -198,47 +205,47 @@ export const OverviewTab: FC<Props> = ({
 
           {readiness && (
             <div style={{
-              padding: '16px 20px',
+              padding: '12px 16px',
               borderTop: '1px solid rgba(255, 255, 255, 0.04)'
             }}>
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: '10px'
+                marginBottom: '8px'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '8px',
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '6px',
                     backgroundColor: readinessColors.bg,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center'
                   }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={readinessColors.primary} strokeWidth="2.5">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={readinessColors.primary} strokeWidth="2.5">
                       <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
                     </svg>
                   </div>
-                  <span style={{ fontSize: '13px', fontWeight: 500, color: '#e5e7eb' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 500, color: '#e5e7eb' }}>
                     Readiness Score
                   </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
                   <span style={{
-                    fontSize: '24px',
+                    fontSize: '20px',
                     fontWeight: 700,
                     color: readinessColors.primary
                   }}>
                     {readiness.score}
                   </span>
-                  <span style={{ fontSize: '12px', color: '#6b7280' }}>/100</span>
+                  <span style={{ fontSize: '11px', color: '#6b7280' }}>/100</span>
                 </div>
               </div>
               <div style={{
-                height: '6px',
-                borderRadius: '3px',
+                height: '5px',
+                borderRadius: '2.5px',
                 backgroundColor: 'rgba(255, 255, 255, 0.06)',
                 overflow: 'hidden'
               }}>
@@ -249,7 +256,7 @@ export const OverviewTab: FC<Props> = ({
                   style={{
                     height: '100%',
                     background: `linear-gradient(90deg, ${readinessColors.primary} 0%, ${readinessColors.primary}88 100%)`,
-                    borderRadius: '3px'
+                    borderRadius: '2.5px'
                   }}
                 />
               </div>
@@ -258,25 +265,25 @@ export const OverviewTab: FC<Props> = ({
 
           {streak > 0 && (
             <div style={{
-              padding: '12px 20px',
+              padding: '10px 16px',
               borderTop: '1px solid rgba(255, 255, 255, 0.04)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '18px' }}>&#128293;</span>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: '#f9fafb' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '16px' }}>&#128293;</span>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#f9fafb' }}>
                   {streak} day streak
                 </span>
               </div>
               <div style={{
-                padding: '4px 10px',
-                borderRadius: '12px',
+                padding: '3px 8px',
+                borderRadius: '10px',
                 background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.1) 100%)',
                 border: '1px solid rgba(16, 185, 129, 0.3)'
               }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#10b981' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#10b981' }}>
                   +{xpToEarn} XP
                 </span>
               </div>
@@ -294,8 +301,13 @@ export const OverviewTab: FC<Props> = ({
           <WeatherSection weather={weather} />
         </motion.div>
       )}
+      </div>
 
-      <div style={{ padding: '0 16px 16px' }}>
+      <div style={{
+        padding: '12px',
+        background: 'linear-gradient(to top, #0a0b0e 0%, #0a0b0eee 80%, transparent 100%)',
+        paddingTop: '20px'
+      }}>
         <button
           onClick={onStart}
           style={{
@@ -402,37 +414,37 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData }> = ({ weather }) => {
   const currentTemp = Math.round(weather.current.temp);
 
   return (
-    <div style={{ padding: '0 16px 12px' }}>
+    <div style={{ padding: '0 12px 8px' }}>
       <div style={{
-        borderRadius: '14px',
+        borderRadius: '12px',
         background: 'linear-gradient(145deg, #12151a 0%, #0d0f12 100%)',
         border: '1px solid rgba(255, 255, 255, 0.06)',
         overflow: 'hidden',
-        padding: '12px'
+        padding: '10px'
       }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '10px'
+          marginBottom: '8px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ fontSize: '28px' }}>{weather.current.icon}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ fontSize: '24px' }}>{weather.current.icon}</div>
             <div>
               <div style={{
-                fontSize: '24px',
+                fontSize: '20px',
                 fontWeight: 700,
                 color: '#ffffff',
                 lineHeight: 1
               }}>
                 {currentTemp}°
               </div>
-              <div style={{ fontSize: '10px', color: '#6b7280' }}>
+              <div style={{ fontSize: '9px', color: '#6b7280' }}>
                 H:{highTemp}° L:{lowTemp}°
               </div>
             </div>
           </div>
-          <div style={{ fontSize: '10px', color: '#6b7280', textAlign: 'right' }}>
+          <div style={{ fontSize: '9px', color: '#6b7280', textAlign: 'right' }}>
             {dateStr}
           </div>
         </div>
@@ -455,23 +467,23 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData }> = ({ weather }) => {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  padding: '6px 8px',
-                  borderRadius: '8px',
-                  minWidth: '38px',
+                  padding: '5px 6px',
+                  borderRadius: '6px',
+                  minWidth: '34px',
                   backgroundColor: isOptimal ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
                   border: isOptimal ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid transparent'
                 }}
               >
                 <div style={{
-                  fontSize: '9px',
+                  fontSize: '8px',
                   color: isOptimal ? '#10b981' : '#6b7280',
-                  marginBottom: '4px'
+                  marginBottom: '3px'
                 }}>
                   {hour.time.split(':')[0]}
                 </div>
-                <div style={{ fontSize: '14px', marginBottom: '2px' }}>{hour.icon}</div>
+                <div style={{ fontSize: '13px', marginBottom: '2px' }}>{hour.icon}</div>
                 <div style={{
-                  fontSize: '11px',
+                  fontSize: '10px',
                   fontWeight: 600,
                   color: isOptimal ? '#10b981' : '#e5e7eb'
                 }}>
@@ -484,23 +496,23 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData }> = ({ weather }) => {
 
         {weather.bestRunWindow && (
           <div style={{
-            marginTop: '10px',
-            padding: '8px 10px',
-            borderRadius: '8px',
+            marginTop: '8px',
+            padding: '6px 8px',
+            borderRadius: '6px',
             background: 'rgba(16, 185, 129, 0.08)',
             border: '1px solid rgba(16, 185, 129, 0.12)',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px'
+            gap: '5px'
           }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2">
               <circle cx="12" cy="12" r="10"/>
               <path d="M12 6v6l4 2"/>
             </svg>
-            <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 500 }}>
+            <span style={{ fontSize: '10px', color: '#10b981', fontWeight: 500 }}>
               Best: {weather.bestRunWindow.start}-{weather.bestRunWindow.end}
             </span>
-            <span style={{ fontSize: '10px', color: '#6b7280' }}>
+            <span style={{ fontSize: '9px', color: '#6b7280' }}>
               {Math.round(weather.bestRunWindow.temp)}°
             </span>
           </div>
