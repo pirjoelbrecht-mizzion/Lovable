@@ -121,6 +121,11 @@
     justify-content: flex-start;
     overflow-x: auto;
     padding-bottom: 4px;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .quest-header-nav::-webkit-scrollbar {
+    display: none;
   }
 
   .quest-nav-btn span {
@@ -198,7 +203,13 @@
   z-index: 10;
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 24px 24px 80px 24px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.quest-content::-webkit-scrollbar {
+  display: none;
 }
 
 /* ===== WEATHER AND COACH WRAPPERS ===== */
@@ -1333,8 +1344,14 @@
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.quest-session-modal::-webkit-scrollbar {
+  display: none;
 }
 
 @keyframes slideUp {
