@@ -12,6 +12,8 @@ export type BusEventMap = {
   "plan:recovery-protocol": { plan: any; reason: string };
   "coach:insight-generated": { insights: any[]; weight: number };
   "models:update": { models: string[]; weight: number; source: string };
+  "gpx:calibration-recorded": { calibrationId?: string; distanceKm: number; timeDeltaPct: number; calibrationQuality: number };
+  "gpx:prediction-improved": { distanceBand: string; oldAccuracy: number; newAccuracy: number };
 };
 
 export function emit<K extends keyof BusEventMap>(type: K, detail: BusEventMap[K]) {
