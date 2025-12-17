@@ -16,6 +16,14 @@ import {
   calculateWeatherFactor,
 } from '@/utils/performanceFactors';
 import { getRaceWeatherForecast, getWeatherImpactDescription } from '@/utils/raceWeather';
+import {
+  calculateUltraFatigue,
+  estimateUltraFinishTime,
+  getUltraDistanceCategory,
+} from '@/lib/ultra-distance/ultraFatigueModel';
+import {
+  estimateQuickAidStationTime,
+} from '@/lib/ultra-distance/aidStationEstimation';
 
 export type SimulationFactors = {
   terrainFactor: number;
@@ -297,7 +305,41 @@ export async function simulateRace(raceId?: string): Promise<RaceSimulation | nu
   };
 
   if (targetRace.routeAnalysis && isGPXValid(targetRace.routeAnalysis, targetRace.distanceKm)) {
-    basePrediction = targetRace.routeAnalysis.totalTimeEstimate;
+    const gpxBaseTime = targetRace.routeAnalysis.totalTimeEstimate;
+    const isUltraDistance = targetRace.distanceKm > 42;
+
+    if (isUltraDistance) {
+      const distanceCategory = getUltraDistanceCategory(targetRace.distanceKm);
+      const elevationGain = targetRace.routeAnalysis.totalElevationGainM || targetRace.elevationM || 0;
+
+      const ultraEstimate = estimateUltraFinishTime(
+        gpxBaseTime,
+        targetRace.distanceKm,
+        elevationGain,
+        {
+          temperatureC: weather?.temperature || 20,
+          humidity: weather?.humidity || 50,
+          readinessScore: readiness.value,
+          hasNightSection: targetRace.distanceKm > 80,
+          aidStationCount: Math.floor(targetRace.distanceKm / 10),
+        }
+      );
+
+      basePrediction = ultraEstimate.adjustedTimeMinutes;
+
+      console.log('[simulateRace] Ultra fatigue applied:', {
+        gpxBaseTime,
+        fatiguePenalty: ultraEstimate.fatiguePenaltyMinutes,
+        aidStationTime: ultraEstimate.aidStationMinutes,
+        nightPenalty: ultraEstimate.nightPenaltyMinutes,
+        adjustedTime: basePrediction,
+        totalAdjustmentPct: ultraEstimate.totalAdjustmentPercent,
+        distanceCategory: distanceCategory.label,
+      });
+    } else {
+      basePrediction = gpxBaseTime;
+    }
+
     calculationMethod = 'gpx';
     skipTerrainFactors = true;
 
@@ -312,7 +354,8 @@ export async function simulateRace(raceId?: string): Promise<RaceSimulation | nu
       distance: targetRace.routeAnalysis.totalDistanceKm,
       elevation: targetRace.routeAnalysis.totalElevationGainM,
       personalized: targetRace.routeAnalysis.usingPersonalizedPace,
-      confidence: targetRace.routeAnalysis.paceConfidence
+      confidence: targetRace.routeAnalysis.paceConfidence,
+      isUltra: isUltraDistance,
     });
   } else if (targetRace.expectedTimeMin && targetRace.expectedTimeMin > 0) {
     basePrediction = targetRace.expectedTimeMin;

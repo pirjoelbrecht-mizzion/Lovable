@@ -3,7 +3,12 @@ import { saveEvent, updateEvent, type DbEvent } from '@/lib/database';
 import { SEED_RACES } from '@/data/races';
 import { toast } from '@/components/ToastHost';
 import { parseGPXFile, formatTime, type GPXRouteAnalysis } from '@/utils/gpxParser';
-import { analyzeGPXRoutePersonalized } from '@/utils/personalizedGPXAnalysis';
+import {
+  analyzeGPXRoutePersonalized,
+  analyzeGPXRouteForUltra,
+  formatUltraTimeBreakdown,
+  type UltraDistanceAnalysisResult,
+} from '@/utils/personalizedGPXAnalysis';
 import { uploadGPXFile, saveGPXAnalysisToEvent, saveRouteSegments } from '@/lib/gpxStorage';
 import RouteComparisonModal from './RouteComparisonModal';
 import './AddEventModal.css';
@@ -35,6 +40,7 @@ export default function AddEventModal({ onClose, onEventAdded, editEvent }: AddE
 
   const [gpxFile, setGpxFile] = useState<File | null>(null);
   const [gpxAnalysis, setGpxAnalysis] = useState<GPXRouteAnalysis | null>(null);
+  const [ultraAnalysis, setUltraAnalysis] = useState<UltraDistanceAnalysisResult | null>(null);
   const [isAnalyzingGpx, setIsAnalyzingGpx] = useState(false);
   const [showRouteComparison, setShowRouteComparison] = useState(false);
   const [savedEventId, setSavedEventId] = useState<string | null>(null);
@@ -222,33 +228,57 @@ export default function AddEventModal({ onClose, onEventAdded, editEvent }: AddE
 
     setGpxFile(file);
     setIsAnalyzingGpx(true);
+    setUltraAnalysis(null);
 
     try {
       const points = await parseGPXFile(file);
-      const result = await analyzeGPXRoutePersonalized(points);
-      setGpxAnalysis(result.analysis);
+      const basicResult = await analyzeGPXRoutePersonalized(points);
+      const analysis = basicResult.analysis;
 
+      setGpxAnalysis(analysis);
       setDistance('Custom');
-      setCustomDistance(result.analysis.totalDistanceKm.toString());
+      setCustomDistance(analysis.totalDistanceKm.toString());
 
-      // Only auto-fill elevation if GPX has elevation data
-      if (result.analysis.totalElevationGainM > 0) {
-        setElevationGain(result.analysis.totalElevationGainM.toString());
+      if (analysis.totalElevationGainM > 0) {
+        setElevationGain(analysis.totalElevationGainM.toString());
       } else {
-        // Clear elevation field so user can manually enter it
         setElevationGain('');
         toast('GPX file has no elevation data. Please enter it manually.', 'warning');
       }
 
-      setExpectedTime(formatTime(result.analysis.totalTimeEstimate));
+      const isUltraDistance = analysis.totalDistanceKm > 42;
 
-      const message = result.hasPersonalizedPace
-        ? `GPX analyzed with your personalized pace (${result.analysis.paceConfidence} confidence)!`
-        : 'GPX analyzed successfully!';
+      if (isUltraDistance) {
+        const ultraResult = await analyzeGPXRouteForUltra(points, {
+          surfaceType: eventType === 'trail' ? 'trail' : 'road',
+          athleteExperienceLevel: 'intermediate',
+        });
+        setUltraAnalysis(ultraResult);
+        setExpectedTime(formatTime(ultraResult.ultraAdjusted.totalTimeMin));
 
-      // Only show success toast if elevation data exists
-      if (result.analysis.totalElevationGainM > 0) {
-        toast(message, 'success');
+        const confidenceLabel = ultraResult.confidence.overall >= 80 ? 'high' :
+          ultraResult.confidence.overall >= 60 ? 'medium' : 'low';
+
+        toast(
+          `Ultra analysis complete! Includes fatigue (+${ultraResult.ultraAdjusted.fatiguePenaltyMin.toFixed(0)}min) and aid stations (+${ultraResult.ultraAdjusted.aidStationTimeMin.toFixed(0)}min)`,
+          'success'
+        );
+
+        if (ultraResult.warnings.length > 0) {
+          setTimeout(() => {
+            toast(ultraResult.warnings[0], 'warning');
+          }, 1500);
+        }
+      } else {
+        setExpectedTime(formatTime(analysis.totalTimeEstimate));
+
+        const message = basicResult.hasPersonalizedPace
+          ? `GPX analyzed with your personalized pace (${analysis.paceConfidence} confidence)!`
+          : 'GPX analyzed successfully!';
+
+        if (analysis.totalElevationGainM > 0) {
+          toast(message, 'success');
+        }
       }
     } catch (err) {
       console.error('Error analyzing GPX:', err);
@@ -262,6 +292,7 @@ export default function AddEventModal({ onClose, onEventAdded, editEvent }: AddE
   function handleRemoveGpx() {
     setGpxFile(null);
     setGpxAnalysis(null);
+    setUltraAnalysis(null);
   }
 
   return (
@@ -524,7 +555,7 @@ export default function AddEventModal({ onClose, onEventAdded, editEvent }: AddE
                       }}
                     >
                       <div style={{ fontWeight: 600, marginBottom: '0.75rem', color: 'var(--success-color)' }}>
-                        Route Analysis Complete
+                        Route Analysis Complete {ultraAnalysis && `(${ultraAnalysis.distanceCategory.label})`}
                       </div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
@@ -557,12 +588,64 @@ export default function AddEventModal({ onClose, onEventAdded, editEvent }: AddE
                         </div>
                       </div>
 
+                      {ultraAnalysis && (
+                        <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)' }}>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Ultra Distance Adjustments</div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', fontSize: '0.85rem' }}>
+                            <div>
+                              <span style={{ color: 'var(--text-secondary)' }}>Base moving: </span>
+                              <span style={{ fontWeight: 600 }}>{formatTime(ultraAnalysis.breakdown.baseMovingTime)}</span>
+                            </div>
+                            <div>
+                              <span style={{ color: 'var(--text-secondary)' }}>Fatigue: </span>
+                              <span style={{ fontWeight: 600, color: '#FF9800' }}>+{formatTime(ultraAnalysis.breakdown.fatiguePenalty)}</span>
+                            </div>
+                            <div>
+                              <span style={{ color: 'var(--text-secondary)' }}>Aid stations: </span>
+                              <span style={{ fontWeight: 600, color: '#2196F3' }}>+{formatTime(ultraAnalysis.breakdown.aidStations)}</span>
+                            </div>
+                            {ultraAnalysis.breakdown.nightPenalty > 0 && (
+                              <div>
+                                <span style={{ color: 'var(--text-secondary)' }}>Night: </span>
+                                <span style={{ fontWeight: 600, color: '#9C27B0' }}>+{formatTime(ultraAnalysis.breakdown.nightPenalty)}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                            Confidence: {ultraAnalysis.confidence.overall}% | Pace decay: {ultraAnalysis.fatigue.paceDecayPercent.toFixed(0)}%
+                          </div>
+                        </div>
+                      )}
+
                       <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)' }}>
                         <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Total Estimated Time</div>
                         <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--success-color)' }}>
-                          {formatTime(gpxAnalysis.totalTimeEstimate)}
+                          {ultraAnalysis
+                            ? formatTime(ultraAnalysis.ultraAdjusted.totalTimeMin)
+                            : formatTime(gpxAnalysis.totalTimeEstimate)
+                          }
                         </div>
+                        {ultraAnalysis && (
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                            +{ultraAnalysis.ultraAdjusted.totalAdjustmentPercent.toFixed(0)}% vs base pace
+                          </div>
+                        )}
                       </div>
+
+                      {ultraAnalysis && ultraAnalysis.warnings.length > 0 && (
+                        <div style={{
+                          marginTop: '0.75rem',
+                          padding: '0.5rem',
+                          backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                          borderRadius: '4px',
+                          fontSize: '0.8rem',
+                          color: '#FF9800',
+                        }}>
+                          {ultraAnalysis.warnings.map((w, i) => (
+                            <div key={i}>Warning: {w}</div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
