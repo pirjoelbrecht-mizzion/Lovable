@@ -5,18 +5,23 @@ import type { WeeklyMetric } from "@/hooks/useWeeklyMetrics";
 import { getACWRZoneStatus, generateACWRZoneFeedback, getACWRTrendDirection } from "@/utils/acwrZones";
 
 const CustomLabel = ({ viewBox, value, fill }: any) => {
-  const { x, y } = viewBox;
+  const { x, y, width } = viewBox;
   return (
-    <text
-      x={x + 10}
-      y={y - 5}
-      fill={fill}
-      fontSize={14}
-      fontWeight="bold"
-      style={{ fill }}
-    >
-      {value}
-    </text>
+    <g>
+      <text
+        x={x + width + 10}
+        y={y - 5}
+        fontSize="14"
+        fontWeight="bold"
+        dominantBaseline="middle"
+        style={{
+          fill: fill,
+          stroke: 'none',
+        }}
+      >
+        {value}
+      </text>
+    </g>
   );
 };
 
@@ -146,7 +151,7 @@ export default function ACWRChart({ weeklyMetrics, baselines, dateRangeLabel }: 
       border: '2px solid #22d3ee',
       boxShadow: '0 0 30px rgba(34, 211, 238, 0.3)',
       backdropFilter: 'blur(10px)',
-    }}>
+    }} className="acwr-chart-container">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div>
           <h3 style={{

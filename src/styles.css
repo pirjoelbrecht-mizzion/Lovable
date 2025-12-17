@@ -5,6 +5,11 @@
 @import './styles/neon-tokens.css';
 @import './styles/neon-animations.css';
 
+/* ACWR Chart label fix */
+.acwr-chart-container .recharts-label text {
+  stroke: none;
+}
+
 /* ===== Theme tokens (dark) ===== */
 :root {
   /* Mirror page premium design tokens */
