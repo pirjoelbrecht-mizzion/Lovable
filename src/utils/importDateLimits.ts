@@ -173,8 +173,9 @@ export function getValidatedAPIDateRange(requestedStartDate?: string): {
 } {
   const cutoffDate = getImportCutoffDate();
   const cutoffISO = getImportCutoffDateISO();
-  const today = new Date();
-  const todayISO = today.toISOString().slice(0, 10);
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowISO = tomorrow.toISOString().slice(0, 10);
 
   let startDate = requestedStartDate || cutoffISO;
   let wasLimited = false;
@@ -188,7 +189,7 @@ export function getValidatedAPIDateRange(requestedStartDate?: string): {
 
   return {
     startDate,
-    endDate: todayISO,
+    endDate: tomorrowISO,
     wasLimited
   };
 }
