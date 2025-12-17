@@ -68,8 +68,40 @@ export default function AddEventModal({ onClose, onEventAdded, editEvent }: AddE
           setCustomDistance(distanceStr);
         }
       }
+
+      // Recalculate analysis if GPX data exists and it's an ultra distance
+      if (editEvent.gpx_parsed_data && editEvent.distance_km && editEvent.distance_km > 42) {
+        recalculateStoredGPXAnalysis(editEvent);
+      }
     }
   }, [editEvent]);
+
+  async function recalculateStoredGPXAnalysis(event: DbEvent) {
+    if (!event.gpx_parsed_data) return;
+
+    setIsAnalyzingGpx(true);
+    try {
+      const points = event.gpx_parsed_data as any[];
+
+      const basicResult = await analyzeGPXRoutePersonalized(points);
+      const analysis = basicResult.analysis;
+      setGpxAnalysis(analysis);
+
+      const ultraResult = await analyzeGPXRouteForUltra(points, {
+        surfaceType: event.type === 'trail' ? 'trail' : 'road',
+        athleteExperienceLevel: 'intermediate',
+      });
+
+      setUltraAnalysis(ultraResult);
+      setExpectedTime(formatTime(ultraResult.ultraAdjusted.totalTimeMin));
+
+      toast('Analysis recalculated with updated athlete experience', 'info');
+    } catch (err) {
+      console.error('Error recalculating GPX analysis:', err);
+    } finally {
+      setIsAnalyzingGpx(false);
+    }
+  }
 
   const filteredRaces = eventName
     ? SEED_RACES.filter((race) =>
