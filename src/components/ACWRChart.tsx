@@ -7,12 +7,14 @@ import { getACWRZoneStatus, generateACWRZoneFeedback, getACWRTrendDirection } fr
 // Custom label with forced color styling
 const CustomLabel = (props: any) => {
   const { viewBox, value, fill } = props;
-  if (!viewBox) return null;
+  console.log('🏷️ ACWR LABEL RENDER:', value, 'fill:', fill, 'props:', props);
+
+  if (!viewBox) {
+    console.log('❌ No viewBox for label:', value);
+    return null;
+  }
 
   const { x, y, width } = viewBox;
-
-  // Debug: log the fill color being passed
-  console.log('ACWR Label:', value, 'fill:', fill);
 
   return (
     <text
@@ -37,6 +39,8 @@ interface ACWRChartProps {
 }
 
 export default function ACWRChart({ weeklyMetrics, baselines, dateRangeLabel }: ACWRChartProps) {
+  console.log('🎯 ACWRChart RENDERING');
+
   const chartData = useMemo(() => {
     const last12Weeks = weeklyMetrics.slice(-12);
     const today = new Date();
