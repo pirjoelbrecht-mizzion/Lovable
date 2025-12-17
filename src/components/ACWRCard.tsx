@@ -331,6 +331,7 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
                   fontSize={15}
                   fontWeight="700"
                   offset={10}
+                  style={{ fill: '#ef4444' }}
                 />
               </ReferenceArea>
 
@@ -347,6 +348,7 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
                   fill="#F97316"
                   fontSize={15}
                   fontWeight="700"
+                  style={{ fill: '#F97316' }}
                 />
               </ReferenceArea>
 
@@ -364,6 +366,7 @@ export default function ACWRCard({ defaultTimeFrame = '4w' }: ACWRCardProps) {
                   fontSize={15}
                   fontWeight="700"
                   offset={10}
+                  style={{ fill: '#22d3ee' }}
                 />
               </ReferenceArea>
 
