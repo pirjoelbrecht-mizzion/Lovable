@@ -307,8 +307,9 @@ export async function simulateRace(raceId?: string): Promise<RaceSimulation | nu
   if (targetRace.routeAnalysis && isGPXValid(targetRace.routeAnalysis, targetRace.distanceKm)) {
     const gpxBaseTime = targetRace.routeAnalysis.totalTimeEstimate;
     const isUltraDistance = targetRace.distanceKm > 42;
+    const alreadyHasUltraAdjustment = (targetRace.routeAnalysis as any).ultraAdjusted === true;
 
-    if (isUltraDistance) {
+    if (isUltraDistance && !alreadyHasUltraAdjustment) {
       const distanceCategory = getUltraDistanceCategory(targetRace.distanceKm);
       const elevationGain = targetRace.routeAnalysis.totalElevationGainM || targetRace.elevationM || 0;
 
@@ -338,6 +339,9 @@ export async function simulateRace(raceId?: string): Promise<RaceSimulation | nu
       });
     } else {
       basePrediction = gpxBaseTime;
+      if (alreadyHasUltraAdjustment) {
+        console.log('[simulateRace] GPX already has ultra adjustments, using stored time:', gpxBaseTime);
+      }
     }
 
     calculationMethod = 'gpx';
@@ -356,6 +360,7 @@ export async function simulateRace(raceId?: string): Promise<RaceSimulation | nu
       personalized: targetRace.routeAnalysis.usingPersonalizedPace,
       confidence: targetRace.routeAnalysis.paceConfidence,
       isUltra: isUltraDistance,
+      ultraAdjusted: alreadyHasUltraAdjustment,
     });
   } else if (targetRace.expectedTimeMin && targetRace.expectedTimeMin > 0) {
     basePrediction = targetRace.expectedTimeMin;

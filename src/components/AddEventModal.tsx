@@ -163,10 +163,21 @@ export default function AddEventModal({ onClose, onEventAdded, editEvent }: AddE
           toast('Uploading GPX file...', 'info');
           const gpxUrl = await uploadGPXFile(gpxFile, eventId);
 
+          const analysisToSave = ultraAnalysis
+            ? {
+                ...gpxAnalysis,
+                totalTimeEstimate: ultraAnalysis.ultraAdjusted.totalTimeMin,
+                ultraAdjusted: true,
+                ultraBreakdown: ultraAnalysis.breakdown,
+                fatiguePenaltyMin: ultraAnalysis.ultraAdjusted.fatiguePenaltyMin,
+                aidStationTimeMin: ultraAnalysis.ultraAdjusted.aidStationTimeMin,
+              }
+            : gpxAnalysis;
+
           await saveGPXAnalysisToEvent(
             eventId,
             { points: gpxAnalysis.elevationProfile },
-            gpxAnalysis
+            analysisToSave
           );
 
           await saveRouteSegments(eventId, gpxAnalysis.segments.map((seg, idx) => ({
