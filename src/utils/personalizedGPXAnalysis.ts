@@ -243,21 +243,22 @@ export async function analyzeGPXRouteForUltra(
     learnedCorrections = await getCorrectionFactors(distanceCategory.category);
   }
 
-  // Get athlete's longest ultra - try multiple sources
+  // Get athlete's longest ultra and ultra count - try multiple sources
   let userLongestUltra = athleteLongestUltraKm || paceProfile?.longestActivityKm;
+  let userUltraCount = 0;
 
   // If not available, query directly from log entries
-  if (!userLongestUltra && userId) {
+  if (userId) {
     try {
       const supabase = getSupabase();
       const { data: activities } = await supabase
         .from('log_entries')
         .select('km, duration_min')
         .eq('user_id', userId)
-        .gt('km', 0)
+        .gt('km', 42)
         .gt('duration_min', 30)
         .order('km', { ascending: false })
-        .limit(10);
+        .limit(50);
 
       if (activities && activities.length > 0) {
         // Filter out corrupted data (pace faster than 2:00/km or slower than 20:00/km)
@@ -266,7 +267,10 @@ export async function analyzeGPXRouteForUltra(
           return paceMinKm >= 2.0 && paceMinKm <= 20.0;
         });
 
-        if (validActivities.length > 0) {
+        // Count valid ultra activities (>42km)
+        userUltraCount = validActivities.length;
+
+        if (validActivities.length > 0 && !userLongestUltra) {
           userLongestUltra = Math.max(...validActivities.map(a => parseFloat(a.km)));
         }
       }
@@ -288,6 +292,7 @@ export async function analyzeGPXRouteForUltra(
     humidity,
     readinessScore,
     athleteLongestUltraKm: userLongestUltra,
+    athleteUltraCount: userUltraCount,
     isNightSection: hasNightSection,
   });
 

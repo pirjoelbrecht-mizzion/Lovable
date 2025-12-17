@@ -8,6 +8,7 @@ export interface UltraFatigueParams {
   humidity: number;
   readinessScore: number;
   athleteLongestUltraKm?: number;
+  athleteUltraCount?: number;
   isNightSection?: boolean;
 }
 
@@ -80,6 +81,7 @@ export function calculateUltraFatigue(params: UltraFatigueParams): UltraFatigueR
     humidity,
     readinessScore,
     athleteLongestUltraKm = 42.195,
+    athleteUltraCount = 0,
     isNightSection = false,
   } = params;
 
@@ -92,7 +94,11 @@ export function calculateUltraFatigue(params: UltraFatigueParams): UltraFatigueR
 
   const readinessMultiplier = 1 + Math.max(0, (75 - readinessScore) / 200);
 
-  const combinedFatigue = (
+  // Calculate experience discount for proven ultra runners
+  // Athletes who have completed similar or longer distances get reduced fatigue
+  const experienceDiscount = calculateExperienceDiscount(distanceKm, athleteLongestUltraKm, athleteUltraCount);
+
+  const baseFatigue = (
     distanceFatigue * 0.30 +
     timeFatigue * 0.25 +
     elevationFatigue * 0.20 +
@@ -100,6 +106,9 @@ export function calculateUltraFatigue(params: UltraFatigueParams): UltraFatigueR
     nightPenalty * 0.05 +
     inexperiencePenalty * 0.05
   ) * readinessMultiplier;
+
+  // Apply experience discount - experienced athletes have adapted to ultra fatigue
+  const combinedFatigue = baseFatigue * experienceDiscount;
 
   const fatigueFactor = 1 + Math.min(combinedFatigue, 0.60);
   const paceDecayPercent = (fatigueFactor - 1) * 100;
@@ -240,6 +249,55 @@ function calculateInexperiencePenalty(raceDistanceKm: number, longestUltraKm: nu
 
   return FATIGUE_CONSTANTS.INEXPERIENCE_PENALTY_BASE *
     Math.pow(gapRatio, FATIGUE_CONSTANTS.INEXPERIENCE_DECAY_FACTOR);
+}
+
+function calculateExperienceDiscount(
+  raceDistanceKm: number,
+  longestUltraKm: number,
+  ultraCount: number
+): number {
+  // Experienced ultra runners have adapted to fatigue - their base pace already
+  // reflects their pacing strategy, so we reduce the additional fatigue penalty
+
+  // No discount for first-time ultra runners
+  if (longestUltraKm <= 42.195) {
+    return 1.0;
+  }
+
+  // Calculate discount based on experience ratio
+  // If athlete has done 123km and race is 106km, ratio = 1.16
+  const experienceRatio = longestUltraKm / raceDistanceKm;
+
+  let discount = 1.0;
+
+  if (experienceRatio >= 1.2) {
+    // Done significantly longer race - 50% discount
+    discount = 0.50;
+  } else if (experienceRatio >= 1.0) {
+    // Done similar or longer race - 40% discount
+    discount = 0.60;
+  } else if (experienceRatio >= 0.8) {
+    // Done 80%+ of this distance - 25% discount
+    discount = 0.75;
+  } else if (experienceRatio >= 0.6) {
+    // Done 60%+ of this distance - 15% discount
+    discount = 0.85;
+  } else if (longestUltraKm > 50) {
+    // Has done at least a 50K ultra - 10% discount
+    discount = 0.90;
+  }
+
+  // Additional discount for athletes with multiple ultras (max 15% additional)
+  if (ultraCount >= 10) {
+    discount *= 0.85;
+  } else if (ultraCount >= 5) {
+    discount *= 0.90;
+  } else if (ultraCount >= 3) {
+    discount *= 0.95;
+  }
+
+  // Never go below 35% of base fatigue
+  return Math.max(0.35, discount);
 }
 
 function calculateConfidenceScore(
