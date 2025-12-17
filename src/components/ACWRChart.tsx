@@ -218,6 +218,14 @@ export default function ACWRChart({ weeklyMetrics, baselines, dateRangeLabel }: 
           />
 
           <ReferenceLine
+            y={universalSweetMin}
+            stroke="#22d3ee"
+            strokeWidth={2}
+            strokeDasharray="0"
+            label={{ value: 'Sweet Spot', position: 'right', fill: '#22d3ee', fontSize: 14, fontWeight: 700 }}
+          />
+
+          <ReferenceLine
             y={universalSweetMax}
             stroke="#F97316"
             strokeWidth={2}
