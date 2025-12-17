@@ -63,6 +63,7 @@ export interface PaceProfile {
   calculationPeriodDays: number;
   hasMinimumData: boolean;
   dataQuality: 'excellent' | 'good' | 'fair' | 'insufficient';
+  longestActivityKm?: number;
 }
 
 interface WeightedSegment extends TerrainSegment {
@@ -354,6 +355,33 @@ export async function calculatePaceProfile(
       dataQuality = 'insufficient';
     }
 
+    // Calculate longest activity distance (filter out corrupted data)
+    let longestActivityKm: number | undefined;
+    try {
+      const { data: activities } = await supabase
+        .from('log_entries')
+        .select('km, duration_min')
+        .eq('user_id', uid)
+        .gt('km', 0)
+        .gt('duration_min', 30)
+        .order('km', { ascending: false })
+        .limit(10);
+
+      if (activities && activities.length > 0) {
+        // Filter out corrupted data (pace faster than 2:00/km or slower than 20:00/km)
+        const validActivities = activities.filter(a => {
+          const paceMinKm = a.duration_min / a.km;
+          return paceMinKm >= 2.0 && paceMinKm <= 20.0;
+        });
+
+        if (validActivities.length > 0) {
+          longestActivityKm = Math.max(...validActivities.map(a => parseFloat(a.km)));
+        }
+      }
+    } catch (err) {
+      console.error('Error calculating longest activity:', err);
+    }
+
     const profile: PaceProfile = {
       userId: uid,
       baseFlatPaceMinKm: parseFloat(baseFlatPace.toFixed(2)),
@@ -370,6 +398,7 @@ export async function calculatePaceProfile(
       calculationPeriodDays: RECENCY_CONFIG.MEDIUM_DAYS,
       hasMinimumData,
       dataQuality,
+      longestActivityKm,
     };
 
     return profile;

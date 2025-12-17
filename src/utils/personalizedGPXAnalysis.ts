@@ -22,7 +22,7 @@ import {
   type RaceAidStationPlan,
 } from '@/lib/ultra-distance/aidStationEstimation';
 import { getCorrectionFactors, type CorrectionFactors } from '@/services/gpxCalibrationService';
-import { getCurrentUserId } from '@/lib/supabase';
+import { getCurrentUserId, getSupabase } from '@/lib/supabase';
 
 /**
  * Analyze GPX route with personalized pace if available
@@ -243,9 +243,42 @@ export async function analyzeGPXRouteForUltra(
     learnedCorrections = await getCorrectionFactors(distanceCategory.category);
   }
 
-  const userLongestUltra = athleteLongestUltraKm ||
-    paceProfile?.longestActivityKm ||
-    42.195;
+  // Get athlete's longest ultra - try multiple sources
+  let userLongestUltra = athleteLongestUltraKm || paceProfile?.longestActivityKm;
+
+  // If not available, query directly from log entries
+  if (!userLongestUltra && userId) {
+    try {
+      const supabase = getSupabase();
+      const { data: activities } = await supabase
+        .from('log_entries')
+        .select('km, duration_min')
+        .eq('user_id', userId)
+        .gt('km', 0)
+        .gt('duration_min', 30)
+        .order('km', { ascending: false })
+        .limit(10);
+
+      if (activities && activities.length > 0) {
+        // Filter out corrupted data (pace faster than 2:00/km or slower than 20:00/km)
+        const validActivities = activities.filter(a => {
+          const paceMinKm = a.duration_min / a.km;
+          return paceMinKm >= 2.0 && paceMinKm <= 20.0;
+        });
+
+        if (validActivities.length > 0) {
+          userLongestUltra = Math.max(...validActivities.map(a => parseFloat(a.km)));
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching longest activity:', err);
+    }
+  }
+
+  // Final fallback to marathon distance
+  if (!userLongestUltra) {
+    userLongestUltra = 42.195;
+  }
 
   const fatigueResult = calculateUltraFatigue({
     distanceKm: baseAnalysis.totalDistanceKm,
