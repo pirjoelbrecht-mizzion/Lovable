@@ -5,9 +5,14 @@
 @import './styles/neon-tokens.css';
 @import './styles/neon-animations.css';
 
-/* ACWR Chart label fix */
-.acwr-chart-container .recharts-label text {
-  stroke: none;
+/* ACWR Chart label fix - force colors */
+.acwr-chart-container .recharts-label text,
+.acwr-chart-container .recharts-reference-line text {
+  stroke: none !important;
+}
+
+.acwr-chart-container text[style*="fill"] {
+  color: unset !important;
 }
 
 /* ===== Theme tokens (dark) ===== */

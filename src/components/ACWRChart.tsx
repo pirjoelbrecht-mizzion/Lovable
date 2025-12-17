@@ -4,24 +4,29 @@ import type { AthleteBaselines } from "@/hooks/useAthleteBaselines";
 import type { WeeklyMetric } from "@/hooks/useWeeklyMetrics";
 import { getACWRZoneStatus, generateACWRZoneFeedback, getACWRTrendDirection } from "@/utils/acwrZones";
 
-const CustomLabel = ({ viewBox, value, fill }: any) => {
+// Custom label with forced color styling
+const CustomLabel = (props: any) => {
+  const { viewBox, value, fill } = props;
+  if (!viewBox) return null;
+
   const { x, y, width } = viewBox;
+
+  // Debug: log the fill color being passed
+  console.log('ACWR Label:', value, 'fill:', fill);
+
   return (
-    <g>
-      <text
-        x={x + width + 10}
-        y={y - 5}
-        fontSize="14"
-        fontWeight="bold"
-        dominantBaseline="middle"
-        style={{
-          fill: fill,
-          stroke: 'none',
-        }}
-      >
-        {value}
-      </text>
-    </g>
+    <text
+      x={x + width + 10}
+      y={y - 5}
+      fill={fill}
+      stroke="none"
+      textAnchor="start"
+      dominantBaseline="middle"
+      fontSize="14"
+      fontWeight="bold"
+    >
+      {value}
+    </text>
   );
 };
 
