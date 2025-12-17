@@ -192,7 +192,7 @@ export async function calculatePaceProfile(
 
     const { data: analyses, error } = await supabase
       .from('activity_terrain_analysis')
-      .select('*')
+      .select('*, log_entries!inner(km, duration_min)')
       .eq('user_id', uid)
       .gte('activity_date', cutoffDate.toISOString().split('T')[0])
       .order('activity_date', { ascending: false });
@@ -207,10 +207,37 @@ export async function calculatePaceProfile(
       return null;
     }
 
+    // Filter out analyses with poor distance coverage (< 85% of actual distance)
+    // This prevents inflated pace values from incomplete terrain data
+    const validAnalyses = analyses.filter(analysis => {
+      const terrainDistKm = (analysis.uphill_distance_km || 0) +
+                            (analysis.downhill_distance_km || 0) +
+                            (analysis.flat_distance_km || 0);
+      const actualDistKm = analysis.log_entries?.km || 0;
+
+      if (actualDistKm <= 0) return false;
+
+      const coverageRatio = terrainDistKm / actualDistKm;
+      const isValid = coverageRatio >= 0.85;
+
+      if (!isValid) {
+        console.log(`[calculatePaceProfile] Skipping activity ${analysis.activity_date}: terrain coverage ${(coverageRatio * 100).toFixed(1)}% < 85%`);
+      }
+
+      return isValid;
+    });
+
+    console.log(`[calculatePaceProfile] ${validAnalyses.length}/${analyses.length} analyses have good terrain coverage (>=85%)`);
+
+    if (validAnalyses.length < MIN_DATA_REQUIREMENTS.MIN_ACTIVITIES) {
+      console.log('Insufficient valid data for pace profile calculation after coverage filtering');
+      return null;
+    }
+
     // Collect all segments with recency weights
     const allWeightedSegments: WeightedSegment[] = [];
 
-    for (const analysis of analyses) {
+    for (const analysis of validAnalyses) {
       const { weight, daysOld } = calculateRecencyWeight(analysis.activity_date);
 
       if (weight === 0) continue; // Skip activities older than 90 days
@@ -345,11 +372,11 @@ export async function calculatePaceProfile(
 
     // Determine data quality
     let dataQuality: 'excellent' | 'good' | 'fair' | 'insufficient';
-    if (hasMinimumData && analyses.length >= 10) {
+    if (hasMinimumData && validAnalyses.length >= 10) {
       dataQuality = 'excellent';
     } else if (hasMinimumData) {
       dataQuality = 'good';
-    } else if (analyses.length >= MIN_DATA_REQUIREMENTS.MIN_ACTIVITIES) {
+    } else if (validAnalyses.length >= MIN_DATA_REQUIREMENTS.MIN_ACTIVITIES) {
       dataQuality = 'fair';
     } else {
       dataQuality = 'insufficient';
@@ -393,7 +420,7 @@ export async function calculatePaceProfile(
         downhill: segmentsByType.downhill.length,
         flat: segmentsByType.flat.length,
       },
-      sampleSize: analyses.length,
+      sampleSize: validAnalyses.length,
       lastCalculatedAt: new Date().toISOString(),
       calculationPeriodDays: RECENCY_CONFIG.MEDIUM_DAYS,
       hasMinimumData,
