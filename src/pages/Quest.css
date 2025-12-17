@@ -1,11 +1,9 @@
 /* ===== QUEST PAGE - EXACT DESIGN SPECIFICATIONS ===== */
 
 .quest-container {
-  position: relative;
   min-height: 100vh;
   background: linear-gradient(to bottom right, #0B0B12 0%, #161829 50%, #000000 100%);
   font-family: 'Inter', sans-serif;
-  overflow: visible;
 }
 
 /* ===== PAGE HEADER ===== */
@@ -202,9 +200,6 @@
 .quest-content {
   position: relative;
   z-index: 10;
-  flex: 1;
-  overflow-x: hidden;
-  overflow-y: visible;
   padding: 24px 24px 80px 24px;
 }
 
