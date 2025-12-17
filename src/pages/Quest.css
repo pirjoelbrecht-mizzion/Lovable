@@ -224,32 +224,77 @@
 
 @media (max-width: 480px) {
   .quest-weather-wrapper {
-    margin-bottom: 8px;
+    margin-bottom: 6px;
+    transform: scale(0.9);
+    transform-origin: top center;
   }
 
   .quest-coach-wrapper {
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
 
   .quest-coach-wrapper > div {
-    border-radius: 12px !important;
+    border-radius: 10px !important;
   }
 
   .quest-coach-wrapper > div > div:first-child {
-    padding: 10px 14px !important;
+    padding: 8px 12px !important;
+  }
+
+  .quest-coach-wrapper > div > div:first-child > div:first-child > div:first-child {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 8px !important;
+  }
+
+  .quest-coach-wrapper > div > div:first-child > div:first-child > div:first-child svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .quest-coach-wrapper > div > div:first-child > div:first-child > div:last-child > div:first-child {
+    font-size: 12px !important;
+  }
+
+  .quest-coach-wrapper > div > div:first-child > div:first-child > div:last-child > div:last-child span {
+    font-size: 9px !important;
+    padding: 1px 6px !important;
   }
 
   .quest-coach-wrapper > div > div:last-child {
-    padding: 10px 14px !important;
+    padding: 8px 12px !important;
   }
 
   .quest-coach-wrapper > div > div:last-child > div {
-    gap: 8px !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
   }
 
   .quest-coach-wrapper > div > div:last-child > div > div {
-    padding: 8px !important;
-    border-radius: 8px !important;
+    padding: 6px 4px !important;
+    border-radius: 6px !important;
+  }
+
+  .quest-coach-wrapper > div > div:last-child > div > div > div:first-child {
+    margin-bottom: 2px !important;
+  }
+
+  .quest-coach-wrapper > div > div:last-child > div > div > div:first-child span {
+    font-size: 8px !important;
+  }
+
+  .quest-coach-wrapper > div > div:last-child > div > div > div:first-child svg {
+    width: 10px !important;
+    height: 10px !important;
+  }
+
+  .quest-coach-wrapper > div > div:last-child > div > div > div:nth-child(2) {
+    font-size: 13px !important;
+  }
+
+  .quest-coach-wrapper > div > div:last-child > div > div > div:last-child {
+    font-size: 9px !important;
+    margin-top: 1px !important;
   }
 }
 
@@ -695,41 +740,50 @@
 /* ===== RESPONSIVE - MOBILE COMPACT ===== */
 @media (max-width: 640px) {
   .quest-content {
-    padding: 12px 12px 80px 12px;
+    padding: 10px 10px 80px 10px;
   }
 
   .quest-header-card {
-    margin: 0 auto 12px auto;
-    padding: 10px 14px;
-    border-radius: 12px;
+    margin: 0 auto 8px auto;
+    padding: 8px 12px;
+    border-radius: 10px;
   }
 
   .quest-header-icon {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: 8px;
   }
 
   .quest-header-icon svg {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
   }
 
   .quest-header-title {
-    font-size: 18px;
+    font-size: 16px;
   }
 
-  .quest-training-card {
-    padding: 14px;
-    border-radius: 12px;
+  .quest-weather-wrapper {
+    margin-bottom: 8px;
   }
 
-  .quest-card-header {
+  .quest-coach-wrapper {
     margin-bottom: 10px;
   }
 
+  .quest-training-card {
+    padding: 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(185, 242, 39, 0.2);
+  }
+
+  .quest-card-header {
+    margin-bottom: 12px;
+  }
+
   .quest-card-title {
-    font-size: 16px;
+    font-size: 17px;
   }
 
   .quest-instruction-text {
@@ -738,136 +792,7 @@
   }
 
   .quest-bubble-container {
-    height: 220px;
-  }
-
-  .quest-training-section {
-    margin-bottom: 12px;
-  }
-
-  .quest-races-container {
-    margin-bottom: 10px;
-  }
-
-  .quest-race-item {
-    margin-bottom: 8px;
-  }
-
-  .quest-race-name {
-    font-size: 13px;
-  }
-
-  .quest-race-details-row {
-    font-size: 11px;
-  }
-
-  .quest-race-right {
-    font-size: 12px;
-  }
-
-  .quest-quick-links {
-    margin-top: 10px;
-    gap: 8px;
-  }
-
-  .quest-quick-link {
-    padding: 10px 12px;
-    font-size: 12px;
-    border-radius: 10px;
-  }
-}
-
-@media (max-width: 480px) {
-  .quest-content {
-    padding: 10px 10px 80px 10px;
-  }
-
-  .quest-header-card {
-    padding: 8px 12px;
-    margin-bottom: 10px;
-  }
-
-  .quest-header-icon {
-    width: 28px;
-    height: 28px;
-  }
-
-  .quest-header-title {
-    font-size: 16px;
-  }
-
-  .quest-header-left {
-    gap: 8px;
-  }
-
-  .quest-training-card {
-    padding: 12px;
-  }
-
-  .quest-card-header {
-    margin-bottom: 8px;
-  }
-
-  .quest-card-title {
-    font-size: 15px;
-  }
-
-  .quest-bubble-container {
-    height: 180px;
-    transform: scale(0.85);
-    transform-origin: top center;
-    margin-bottom: -30px;
-  }
-
-  .quest-bubble {
-    font-size: 18px;
-  }
-
-  .quest-bubble-emoji {
-    font-size: 16px;
-    margin-bottom: 1px;
-  }
-
-  .quest-bubble-type {
-    font-size: 7px;
-  }
-
-  .quest-bubble-duration {
-    font-size: 6px;
-  }
-
-  .quest-bubble-weather {
-    display: none;
-  }
-
-  .quest-day-label {
-    font-size: 8px;
-  }
-
-  .quest-bubble-badge {
-    font-size: 8px;
-  }
-
-  .quest-bubble-check {
-    width: 20px;
-    height: 20px;
-    font-size: 9px;
-    top: -5px;
-    right: -5px;
-  }
-
-  .quest-bubble-now {
-    padding: 2px 5px;
-    font-size: 7px;
-    top: -5px;
-    right: -5px;
-  }
-
-  .quest-bubble-ai {
-    padding: 2px 5px;
-    font-size: 6px;
-    bottom: -5px;
-    right: -5px;
+    height: 240px;
   }
 
   .quest-training-section {
@@ -876,7 +801,6 @@
 
   .quest-races-container {
     margin-bottom: 8px;
-    padding: 0 2px;
   }
 
   .quest-race-item {
@@ -887,19 +811,8 @@
     font-size: 12px;
   }
 
-  .quest-race-trophy {
-    font-size: 10px;
-    width: 10px;
-    height: 10px;
-  }
-
-  .quest-race-goal-badge {
-    font-size: 10px;
-  }
-
   .quest-race-details-row {
     font-size: 10px;
-    margin-left: 18px;
   }
 
   .quest-race-right {
@@ -915,6 +828,154 @@
     padding: 8px 10px;
     font-size: 11px;
     border-radius: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .quest-content {
+    padding: 8px 8px 80px 8px;
+  }
+
+  .quest-header-card {
+    padding: 6px 10px;
+    margin-bottom: 6px;
+    border-radius: 10px;
+  }
+
+  .quest-header-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+  }
+
+  .quest-header-title {
+    font-size: 14px;
+  }
+
+  .quest-header-left {
+    gap: 6px;
+  }
+
+  .quest-training-card {
+    padding: 14px;
+    border: 2px solid rgba(185, 242, 39, 0.3);
+    box-shadow: 0 4px 20px rgba(185, 242, 39, 0.15);
+  }
+
+  .quest-card-header {
+    margin-bottom: 10px;
+  }
+
+  .quest-card-title {
+    font-size: 18px;
+    color: #B9F227;
+    text-shadow: 0 0 20px rgba(185, 242, 39, 0.4);
+  }
+
+  .quest-instruction-text {
+    display: none;
+  }
+
+  .quest-bubble-container {
+    height: 210px;
+  }
+
+  .quest-bubble {
+    font-size: 18px;
+  }
+
+  .quest-bubble-emoji {
+    font-size: 18px;
+    margin-bottom: 1px;
+  }
+
+  .quest-bubble-type {
+    font-size: 8px;
+  }
+
+  .quest-bubble-duration {
+    font-size: 7px;
+  }
+
+  .quest-bubble-weather {
+    display: none;
+  }
+
+  .quest-day-label {
+    font-size: 9px;
+  }
+
+  .quest-bubble-badge {
+    font-size: 8px;
+  }
+
+  .quest-bubble-check {
+    width: 22px;
+    height: 22px;
+    font-size: 10px;
+    top: -6px;
+    right: -6px;
+  }
+
+  .quest-bubble-now {
+    padding: 2px 6px;
+    font-size: 8px;
+    top: -6px;
+    right: -6px;
+  }
+
+  .quest-bubble-ai {
+    padding: 2px 5px;
+    font-size: 7px;
+    bottom: -6px;
+    right: -6px;
+  }
+
+  .quest-training-section {
+    margin-bottom: 8px;
+  }
+
+  .quest-races-container {
+    margin-bottom: 6px;
+    padding: 0 2px;
+  }
+
+  .quest-race-item {
+    margin-bottom: 4px;
+  }
+
+  .quest-race-name {
+    font-size: 11px;
+  }
+
+  .quest-race-trophy {
+    font-size: 9px;
+    width: 9px;
+    height: 9px;
+  }
+
+  .quest-race-goal-badge {
+    font-size: 9px;
+  }
+
+  .quest-race-details-row {
+    font-size: 9px;
+    margin-left: 16px;
+  }
+
+  .quest-race-right {
+    font-size: 10px;
+  }
+
+  .quest-quick-links {
+    margin-top: 6px;
+    gap: 6px;
+  }
+
+  .quest-quick-link {
+    padding: 6px 8px;
+    font-size: 10px;
+    border-radius: 6px;
   }
 }
 
