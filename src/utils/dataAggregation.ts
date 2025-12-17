@@ -36,6 +36,8 @@ export function aggregateByDay(entries: LogEntry[]): BinnedDataPoint[] {
 
 export function aggregateByWeek(entries: LogEntry[], weeksCount?: number): BinnedDataPoint[] {
   const map = new Map<string, LogEntry[]>();
+  const now = new Date();
+  const currentWeekKey = getISOWeekKey(now);
 
   const sorted = entries
     .slice()
@@ -44,17 +46,22 @@ export function aggregateByWeek(entries: LogEntry[], weeksCount?: number): Binne
 
   for (const entry of sorted) {
     const weekKey = getISOWeekKey(new Date(entry.dateISO));
+    if (weekKey > currentWeekKey) continue;
     if (!map.has(weekKey)) {
       map.set(weekKey, []);
     }
     map.get(weekKey)!.push(entry);
   }
 
+  if (!map.has(currentWeekKey)) {
+    map.set(currentWeekKey, []);
+  }
+
   const keys = Array.from(map.keys()).sort();
   const selectedKeys = weeksCount ? keys.slice(-weeksCount) : keys;
 
   return selectedKeys.map((key) => {
-    const weekEntries = map.get(key)!;
+    const weekEntries = map.get(key) || [];
     const totalKm = weekEntries.reduce((sum, e) => sum + (e.km || 0), 0);
     const totalVertical = weekEntries.reduce((sum, e) => sum + (e.elevationGain || 0), 0);
     const firstDate = weekEntries[0]?.dateISO || key;
