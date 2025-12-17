@@ -1,34 +1,49 @@
-# Vercel Cache Issue - Fixed
+# Vercel "Disappearing Bubbles" Issue - FIXED
 
-## Problem
-The "This Week" plan was disappearing on Vercel because the **service worker was caching old JavaScript bundles**. When you deployed new code, users were still loading the old version from their browser cache.
+## Root Cause
+The bubbles were disappearing after 3 seconds because:
+1. **Module 4 Adaptive Engine** auto-executes on page load
+2. If it encountered an error (auth issue, missing data, etc.), it could generate an **invalid/empty plan**
+3. This invalid plan was being **saved to localStorage**, overwriting the valid plan
+4. The Quest page would then load and display the empty plan, causing bubbles to disappear
+
+Secondary issue: Service worker was also caching old JavaScript bundles on Vercel.
 
 ## What Was Fixed
 
-### 1. Service Worker Cache Version Updated
+### 1. Module 4 Plan Validation (CRITICAL FIX)
+**File**: `src/hooks/useAdaptiveTrainingPlan.ts`
+- Added validation **before saving plans to localStorage**
+- Refuses to save plans that don't have exactly 7 days
+- Refuses to save plans with days that have no sessions
+- Throws errors instead of silently failing
+- Validates base plan before execution starts
+
+**File**: `src/pages/Quest.tsx`
+- Added double validation when receiving plans from Module 4
+- Only accepts 7-day plans with all sessions present
+- Silently ignores invalid plans instead of clearing UI
+- Keeps existing valid plan visible if Module 4 fails
+
+### 2. Service Worker Cache Version Updated
 - Changed cache from `mizzion-v1` to `mizzion-v2025-12-17-01`
 - This forces all cached content to refresh on next deployment
 
-### 2. Smart Fetch Strategy
+### 3. Smart Fetch Strategy
 - **JavaScript bundles**: Network-first (always try to get latest)
 - **HTML pages**: Network-first (fresh content)
 - **Assets (CSS/images)**: Cache-first with fallback
 
-### 3. Vercel Cache Headers
+### 4. Vercel Cache Headers
 Added proper HTTP cache headers:
 - `index.html`: Always revalidate (no caching)
 - `sw.js`: Always revalidate (no caching)
 - `assets/*`: Long-term caching (1 year, immutable)
 
-### 4. Service Worker Auto-Update
+### 5. Service Worker Auto-Update
 - Checks for updates every 60 seconds
 - Automatically reloads page when new version available
 - Handles controller changes gracefully
-
-### 5. Plan State Protection
-- Added validation to prevent invalid plans from clearing content
-- Loading indicator shows "Optimizing..." during plan computation
-- Fallback to default plan if data loading fails
 
 ## Deployment Steps
 
@@ -73,26 +88,52 @@ This ensures users get fresh content immediately.
 
 ## Browser Console Logs
 
+### Success Case (Normal)
 After deployment, users should see:
 ```
 [SW] Registered successfully
 [Quest] Initial weekPlan loaded: 7 days
-[Quest] Plan updated via event
+[Module 4] Starting execution...
+[Module 4] Building adaptive context...
+[Module 4] Computing training adjustment...
+[Module 4] Syncing adjusted plan to localStorage...
+[Module 4] Execution completed successfully
+[Quest] Module 4 adjusted plan received: 7 days
+[Quest] Plan validated, applying
 ```
 
-If you see:
+### Error Case (Validation Working)
+If Module 4 encounters issues, you'll see:
 ```
-[Quest] Invalid initial plan, creating default
-[Quest] Received invalid plan update, ignoring
+[Module 4] Invalid base plan, cannot execute: 0 days
+[Quest] Module 4 error: Cannot execute with invalid base plan
 ```
-This means the validation is working correctly - it's preventing bad data from clearing the plan.
+**This is GOOD** - the validation is preventing bad data from clearing your plan.
+
+Or if Module 4 generates an invalid plan:
+```
+[Module 4] Generated invalid plan, refusing to save: 3 days
+[Quest] Received invalid plan from Module 4, ignoring
+```
+**This is also GOOD** - your existing valid plan stays visible.
+
+### Old Behavior (BAD - Now Fixed)
+Previously you would see:
+```
+[Quest] Initial weekPlan loaded: 7 days
+[Module 4] Syncing adjusted plan to localStorage...
+[Quest] Module 4 adjusted plan received
+[Quest] Applying adjusted plan
+(Bubbles disappear because plan was empty)
+```
 
 ## Monitoring
 
 Watch for these console messages:
 - `[SW] New version available, reloading...` - Auto-update working
-- `[Quest] Module 4 adjusted plan received` - Adaptive system working
-- `[Quest] Applying adjusted plan` - Plan successfully loaded
+- `[Quest] Plan validated, applying` - Plan successfully loaded and validated
+- `[Module 4] Execution completed successfully` - Adaptive system working correctly
+- `[Quest] Received invalid plan from Module 4, ignoring` - Validation protecting your data
 
 ## Emergency: Disable Service Worker
 

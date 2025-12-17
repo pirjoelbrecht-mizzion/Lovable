@@ -171,24 +171,30 @@ export default function Quest() {
     autoExecute: true,
     dailyExecution: true,
     onPlanAdjusted: (decision, plan) => {
-      console.log('[Quest] Module 4 adjusted plan received');
-      setWeekPlan(plan);
+      console.log('[Quest] Module 4 adjusted plan received:', plan?.length, 'days');
+      // Extra validation - only accept valid 7-day plans
+      if (plan && plan.length === 7 && plan.every(day => day.sessions && day.sessions.length > 0)) {
+        console.log('[Quest] Plan validated, applying');
+        setWeekPlan(plan);
+      } else {
+        console.error('[Quest] Received invalid plan from Module 4, ignoring');
+      }
     },
     onError: (error) => {
       console.error('[Quest] Module 4 error:', error);
-      // Don't show error toast on initial load to avoid confusion
-      if (!isModule4Running) {
-        toast(`Adaptive intelligence error: ${error.message}`, 'error');
-      }
+      // Silently log errors to avoid spamming users
+      // The existing valid plan will continue to display
     },
   });
 
   // Use adjusted plan if available, otherwise fall back to base plan
   // IMPORTANT: Only update if we have a valid plan to prevent content disappearing
   useEffect(() => {
-    if (adjustedPlan && adjustedPlan.length === 7) {
-      console.log('[Quest] Applying adjusted plan');
+    if (adjustedPlan && adjustedPlan.length === 7 && adjustedPlan.every(day => day.sessions && day.sessions.length > 0)) {
+      console.log('[Quest] Applying adjusted plan from useEffect');
       setWeekPlan(adjustedPlan);
+    } else if (adjustedPlan) {
+      console.error('[Quest] Adjusted plan is invalid, keeping current plan:', adjustedPlan.length, 'days');
     }
   }, [adjustedPlan]);
 

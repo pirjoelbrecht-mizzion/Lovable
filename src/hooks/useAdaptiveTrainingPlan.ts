@@ -130,6 +130,12 @@ export function useAdaptiveTrainingPlan(
       // Get base plan
       const plan = basePlan || getWeekPlan();
 
+      // Validate base plan before proceeding
+      if (!plan || plan.length !== 7) {
+        console.error('[Module 4] Invalid base plan, cannot execute:', plan?.length, 'days');
+        throw new Error(`Cannot execute with invalid base plan: ${plan?.length || 0} days`);
+      }
+
       // Build adaptive context
       console.log('[Module 4] Building adaptive context...');
       const context = await buildAdaptiveContext(plan);
@@ -154,6 +160,19 @@ export function useAdaptiveTrainingPlan(
       // Extract adjusted plan from decision and convert to localStorage format
       const modifiedPlan = newDecision.modifiedPlan;
       const localStoragePlan = convertToLocalStoragePlan(modifiedPlan);
+
+      // Validate plan before saving - CRITICAL to prevent clearing valid plans
+      if (!localStoragePlan || localStoragePlan.length !== 7) {
+        console.error('[Module 4] Generated invalid plan, refusing to save:', localStoragePlan?.length, 'days');
+        throw new Error(`Invalid plan generated: ${localStoragePlan?.length || 0} days instead of 7`);
+      }
+
+      // Validate each day has at least one session
+      const invalidDays = localStoragePlan.filter(day => !day.sessions || day.sessions.length === 0);
+      if (invalidDays.length > 0) {
+        console.error('[Module 4] Plan has days without sessions:', invalidDays);
+        throw new Error(`Invalid plan: ${invalidDays.length} days without sessions`);
+      }
 
       // Sync to localStorage for backward compatibility
       console.log('[Module 4] Syncing adjusted plan to localStorage...');
