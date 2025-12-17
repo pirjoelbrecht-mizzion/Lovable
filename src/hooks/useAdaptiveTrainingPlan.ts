@@ -138,17 +138,17 @@ export function useAdaptiveTrainingPlan(
       console.log('[Module 4] Computing training adjustment...');
       const newDecision = computeTrainingAdjustment(context);
 
-      // Get user ID
+      // Get user ID (skip Supabase logging if not authenticated)
       const userId = await getCurrentUserId();
-      if (!userId) {
-        throw new Error('User not authenticated');
-      }
-
-      // Log decision to Supabase
-      console.log('[Module 4] Logging decision to database...');
-      const logged = await logAdaptiveDecision(userId, newDecision, context);
-      if (!logged) {
-        console.warn('[Module 4] Failed to log decision to database');
+      if (userId) {
+        // Log decision to Supabase
+        console.log('[Module 4] Logging decision to database...');
+        const logged = await logAdaptiveDecision(userId, newDecision, context);
+        if (!logged) {
+          console.warn('[Module 4] Failed to log decision to database');
+        }
+      } else {
+        console.log('[Module 4] User not authenticated, skipping database logging');
       }
 
       // Extract adjusted plan from decision and convert to localStorage format

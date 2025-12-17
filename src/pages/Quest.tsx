@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useT } from "@/i18n";
 import QuickAddRace from "@/components/QuickAddRace";
 import WeatherAlertBanner from "@/components/WeatherAlertBanner";
-import { getWeekPlan, type WeekPlan, todayDayIndex } from "@/lib/plan";
+import { getWeekPlan, defaultWeek, type WeekPlan, todayDayIndex } from "@/lib/plan";
 import { fetchDailyWeather, type DailyWeather, getWeatherForLocation, type CurrentWeather } from "@/utils/weather";
 import { loadUserProfile } from "@/state/userData";
 import { loadWeekPlan } from "@/utils/weekPlan";
@@ -120,7 +120,16 @@ export default function Quest() {
   const [races, setRaces] = useState<Race[]>([]);
   const [viewMode, setViewMode] = useState<"bubbles" | "list" | "mobile">("bubbles");
   const [selectedSession, setSelectedSession] = useState<SessionNode | null>(null);
-  const [weekPlan, setWeekPlan] = useState<WeekPlan>(() => getWeekPlan());
+  const [weekPlan, setWeekPlan] = useState<WeekPlan>(() => {
+    const plan = getWeekPlan();
+    console.log('[Quest] Initial weekPlan loaded:', plan?.length, 'days');
+    // Ensure we always have a valid 7-day plan
+    if (!plan || plan.length !== 7) {
+      console.error('[Quest] Invalid initial plan, creating default');
+      return defaultWeek();
+    }
+    return plan;
+  });
   const [weatherData, setWeatherData] = useState<DailyWeather[]>([]);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -167,13 +176,18 @@ export default function Quest() {
     },
     onError: (error) => {
       console.error('[Quest] Module 4 error:', error);
-      toast(`Adaptive intelligence error: ${error.message}`, 'error');
+      // Don't show error toast on initial load to avoid confusion
+      if (!isModule4Running) {
+        toast(`Adaptive intelligence error: ${error.message}`, 'error');
+      }
     },
   });
 
   // Use adjusted plan if available, otherwise fall back to base plan
+  // IMPORTANT: Only update if we have a valid plan to prevent content disappearing
   useEffect(() => {
-    if (adjustedPlan) {
+    if (adjustedPlan && adjustedPlan.length === 7) {
+      console.log('[Quest] Applying adjusted plan');
       setWeekPlan(adjustedPlan);
     }
   }, [adjustedPlan]);
@@ -307,16 +321,30 @@ export default function Quest() {
 
   useEffect(() => {
     const handlePlanUpdate = () => {
-      setWeekPlan(getWeekPlan());
+      const updatedPlan = getWeekPlan();
+      // Only update if we get a valid 7-day plan to prevent content disappearing
+      if (updatedPlan && updatedPlan.length === 7) {
+        console.log('[Quest] Plan updated via event');
+        setWeekPlan(updatedPlan);
+      } else {
+        console.warn('[Quest] Received invalid plan update, ignoring');
+      }
     };
     window.addEventListener("plan:updated", handlePlanUpdate);
     window.addEventListener("planner:updated", handlePlanUpdate);
 
     // Listen for plan adaptations from feedback loop
     const handlePlanAdapted = () => {
-      setWeekPlan(getWeekPlan());
-      loadCompletionStatus();
-      loadLogEntries(); // Refresh log entries when plan adapts
+      const updatedPlan = getWeekPlan();
+      // Only update if we get a valid 7-day plan
+      if (updatedPlan && updatedPlan.length === 7) {
+        console.log('[Quest] Plan adapted via event');
+        setWeekPlan(updatedPlan);
+        loadCompletionStatus();
+        loadLogEntries(); // Refresh log entries when plan adapts
+      } else {
+        console.warn('[Quest] Received invalid adapted plan, ignoring');
+      }
     };
     window.addEventListener("plan:adapted", handlePlanAdapted);
 
@@ -393,6 +421,12 @@ export default function Quest() {
   }, []);
 
   const sessions = useMemo<SessionNode[]>(() => {
+    // Ensure we have a valid weekPlan array
+    if (!weekPlan || weekPlan.length !== 7) {
+      console.warn('[Quest] Invalid weekPlan, using default');
+      return [];
+    }
+
     const hasUserPlan = weekPlan.some(day => day.sessions.length > 0);
     const defaultPlan = hasUserPlan ? null : loadWeekPlan();
 
@@ -713,7 +747,19 @@ export default function Quest() {
         <div className="quest-training-section">
           <div className="quest-training-card" style={viewMode === "mobile" ? { padding: 0, overflow: 'hidden' } : {}}>
             <div className="quest-card-header" style={viewMode === "mobile" ? { padding: '24px 24px 0' } : {}}>
-              <h2 className="quest-card-title">This Week</h2>
+              <h2 className="quest-card-title">
+                This Week
+                {isModule4Running && (
+                  <span style={{
+                    marginLeft: '8px',
+                    fontSize: '12px',
+                    color: 'rgba(94, 179, 255, 0.7)',
+                    fontWeight: 400
+                  }}>
+                    (Optimizing...)
+                  </span>
+                )}
+              </h2>
               <button
                 className="quest-list-btn"
                 onClick={() => {
