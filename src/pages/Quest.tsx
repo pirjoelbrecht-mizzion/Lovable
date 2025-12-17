@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { useT } from "@/i18n";
 import QuickAddRace from "@/components/QuickAddRace";
 import WeatherAlertBanner from "@/components/WeatherAlertBanner";
-import AdaptiveCoachPanel from "@/components/AdaptiveCoachPanel";
 import { getWeekPlan, type WeekPlan, todayDayIndex } from "@/lib/plan";
 import { fetchDailyWeather, type DailyWeather, getWeatherForLocation, type CurrentWeather } from "@/utils/weather";
 import { loadUserProfile } from "@/state/userData";
@@ -15,12 +14,15 @@ import { getSavedLocation, detectLocation, saveLocation, ensureLocationLabel } f
 import { showImmediateWeatherAlert } from "@/services/weatherNotifications";
 import { useAdaptiveTrainingPlan } from "@/hooks/useAdaptiveTrainingPlan";
 import { PostWorkoutFeedbackModal } from "@/components/PostWorkoutFeedbackModal";
-import { getLogEntries } from "@/lib/database";
+import { getLogEntries, syncLogEntries } from "@/lib/database";
 import { completeWorkoutWithFeedback, getCompletionStatusForWeek } from "@/services/workoutCompletionService";
 import type { LogEntry } from "@/types";
 import { TodayTrainingMobile } from "@/components/today/TodayTrainingMobile";
 import { useTodayTrainingData } from "@/hooks/useTodayTrainingData";
-import { Calendar, Flag, Map, Thermometer, Users, Zap, ChevronRight } from "lucide-react";
+import { getCurrentUserProfile } from "@/lib/userProfile";
+import { getUserSettings } from "@/lib/userSettings";
+import { buildAthleteProfile, calculateReadiness, type AthleteProfile } from "@/lib/adaptive-coach";
+import { Calendar, Flag, Map, Thermometer, Users, Zap, ChevronRight, Activity, TrendingUp, Mountain } from "lucide-react";
 import "./Quest.css";
 
 type SessionNode = {
@@ -129,6 +131,15 @@ export default function Quest() {
   const [dragOverListItem, setDragOverListItem] = useState<string | null>(null);
   const [currentWeather, setCurrentWeather] = useState<CurrentWeather | null>(null);
 
+  // Compact stats state
+  const [athleteStats, setAthleteStats] = useState<{
+    readiness: string;
+    readinessScore: number;
+    weeklyVolume: number;
+    vertical: number;
+    units: 'metric' | 'imperial';
+  } | null>(null);
+
   // Workout feedback and completion
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [selectedWorkoutForFeedback, setSelectedWorkoutForFeedback] = useState<{
@@ -195,6 +206,67 @@ export default function Quest() {
       setRaces(racesList);
     }
     loadRaces();
+  }, []);
+
+  useEffect(() => {
+    async function loadAthleteStats() {
+      try {
+        const userProfile = await getCurrentUserProfile();
+        if (!userProfile) return;
+
+        const settings = await getUserSettings();
+        const logEntries = await syncLogEntries();
+        const races = load("races", []);
+
+        const profile = buildAthleteProfile(userProfile, logEntries, races);
+
+        const recentWeeklyKm: number[] = [];
+        const recentFatigueScores: number[] = [];
+        const now = new Date();
+
+        for (let i = 0; i < 8; i++) {
+          const weekStart = new Date(now);
+          weekStart.setDate(weekStart.getDate() - (i + 1) * 7);
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekEnd.getDate() + 7);
+
+          const weekEntries = logEntries.filter(e => {
+            const entryDate = new Date(e.dateISO);
+            return entryDate >= weekStart && entryDate < weekEnd;
+          });
+
+          const weeklyKm = weekEntries.reduce((sum, e) => sum + (e.km || 0), 0);
+          recentWeeklyKm.unshift(weeklyKm);
+
+          const fatigueValues = weekEntries
+            .map(e => e.fatigue)
+            .filter(f => f !== undefined && f !== null) as number[];
+          if (fatigueValues.length > 0) {
+            const avgFatigue = fatigueValues.reduce((a, b) => a + b, 0) / fatigueValues.length;
+            recentFatigueScores.unshift(avgFatigue);
+          }
+        }
+
+        const readiness = calculateReadiness(profile as AthleteProfile, recentWeeklyKm, recentFatigueScores);
+
+        let readinessState = "unknown";
+        if (readiness.overallScore >= 80) readinessState = "excellent";
+        else if (readiness.overallScore >= 70) readinessState = "good";
+        else if (readiness.overallScore >= 50) readinessState = "fair";
+        else readinessState = "poor";
+
+        setAthleteStats({
+          readiness: readinessState,
+          readinessScore: readiness.overallScore,
+          weeklyVolume: profile.averageMileage || 0,
+          vertical: Math.round(profile.averageVertical || 0),
+          units: settings.units,
+        });
+      } catch (error) {
+        console.error("[Quest] Failed to load athlete stats:", error);
+      }
+    }
+    loadAthleteStats();
   }, []);
 
   useEffect(() => {
@@ -638,32 +710,6 @@ export default function Quest() {
           </div>
         )}
 
-        <div className="quest-coach-wrapper">
-          <AdaptiveCoachPanel
-            onPlanGenerated={(plan) => {
-              if (!plan?.days) return;
-
-              const newWeek = plan.days.map((day: any, i: number) => ({
-                day: DAYS[i],
-                date: day.date,
-                sessions: day.workout ? [{
-                  title: day.workout.title || day.workout.type,
-                  type: day.workout.type,
-                  km: day.workout.distanceKm,
-                  distanceKm: day.workout.distanceKm,
-                  durationMin: day.workout.durationMin,
-                  elevationGain: day.workout.verticalGain || undefined,
-                  notes: day.workout.description
-                }] : []
-              }));
-
-              setWeekPlan(newWeek);
-              save("plan", newWeek);
-              window.dispatchEvent(new Event('planner:updated'));
-            }}
-          />
-        </div>
-
         <div className="quest-training-section">
           <div className="quest-training-card" style={viewMode === "mobile" ? { padding: 0, overflow: 'hidden' } : {}}>
             <div className="quest-card-header" style={viewMode === "mobile" ? { padding: '24px 24px 0' } : {}}>
@@ -848,6 +894,46 @@ export default function Quest() {
           </div>
 
         </div>
+
+        {athleteStats && (
+          <div className="quest-stats-row">
+            <div className="quest-stat-item">
+              <div className="quest-stat-icon">
+                <Activity size={14} />
+              </div>
+              <div className="quest-stat-content">
+                <span className="quest-stat-label">Readiness</span>
+                <span className={`quest-stat-value quest-stat-${athleteStats.readiness}`}>
+                  {athleteStats.readiness}
+                </span>
+              </div>
+            </div>
+            <div className="quest-stat-item">
+              <div className="quest-stat-icon">
+                <TrendingUp size={14} />
+              </div>
+              <div className="quest-stat-content">
+                <span className="quest-stat-label">Weekly</span>
+                <span className="quest-stat-value">
+                  {athleteStats.weeklyVolume.toFixed(0)}
+                  <span className="quest-stat-unit">{athleteStats.units === 'metric' ? 'km' : 'mi'}</span>
+                </span>
+              </div>
+            </div>
+            <div className="quest-stat-item">
+              <div className="quest-stat-icon">
+                <Mountain size={14} />
+              </div>
+              <div className="quest-stat-content">
+                <span className="quest-stat-label">Vertical</span>
+                <span className="quest-stat-value">
+                  {athleteStats.vertical}
+                  <span className="quest-stat-unit">m</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="quest-races-container">
           {upcoming.map((race) => (

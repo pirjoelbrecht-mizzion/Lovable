@@ -523,6 +523,75 @@
   color: #FFFFFF;
 }
 
+/* ===== COMPACT STATS ROW ===== */
+.quest-stats-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 0 4px;
+}
+
+.quest-stat-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.6) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  backdrop-filter: blur(8px);
+}
+
+.quest-stat-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.quest-stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.quest-stat-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.quest-stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  text-transform: capitalize;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.quest-stat-unit {
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.quest-stat-excellent { color: #22c55e; }
+.quest-stat-good { color: #06b6d4; }
+.quest-stat-fair { color: #f59e0b; }
+.quest-stat-poor { color: #ef4444; }
+.quest-stat-unknown { color: #64748b; }
+
 /* ===== UPCOMING RACES SECTION ===== */
 .quest-races-container {
   margin-bottom: 16px;
@@ -799,6 +868,38 @@
     margin-bottom: 10px;
   }
 
+  .quest-stats-row {
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .quest-stat-item {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .quest-stat-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .quest-stat-icon svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .quest-stat-label {
+    font-size: 9px;
+  }
+
+  .quest-stat-value {
+    font-size: 14px;
+  }
+
+  .quest-stat-unit {
+    font-size: 10px;
+  }
+
   .quest-races-container {
     margin-bottom: 8px;
   }
@@ -933,6 +1034,41 @@
 
   .quest-training-section {
     margin-bottom: 8px;
+  }
+
+  .quest-stats-row {
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .quest-stat-item {
+    padding: 8px 10px;
+    gap: 6px;
+    border-radius: 8px;
+  }
+
+  .quest-stat-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+  }
+
+  .quest-stat-icon svg {
+    width: 11px;
+    height: 11px;
+  }
+
+  .quest-stat-label {
+    font-size: 8px;
+    letter-spacing: 0.03em;
+  }
+
+  .quest-stat-value {
+    font-size: 13px;
+  }
+
+  .quest-stat-unit {
+    font-size: 9px;
   }
 
   .quest-races-container {
