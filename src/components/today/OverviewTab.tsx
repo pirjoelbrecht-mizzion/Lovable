@@ -1,18 +1,6 @@
-import { FC, useState } from 'react';
+import { FC } from 'react';
 import type { EnhancedWeatherData } from '@/services/realtimeWeather';
-import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Tooltip,
-  Filler,
-} from 'chart.js';
 import { motion } from 'framer-motion';
-
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler);
 
 interface Props {
   workoutData: {
@@ -62,7 +50,7 @@ export const OverviewTab: FC<Props> = ({
     <div style={{
       backgroundColor: '#0a0b0e',
       minHeight: '100%',
-      paddingBottom: '100px'
+      paddingBottom: '80px'
     }}>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -307,25 +295,12 @@ export const OverviewTab: FC<Props> = ({
         </motion.div>
       )}
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.3 }}
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          padding: '16px',
-          background: 'linear-gradient(to top, #0a0b0e 0%, #0a0b0eee 50%, transparent 100%)',
-          paddingTop: '40px'
-        }}
-      >
+      <div style={{ padding: '0 16px 16px' }}>
         <button
           onClick={onStart}
           style={{
             width: '100%',
-            padding: '16px',
+            padding: '14px',
             borderRadius: '14px',
             fontSize: '15px',
             fontWeight: 700,
@@ -349,12 +324,12 @@ export const OverviewTab: FC<Props> = ({
             e.currentTarget.style.boxShadow = '0 4px 20px rgba(16, 185, 129, 0.3)';
           }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <polygon points="5 3 19 12 5 21 5 3"/>
           </svg>
           <span>Start Workout</span>
         </button>
-      </motion.div>
+      </div>
     </div>
   );
 };
@@ -414,286 +389,122 @@ const MetricCell: FC<{
 };
 
 const WeatherSection: FC<{ weather: EnhancedWeatherData }> = ({ weather }) => {
-  const [showDetails, setShowDetails] = useState(false);
-
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
+    weekday: 'short',
+    month: 'short',
     day: 'numeric',
-    year: 'numeric',
   });
 
-  const hours = weather.hours.slice(0, 24);
-
-  const chartData = {
-    labels: hours.map((h) => h.time.split(':')[0]),
-    datasets: [
-      {
-        label: 'Temperature',
-        data: hours.map((h) => h.temp),
-        borderColor: '#f97316',
-        backgroundColor: (context: any) => {
-          const chart = context.chart;
-          const { ctx, chartArea } = chart;
-          if (!chartArea) return 'rgba(249, 115, 22, 0.1)';
-          const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-          gradient.addColorStop(0, 'rgba(249, 115, 22, 0)');
-          gradient.addColorStop(1, 'rgba(249, 115, 22, 0.15)');
-          return gradient;
-        },
-        pointBackgroundColor: '#f97316',
-        pointBorderColor: '#0a0b0e',
-        pointBorderWidth: 2,
-        pointRadius: 0,
-        pointHoverRadius: 5,
-        tension: 0.4,
-        fill: true,
-        borderWidth: 2,
-      },
-    ],
-  };
-
-  const chartOptions: any = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        enabled: true,
-        backgroundColor: '#1a1c24',
-        titleColor: '#f9fafb',
-        bodyColor: '#d1d5db',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        borderWidth: 1,
-        padding: 10,
-        cornerRadius: 8,
-        displayColors: false,
-        callbacks: {
-          title: (items: any) => `${items[0].label}:00`,
-          label: (context: any) => `${context.parsed.y}°C`,
-        },
-      },
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-        border: { display: false },
-        ticks: {
-          color: '#4b5563',
-          font: { size: 10 },
-          maxRotation: 0,
-          autoSkip: true,
-          maxTicksLimit: 6,
-        },
-      },
-      y: {
-        grid: {
-          color: 'rgba(255, 255, 255, 0.03)',
-          drawBorder: false,
-        },
-        border: { display: false },
-        ticks: {
-          color: '#4b5563',
-          font: { size: 10 },
-          callback: (value: any) => `${value}°`,
-          padding: 8,
-        },
-        position: 'right' as const,
-      },
-    },
-    interaction: {
-      intersect: false,
-      mode: 'index' as const,
-    },
-  };
+  const hours = weather.hours.slice(0, 8);
+  const highTemp = Math.round(weather.current.high || weather.current.temp + 5);
+  const lowTemp = Math.round(weather.current.low || weather.current.temp - 5);
+  const currentTemp = Math.round(weather.current.temp);
 
   return (
-    <div style={{ padding: '0 16px 16px 16px' }}>
+    <div style={{ padding: '0 16px 12px' }}>
       <div style={{
-        borderRadius: '20px',
+        borderRadius: '14px',
         background: 'linear-gradient(145deg, #12151a 0%, #0d0f12 100%)',
         border: '1px solid rgba(255, 255, 255, 0.06)',
         overflow: 'hidden',
-        boxShadow: '0 4px 24px rgba(0, 0, 0, 0.4)'
+        padding: '12px'
       }}>
-        <div style={{ padding: '16px 20px' }}>
-          <div style={{
-            fontSize: '11px',
-            color: '#6b7280',
-            marginBottom: '12px',
-            fontWeight: 500
-          }}>
-            {dateStr}
-          </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '10px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ fontSize: '28px' }}>{weather.current.icon}</div>
+            <div>
               <div style={{
-                fontSize: '48px',
-                lineHeight: 1,
-                filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))'
+                fontSize: '24px',
+                fontWeight: 700,
+                color: '#ffffff',
+                lineHeight: 1
               }}>
-                {weather.current.icon}
+                {currentTemp}°
               </div>
-              <div>
-                <div style={{
-                  fontSize: '40px',
-                  fontWeight: 700,
-                  color: '#ffffff',
-                  letterSpacing: '-2px',
-                  lineHeight: 1
-                }}>
-                  {weather.current.temp}°
-                </div>
-                <div style={{
-                  fontSize: '12px',
-                  color: '#6b7280',
-                  marginTop: '4px'
-                }}>
-                  H:{weather.current.high || weather.current.temp + 5}° L:{weather.current.low || weather.current.temp - 5}°
-                </div>
+              <div style={{ fontSize: '10px', color: '#6b7280' }}>
+                H:{highTemp}° L:{lowTemp}°
               </div>
             </div>
-            <button
-              onClick={() => setShowDetails(!showDetails)}
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#9ca3af"
-                strokeWidth="2"
-                style={{
-                  transform: showDetails ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s'
-                }}
-              >
-                <path d="M6 9l6 6 6-6"/>
-              </svg>
-            </button>
+          </div>
+          <div style={{ fontSize: '10px', color: '#6b7280', textAlign: 'right' }}>
+            {dateStr}
           </div>
         </div>
 
         <div style={{
-          padding: '0 16px 16px',
+          display: 'flex',
+          gap: '2px',
           overflowX: 'auto',
           WebkitOverflowScrolling: 'touch'
         }} className="scrollbar-hide">
-          <div style={{
-            display: 'flex',
-            gap: '4px',
-            minWidth: 'max-content'
-          }}>
-            {hours.slice(0, 12).map((hour, idx) => {
-              const isOptimal = weather.bestRunWindow &&
-                parseInt(hour.time.split(':')[0]) >= parseInt(weather.bestRunWindow.start.split(':')[0]) &&
-                parseInt(hour.time.split(':')[0]) <= parseInt(weather.bestRunWindow.end.split(':')[0]);
+          {hours.map((hour, idx) => {
+            const isOptimal = weather.bestRunWindow &&
+              parseInt(hour.time.split(':')[0]) >= parseInt(weather.bestRunWindow.start.split(':')[0]) &&
+              parseInt(hour.time.split(':')[0]) <= parseInt(weather.bestRunWindow.end.split(':')[0]);
 
-              return (
-                <div
-                  key={idx}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    padding: '10px 8px',
-                    borderRadius: '12px',
-                    minWidth: '48px',
-                    backgroundColor: isOptimal
-                      ? 'rgba(16, 185, 129, 0.1)'
-                      : 'transparent',
-                    border: isOptimal
-                      ? '1px solid rgba(16, 185, 129, 0.2)'
-                      : '1px solid transparent'
-                  }}
-                >
-                  <div style={{
-                    fontSize: '10px',
-                    color: isOptimal ? '#10b981' : '#6b7280',
-                    marginBottom: '6px',
-                    fontWeight: isOptimal ? 600 : 400
-                  }}>
-                    {hour.time.split(':')[0]}
-                  </div>
-                  <div style={{
-                    fontSize: '20px',
-                    marginBottom: '6px'
-                  }}>
-                    {hour.icon}
-                  </div>
-                  <div style={{
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: isOptimal ? '#10b981' : '#e5e7eb'
-                  }}>
-                    {hour.temp}°
-                  </div>
+            return (
+              <div
+                key={idx}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  padding: '6px 8px',
+                  borderRadius: '8px',
+                  minWidth: '38px',
+                  backgroundColor: isOptimal ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
+                  border: isOptimal ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid transparent'
+                }}
+              >
+                <div style={{
+                  fontSize: '9px',
+                  color: isOptimal ? '#10b981' : '#6b7280',
+                  marginBottom: '4px'
+                }}>
+                  {hour.time.split(':')[0]}
                 </div>
-              );
-            })}
-          </div>
+                <div style={{ fontSize: '14px', marginBottom: '2px' }}>{hour.icon}</div>
+                <div style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: isOptimal ? '#10b981' : '#e5e7eb'
+                }}>
+                  {Math.round(hour.temp)}°
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {weather.bestRunWindow && (
           <div style={{
-            margin: '0 16px 16px',
-            padding: '12px 16px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)',
-            border: '1px solid rgba(16, 185, 129, 0.15)'
+            marginTop: '10px',
+            padding: '8px 10px',
+            borderRadius: '8px',
+            background: 'rgba(16, 185, 129, 0.08)',
+            border: '1px solid rgba(16, 185, 129, 0.12)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
           }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              marginBottom: '6px'
-            }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 6v6l4 2"/>
-              </svg>
-              <span style={{
-                fontSize: '12px',
-                fontWeight: 600,
-                color: '#10b981'
-              }}>
-                Best running window
-              </span>
-            </div>
-            <div style={{
-              fontSize: '16px',
-              fontWeight: 700,
-              color: '#ffffff',
-              marginBottom: '4px'
-            }}>
-              {weather.bestRunWindow.start} - {weather.bestRunWindow.end}
-            </div>
-            <div style={{ fontSize: '11px', color: '#9ca3af' }}>
-              {weather.bestRunWindow.temp}° - {weather.bestRunWindow.reason}
-            </div>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+            <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 500 }}>
+              Best: {weather.bestRunWindow.start}-{weather.bestRunWindow.end}
+            </span>
+            <span style={{ fontSize: '10px', color: '#6b7280' }}>
+              {Math.round(weather.bestRunWindow.temp)}°
+            </span>
           </div>
         )}
-
-        <div style={{ padding: '0 16px 16px', height: '120px' }}>
-          <Line data={chartData} options={chartOptions} />
-        </div>
       </div>
     </div>
   );
