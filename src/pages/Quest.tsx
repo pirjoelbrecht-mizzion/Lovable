@@ -633,12 +633,12 @@ export default function Quest() {
         </section>
 
         {currentWeather && (
-          <div style={{ marginBottom: 16, maxWidth: 800, margin: '0 auto 16px auto' }}>
+          <div className="quest-weather-wrapper">
             <WeatherAlertBanner weather={currentWeather} />
           </div>
         )}
 
-        <div style={{ marginBottom: 20, maxWidth: 800, margin: '0 auto 20px auto' }}>
+        <div className="quest-coach-wrapper">
           <AdaptiveCoachPanel
             onPlanGenerated={(plan) => {
               if (!plan?.days) return;
