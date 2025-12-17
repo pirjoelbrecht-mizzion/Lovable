@@ -95,8 +95,8 @@ export const TodayTrainingMobile: FC<Props> = ({
     <>
       <div style={{
         width: '100%',
-        height: '600px',
-        backgroundColor: '#0f1014',
+        minHeight: '100vh',
+        backgroundColor: '#0a0b0e',
         overflow: 'hidden'
       }}>
         <TodayTrainingTabs activeTab={activeTab} onTabChange={setActiveTab}>

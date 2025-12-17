@@ -6,7 +6,7 @@ export type TabId = 'overview' | 'intelligence' | 'preparation';
 interface Tab {
   id: TabId;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
 }
 
 interface Props {
@@ -15,10 +15,42 @@ interface Props {
   children: React.ReactNode;
 }
 
+const TabIcon: FC<{ type: TabId; active: boolean }> = ({ type, active }) => {
+  const color = active ? '#10b981' : '#6b7280';
+  const props = { width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: 2 };
+
+  switch (type) {
+    case 'overview':
+      return (
+        <svg {...props}>
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </svg>
+      );
+    case 'intelligence':
+      return (
+        <svg {...props}>
+          <path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2"/>
+          <path d="M12 12l3-3"/>
+          <path d="M12 8v4"/>
+          <circle cx="12" cy="12" r="1"/>
+        </svg>
+      );
+    case 'preparation':
+      return (
+        <svg {...props}>
+          <path d="M9 5H2v14h7"/>
+          <path d="M22 5h-7v14h7"/>
+          <path d="M12 5v14"/>
+          <path d="M9 12h6"/>
+        </svg>
+      );
+  }
+};
+
 const TABS: Tab[] = [
-  { id: 'overview', label: 'Overview', icon: '⚡' },
-  { id: 'intelligence', label: 'Intelligence', icon: '🧠' },
-  { id: 'preparation', label: 'Preparation', icon: '🎒' },
+  { id: 'overview', label: 'Overview', icon: null },
+  { id: 'intelligence', label: 'Intelligence', icon: null },
+  { id: 'preparation', label: 'Preparation', icon: null },
 ];
 
 export const TodayTrainingTabs: FC<Props> = ({ activeTab, onTabChange, children }) => {
@@ -86,29 +118,43 @@ export const TodayTrainingTabs: FC<Props> = ({ activeTab, onTabChange, children 
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      backgroundColor: '#0f1014',
+      backgroundColor: '#0a0b0e',
       color: '#f9fafb',
       overflow: 'hidden'
     }}>
-      {/* Tab Header */}
       <div style={{
         position: 'sticky',
         top: 0,
         zIndex: 50,
-        backgroundColor: '#1e2228',
-        borderBottom: '1px solid #2a2d3a',
-        borderRadius: '12px 12px 0 0',
-        margin: '0',
-        padding: '4px 8px',
+        backgroundColor: '#0a0b0e',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+        padding: '12px 16px 8px',
         flexShrink: 0
       }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-around',
+          justifyContent: 'space-between',
           position: 'relative',
-          gap: '4px'
+          backgroundColor: 'rgba(255, 255, 255, 0.03)',
+          borderRadius: '12px',
+          padding: '4px'
         }}>
+          <motion.div
+            layoutId="tabBackground"
+            style={{
+              position: 'absolute',
+              top: '4px',
+              bottom: '4px',
+              width: `calc(${100 / TABS.length}% - 4px)`,
+              left: `calc(${activeIndex * (100 / TABS.length)}% + 2px)`,
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.08) 100%)',
+              borderRadius: '10px',
+              border: '1px solid rgba(16, 185, 129, 0.2)'
+            }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+          />
+
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -121,49 +167,53 @@ export const TodayTrainingTabs: FC<Props> = ({ activeTab, onTabChange, children 
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '4px',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
+                  padding: '10px 8px',
+                  borderRadius: '10px',
                   transition: 'all 0.2s',
                   backgroundColor: 'transparent',
                   border: 'none',
                   cursor: 'pointer',
                   position: 'relative',
-                  minWidth: '44px',
-                  minHeight: '44px',
-                  color: isActive ? '#f9fafb' : '#9ca3af'
+                  minHeight: '52px',
+                  zIndex: 1
                 }}
               >
-                <span style={{ fontSize: '18px' }}>{tab.icon}</span>
+                <TabIcon type={tab.id} active={isActive} />
                 <span style={{
                   fontSize: '11px',
-                  fontWeight: 500,
-                  whiteSpace: 'nowrap'
+                  fontWeight: isActive ? 600 : 500,
+                  whiteSpace: 'nowrap',
+                  color: isActive ? '#10b981' : '#6b7280',
+                  transition: 'color 0.2s'
                 }}>
                   {tab.label}
                 </span>
-
-                {isActive && (
-                  <motion.div
-                    layoutId="activeTabIndicator"
-                    style={{
-                      position: 'absolute',
-                      bottom: 0,
-                      left: '10%',
-                      right: '10%',
-                      height: '2px',
-                      borderRadius: '2px',
-                      backgroundColor: '#22c55e'
-                    }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  />
-                )}
               </button>
             );
           })}
         </div>
+
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '6px',
+          marginTop: '10px'
+        }}>
+          {TABS.map((tab, idx) => (
+            <div
+              key={tab.id}
+              style={{
+                width: activeIndex === idx ? '20px' : '6px',
+                height: '6px',
+                borderRadius: '3px',
+                backgroundColor: activeIndex === idx ? '#10b981' : 'rgba(255, 255, 255, 0.15)',
+                transition: 'all 0.3s ease'
+              }}
+            />
+          ))}
+        </div>
       </div>
 
-      {/* Tab Content */}
       <div
         ref={contentRef}
         onTouchStart={onTouchStart}
@@ -181,10 +231,10 @@ export const TodayTrainingTabs: FC<Props> = ({ activeTab, onTabChange, children 
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0, x: activeIndex > TABS.findIndex(t => t.id === activeTab) ? -20 : 20 }}
+            initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: activeIndex < TABS.findIndex(t => t.id === activeTab) ? 20 : -20 }}
-            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
             style={{ minHeight: '100%' }}
           >
             {children}

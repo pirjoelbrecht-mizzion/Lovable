@@ -10,6 +10,7 @@ import {
   Tooltip,
   Filler,
 } from 'chart.js';
+import { motion } from 'framer-motion';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler);
 
@@ -46,279 +47,380 @@ export const OverviewTab: FC<Props> = ({
   coachMessage,
   onStart,
 }) => {
-  const readinessColor = readiness
-    ? readiness.category === 'high'
-      ? '#22c55e'
-      : readiness.category === 'moderate'
-      ? '#eab308'
-      : '#ef4444'
-    : '#6b7280';
+  const getReadinessColor = () => {
+    if (!readiness) return { primary: '#6b7280', bg: 'rgba(107, 114, 128, 0.1)' };
+    switch (readiness.category) {
+      case 'high': return { primary: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' };
+      case 'moderate': return { primary: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' };
+      case 'low': return { primary: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)' };
+    }
+  };
+
+  const readinessColors = getReadinessColor();
 
   return (
     <div style={{
-      backgroundColor: '#0f1014',
+      backgroundColor: '#0a0b0e',
       minHeight: '100%',
-      paddingBottom: '24px'
+      paddingBottom: '100px'
     }}>
-      {/* Coach Message */}
-      <div
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
         style={{
-          padding: '12px 16px',
-          backgroundColor: '#1a1c24',
-          borderBottom: '1px solid #2a2d3a',
+          margin: '16px',
+          padding: '14px 16px',
+          borderRadius: '12px',
+          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.02) 100%)',
+          border: '1px solid rgba(16, 185, 129, 0.15)',
           display: 'flex',
           alignItems: 'flex-start',
-          gap: '8px'
+          gap: '12px'
         }}
       >
-        <div style={{ fontSize: '16px' }}>💬</div>
-        <div style={{ flex: 1 }}>
-          <p style={{
-            fontSize: '12px',
-            lineHeight: '1.5',
-            color: '#d1d5db',
-            margin: 0
-          }}>
-            {coachMessage}
-          </p>
+        <div style={{
+          width: '32px',
+          height: '32px',
+          borderRadius: '8px',
+          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
         </div>
-      </div>
+        <p style={{
+          fontSize: '13px',
+          lineHeight: '1.6',
+          color: '#e5e7eb',
+          margin: 0,
+          fontWeight: 400
+        }}>
+          {coachMessage}
+        </p>
+      </motion.div>
 
-      {/* Streak Banner */}
-      {daysToRace !== null && (
-        <div
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#0f1014',
-            borderBottom: '1px solid #2a2d3a',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '14px' }}>🔥</span>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#f9fafb' }}>
-              {streak} day streak
-            </span>
-            <span style={{ fontSize: '11px', color: '#9ca3af' }}>
-              Keep it going!
-            </span>
-          </div>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: '#22c55e' }}>
-            +{xpToEarn} XP
-          </span>
-        </div>
-      )}
-
-      {/* Workout Card */}
-      <div style={{ padding: '16px' }}>
-        <div
-          style={{
-            padding: '16px',
-            borderRadius: '16px',
-            background: 'linear-gradient(135deg, #1a2e26 0%, #152620 100%)',
-            border: '2px solid #22c55e',
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        style={{ padding: '0 16px 16px' }}
+      >
+        <div style={{
+          borderRadius: '20px',
+          background: 'linear-gradient(145deg, #12151a 0%, #0d0f12 100%)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          overflow: 'hidden',
+          boxShadow: '0 4px 24px rgba(0, 0, 0, 0.4)'
+        }}>
+          <div style={{
+            padding: '20px',
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, transparent 60%)',
             position: 'relative'
-          }}
-        >
-          {daysToRace !== null && (
-            <div
-              style={{
+          }}>
+            {daysToRace !== null && (
+              <div style={{
                 position: 'absolute',
-                top: '12px',
-                right: '12px',
-                padding: '4px 10px',
-                borderRadius: '6px',
-                fontSize: '11px',
-                fontWeight: 700,
-                backgroundColor: '#22c55e',
-                color: '#000'
-              }}
-            >
-              {daysToRace} days
+                top: '16px',
+                right: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '20px',
+                background: 'rgba(16, 185, 129, 0.15)',
+                border: '1px solid rgba(16, 185, 129, 0.3)'
+              }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 6v6l4 2"/>
+                </svg>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#10b981' }}>
+                  {daysToRace}d to race
+                </span>
+              </div>
+            )}
+
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              backgroundColor: 'rgba(16, 185, 129, 0.15)',
+              marginBottom: '12px'
+            }}>
+              <div style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: '#10b981'
+              }} />
+              <span style={{
+                fontSize: '10px',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                color: '#10b981'
+              }}>
+                {workoutData.type}
+              </span>
             </div>
-          )}
 
-          <h1 style={{
-            fontSize: '20px',
-            fontWeight: 700,
-            color: '#f9fafb',
-            margin: '0 0 4px 0'
-          }}>
-            {workoutData.title}
-          </h1>
-          <p style={{
-            fontSize: '10px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            color: '#9ca3af',
-            margin: '0 0 12px 0'
-          }}>
-            {workoutData.type} • {workoutData.isAdapted ? 'ADAPTED' : 'STANDARD'}
-          </p>
+            <h1 style={{
+              fontSize: '24px',
+              fontWeight: 700,
+              color: '#ffffff',
+              margin: '0 0 4px 0',
+              letterSpacing: '-0.5px'
+            }}>
+              {workoutData.title}
+            </h1>
 
-          {/* Metrics Grid */}
+            {workoutData.isAdapted && (
+              <span style={{
+                fontSize: '11px',
+                color: '#9ca3af',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                </svg>
+                Adapted to your readiness
+              </span>
+            )}
+          </div>
+
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '8px',
-            marginBottom: '12px'
+            gap: '1px',
+            backgroundColor: 'rgba(255, 255, 255, 0.03)'
           }}>
-            <div style={{
-              textAlign: 'center',
-              padding: '8px 4px',
-              borderRadius: '8px',
-              backgroundColor: 'rgba(0, 0, 0, 0.3)'
-            }}>
-              <div style={{
-                fontSize: '9px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: '#9ca3af',
-                marginBottom: '4px'
-              }}>
-                DURATION
-              </div>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: '#f9fafb' }}>
-                {workoutData.duration}
-              </div>
-            </div>
-            <div style={{
-              textAlign: 'center',
-              padding: '8px 4px',
-              borderRadius: '8px',
-              backgroundColor: 'rgba(0, 0, 0, 0.3)'
-            }}>
-              <div style={{
-                fontSize: '9px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: '#9ca3af',
-                marginBottom: '4px'
-              }}>
-                DISTANCE
-              </div>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: '#f9fafb' }}>
-                {workoutData.distance}
-              </div>
-            </div>
-            <div style={{
-              textAlign: 'center',
-              padding: '8px 4px',
-              borderRadius: '8px',
-              backgroundColor: 'rgba(0, 0, 0, 0.3)'
-            }}>
-              <div style={{
-                fontSize: '9px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: '#9ca3af',
-                marginBottom: '4px'
-              }}>
-                PACE
-              </div>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: '#f9fafb' }}>
-                {workoutData.pace}
-              </div>
-            </div>
+            <MetricCell label="Duration" value={workoutData.duration} icon="clock" />
+            <MetricCell label="Distance" value={workoutData.distance} icon="route" />
+            <MetricCell label="Target Pace" value={workoutData.pace} unit="min/km" icon="speed" />
           </div>
 
-          {/* Readiness */}
           {readiness && (
             <div style={{
-              padding: '10px',
-              borderRadius: '8px',
-              backgroundColor: 'rgba(0, 0, 0, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
+              padding: '16px 20px',
+              borderTop: '1px solid rgba(255, 255, 255, 0.04)'
             }}>
-              <div style={{ fontSize: '20px' }}>⚡</div>
-              <div style={{ flex: 1 }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: '4px'
-                }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#f9fafb' }}>
-                    Readiness
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '10px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    backgroundColor: readinessColors.bg,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={readinessColors.primary} strokeWidth="2.5">
+                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                    </svg>
+                  </div>
+                  <span style={{ fontSize: '13px', fontWeight: 500, color: '#e5e7eb' }}>
+                    Readiness Score
                   </span>
-                  <span style={{ fontSize: '16px', fontWeight: 700, color: readinessColor }}>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                  <span style={{
+                    fontSize: '24px',
+                    fontWeight: 700,
+                    color: readinessColors.primary
+                  }}>
                     {readiness.score}
                   </span>
+                  <span style={{ fontSize: '12px', color: '#6b7280' }}>/100</span>
                 </div>
-                <div style={{
-                  height: '4px',
-                  borderRadius: '2px',
-                  backgroundColor: '#374151',
-                  overflow: 'hidden'
-                }}>
-                  <div style={{
+              </div>
+              <div style={{
+                height: '6px',
+                borderRadius: '3px',
+                backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                overflow: 'hidden'
+              }}>
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${readiness.score}%` }}
+                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                  style={{
                     height: '100%',
-                    width: `${readiness.score}%`,
-                    backgroundColor: readinessColor,
-                    transition: 'width 0.3s ease'
-                  }} />
-                </div>
-                <div style={{
-                  fontSize: '9px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  color: readinessColor,
-                  marginTop: '4px'
-                }}>
-                  {readiness.category}
-                </div>
+                    background: `linear-gradient(90deg, ${readinessColors.primary} 0%, ${readinessColors.primary}88 100%)`,
+                    borderRadius: '3px'
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {streak > 0 && (
+            <div style={{
+              padding: '12px 20px',
+              borderTop: '1px solid rgba(255, 255, 255, 0.04)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '18px' }}>&#128293;</span>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: '#f9fafb' }}>
+                  {streak} day streak
+                </span>
+              </div>
+              <div style={{
+                padding: '4px 10px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.1) 100%)',
+                border: '1px solid rgba(16, 185, 129, 0.3)'
+              }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#10b981' }}>
+                  +{xpToEarn} XP
+                </span>
               </div>
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
 
-      {/* Weather Section */}
-      {weather && <WeatherSection weather={weather} />}
+      {weather && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+        >
+          <WeatherSection weather={weather} />
+        </motion.div>
+      )}
 
-      {/* Start Button */}
-      <div style={{ padding: '0 16px 16px 16px' }}>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.3 }}
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          padding: '16px',
+          background: 'linear-gradient(to top, #0a0b0e 0%, #0a0b0eee 50%, transparent 100%)',
+          paddingTop: '40px'
+        }}
+      >
         <button
           onClick={onStart}
           style={{
             width: '100%',
-            padding: '14px',
-            borderRadius: '12px',
+            padding: '16px',
+            borderRadius: '14px',
             fontSize: '15px',
             fontWeight: 700,
-            background: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)',
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
             color: '#fff',
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '8px',
-            transition: 'opacity 0.2s'
+            gap: '10px',
+            boxShadow: '0 4px 20px rgba(16, 185, 129, 0.3)',
+            transition: 'transform 0.2s, box-shadow 0.2s'
           }}
-          onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
-          onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 6px 24px rgba(16, 185, 129, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 20px rgba(16, 185, 129, 0.3)';
+          }}
         >
-          <span style={{ fontSize: '18px' }}>▶</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
           <span>Start Workout</span>
         </button>
+      </motion.div>
+    </div>
+  );
+};
+
+const MetricCell: FC<{
+  label: string;
+  value: string;
+  unit?: string;
+  icon: 'clock' | 'route' | 'speed';
+}> = ({ label, value, unit, icon }) => {
+  const renderIcon = () => {
+    const iconProps = { width: 14, height: 14, viewBox: "0 0 24 24", fill: "none", stroke: "#6b7280", strokeWidth: 2 };
+    switch (icon) {
+      case 'clock':
+        return <svg {...iconProps}><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>;
+      case 'route':
+        return <svg {...iconProps}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
+      case 'speed':
+        return <svg {...iconProps}><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>;
+    }
+  };
+
+  return (
+    <div style={{
+      padding: '16px 12px',
+      backgroundColor: '#0d0f12',
+      textAlign: 'center'
+    }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '4px',
+        marginBottom: '6px'
+      }}>
+        {renderIcon()}
+        <span style={{
+          fontSize: '10px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+          color: '#6b7280',
+          fontWeight: 500
+        }}>
+          {label}
+        </span>
       </div>
+      <div style={{ fontSize: '20px', fontWeight: 700, color: '#ffffff' }}>
+        {value}
+      </div>
+      {unit && (
+        <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>
+          {unit}
+        </div>
+      )}
     </div>
   );
 };
 
 const WeatherSection: FC<{ weather: EnhancedWeatherData }> = ({ weather }) => {
-  const [expanded, setExpanded] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-US', {
     weekday: 'long',
-    day: 'numeric',
     month: 'long',
+    day: 'numeric',
     year: 'numeric',
   });
 
@@ -330,14 +432,24 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData }> = ({ weather }) => {
       {
         label: 'Temperature',
         data: hours.map((h) => h.temp),
-        borderColor: '#fb923c',
-        backgroundColor: 'rgba(251, 146, 60, 0.1)',
-        pointBackgroundColor: '#fb923c',
-        pointBorderColor: '#fb923c',
-        pointRadius: 2,
-        pointHoverRadius: 4,
+        borderColor: '#f97316',
+        backgroundColor: (context: any) => {
+          const chart = context.chart;
+          const { ctx, chartArea } = chart;
+          if (!chartArea) return 'rgba(249, 115, 22, 0.1)';
+          const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+          gradient.addColorStop(0, 'rgba(249, 115, 22, 0)');
+          gradient.addColorStop(1, 'rgba(249, 115, 22, 0.15)');
+          return gradient;
+        },
+        pointBackgroundColor: '#f97316',
+        pointBorderColor: '#0a0b0e',
+        pointBorderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 5,
         tension: 0.4,
         fill: true,
+        borderWidth: 2,
       },
     ],
   };
@@ -352,23 +464,23 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData }> = ({ weather }) => {
         backgroundColor: '#1a1c24',
         titleColor: '#f9fafb',
         bodyColor: '#d1d5db',
-        borderColor: '#2a2d3a',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
         borderWidth: 1,
-        padding: 8,
+        padding: 10,
+        cornerRadius: 8,
         displayColors: false,
         callbacks: {
-          label: (context: any) => `${context.parsed.y}°`,
+          title: (items: any) => `${items[0].label}:00`,
+          label: (context: any) => `${context.parsed.y}°C`,
         },
       },
     },
     scales: {
       x: {
-        grid: {
-          color: '#2a2d3a',
-          drawBorder: false,
-        },
+        grid: { display: false },
+        border: { display: false },
         ticks: {
-          color: '#9ca3af',
+          color: '#4b5563',
           font: { size: 10 },
           maxRotation: 0,
           autoSkip: true,
@@ -377,129 +489,120 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData }> = ({ weather }) => {
       },
       y: {
         grid: {
-          color: '#2a2d3a',
+          color: 'rgba(255, 255, 255, 0.03)',
           drawBorder: false,
         },
+        border: { display: false },
         ticks: {
-          color: '#9ca3af',
+          color: '#4b5563',
           font: { size: 10 },
           callback: (value: any) => `${value}°`,
+          padding: 8,
         },
-        position: 'right',
+        position: 'right' as const,
       },
+    },
+    interaction: {
+      intersect: false,
+      mode: 'index' as const,
     },
   };
 
   return (
     <div style={{ padding: '0 16px 16px 16px' }}>
       <div style={{
-        borderRadius: '16px',
-        backgroundColor: '#1a1c24',
-        border: '1px solid #2a2d3a',
-        overflow: 'hidden'
+        borderRadius: '20px',
+        background: 'linear-gradient(145deg, #12151a 0%, #0d0f12 100%)',
+        border: '1px solid rgba(255, 255, 255, 0.06)',
+        overflow: 'hidden',
+        boxShadow: '0 4px 24px rgba(0, 0, 0, 0.4)'
       }}>
-        {/* Header */}
-        <div style={{ padding: '12px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: '#f9fafb', marginBottom: '8px' }}>
+        <div style={{ padding: '16px 20px' }}>
+          <div style={{
+            fontSize: '11px',
+            color: '#6b7280',
+            marginBottom: '12px',
+            fontWeight: 500
+          }}>
             {dateStr}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ fontSize: '40px' }}>{weather.current.icon}</div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{
+                fontSize: '48px',
+                lineHeight: 1,
+                filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))'
+              }}>
+                {weather.current.icon}
+              </div>
               <div>
-                <div style={{ fontSize: '32px', fontWeight: 700, color: '#f9fafb' }}>
+                <div style={{
+                  fontSize: '40px',
+                  fontWeight: 700,
+                  color: '#ffffff',
+                  letterSpacing: '-2px',
+                  lineHeight: 1
+                }}>
                   {weather.current.temp}°
                 </div>
-                <div style={{ fontSize: '11px', color: '#9ca3af' }}>
-                  H:{weather.current.high || weather.current.temp + 5}° L:
-                  {weather.current.low || weather.current.temp - 5}°
+                <div style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  marginTop: '4px'
+                }}>
+                  H:{weather.current.high || weather.current.temp + 5}° L:{weather.current.low || weather.current.temp - 5}°
                 </div>
               </div>
             </div>
             <button
-              onClick={() => setExpanded(!expanded)}
+              onClick={() => setShowDetails(!showDetails)}
               style={{
-                padding: '6px',
-                borderRadius: '8px',
-                fontSize: '14px',
-                color: '#9ca3af',
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: 'pointer'
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
               }}
             >
-              {expanded ? '▲' : '▼'}
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#9ca3af"
+                strokeWidth="2"
+                style={{
+                  transform: showDetails ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s'
+                }}
+              >
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
             </button>
           </div>
         </div>
 
-        {/* Hourly Icons Strip */}
         <div style={{
-          padding: '0 12px 12px 12px',
+          padding: '0 16px 16px',
           overflowX: 'auto',
           WebkitOverflowScrolling: 'touch'
         }} className="scrollbar-hide">
-          <div style={{ display: 'flex', gap: '8px', minWidth: 'max-content' }}>
-            {hours.slice(0, 12).map((hour, idx) => (
-              <div key={idx} style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                minWidth: '40px'
-              }}>
-                <div style={{ fontSize: '10px', color: '#9ca3af', marginBottom: '4px' }}>
-                  {hour.time.split(':')[0]}
-                </div>
-                <div style={{ fontSize: '20px', marginBottom: '4px' }}>{hour.icon}</div>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: '#f9fafb' }}>
-                  {hour.temp}°
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Chart */}
-        <div style={{ padding: '0 12px 12px 12px', height: '140px' }}>
-          <Line data={chartData} options={chartOptions} />
-        </div>
-
-        {/* Best Window */}
-        {weather.bestRunWindow && (
-          <div style={{ padding: '0 12px 12px 12px' }}>
-            <div style={{
-              padding: '8px 12px',
-              borderRadius: '8px',
-              backgroundColor: 'rgba(34, 197, 94, 0.1)',
-              border: '1px solid rgba(34, 197, 94, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              flexWrap: 'wrap'
-            }}>
-              <span style={{ fontSize: '11px', fontWeight: 600, color: '#22c55e' }}>
-                ⏰ {weather.bestRunWindow.start}
-              </span>
-              <span style={{ fontSize: '10px', color: '#9ca3af' }}>
-                Best window: {weather.bestRunWindow.start} – {weather.bestRunWindow.end}
-              </span>
-            </div>
-            <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '6px', paddingLeft: '4px' }}>
-              {weather.bestRunWindow.temp}° • Low wind • {weather.bestRunWindow.reason}
-            </div>
-          </div>
-        )}
-
-        {/* Hourly Forecast */}
-        <div style={{
-          padding: '0 12px 12px 12px',
-          overflowX: 'auto',
-          WebkitOverflowScrolling: 'touch'
-        }} className="scrollbar-hide">
-          <div style={{ display: 'flex', gap: '6px', minWidth: 'max-content' }}>
-            {hours.map((hour, idx) => {
-              const isOptimal =
-                weather.bestRunWindow &&
+          <div style={{
+            display: 'flex',
+            gap: '4px',
+            minWidth: 'max-content'
+          }}>
+            {hours.slice(0, 12).map((hour, idx) => {
+              const isOptimal = weather.bestRunWindow &&
                 parseInt(hour.time.split(':')[0]) >= parseInt(weather.bestRunWindow.start.split(':')[0]) &&
                 parseInt(hour.time.split(':')[0]) <= parseInt(weather.bestRunWindow.end.split(':')[0]);
 
@@ -510,23 +613,35 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData }> = ({ weather }) => {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    padding: '8px 6px',
-                    borderRadius: '8px',
-                    minWidth: '50px',
+                    padding: '10px 8px',
+                    borderRadius: '12px',
+                    minWidth: '48px',
                     backgroundColor: isOptimal
-                      ? 'rgba(96, 165, 250, 0.15)'
-                      : 'rgba(255, 255, 255, 0.03)',
-                    border: isOptimal ? '1px solid rgba(96, 165, 250, 0.3)' : 'none',
+                      ? 'rgba(16, 185, 129, 0.1)'
+                      : 'transparent',
+                    border: isOptimal
+                      ? '1px solid rgba(16, 185, 129, 0.2)'
+                      : '1px solid transparent'
                   }}
                 >
-                  <div style={{ fontSize: '10px', color: '#9ca3af', marginBottom: '4px' }}>
-                    {hour.time.split(':')[0]}:00
-                  </div>
-                  <div style={{ fontSize: '16px', marginBottom: '4px' }}>{hour.icon}</div>
                   <div style={{
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    color: isOptimal ? '#60a5fa' : '#f9fafb'
+                    fontSize: '10px',
+                    color: isOptimal ? '#10b981' : '#6b7280',
+                    marginBottom: '6px',
+                    fontWeight: isOptimal ? 600 : 400
+                  }}>
+                    {hour.time.split(':')[0]}
+                  </div>
+                  <div style={{
+                    fontSize: '20px',
+                    marginBottom: '6px'
+                  }}>
+                    {hour.icon}
+                  </div>
+                  <div style={{
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: isOptimal ? '#10b981' : '#e5e7eb'
                   }}>
                     {hour.temp}°
                   </div>
@@ -534,6 +649,50 @@ const WeatherSection: FC<{ weather: EnhancedWeatherData }> = ({ weather }) => {
               );
             })}
           </div>
+        </div>
+
+        {weather.bestRunWindow && (
+          <div style={{
+            margin: '0 16px 16px',
+            padding: '12px 16px',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)',
+            border: '1px solid rgba(16, 185, 129, 0.15)'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '6px'
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+              <span style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                color: '#10b981'
+              }}>
+                Best running window
+              </span>
+            </div>
+            <div style={{
+              fontSize: '16px',
+              fontWeight: 700,
+              color: '#ffffff',
+              marginBottom: '4px'
+            }}>
+              {weather.bestRunWindow.start} - {weather.bestRunWindow.end}
+            </div>
+            <div style={{ fontSize: '11px', color: '#9ca3af' }}>
+              {weather.bestRunWindow.temp}° - {weather.bestRunWindow.reason}
+            </div>
+          </div>
+        )}
+
+        <div style={{ padding: '0 16px 16px', height: '120px' }}>
+          <Line data={chartData} options={chartOptions} />
         </div>
       </div>
     </div>
