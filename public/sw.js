@@ -1,5 +1,6 @@
 // Very small "app shell" cache for offline use
-const CACHE = "mizzion-v1";
+// Use timestamp to force cache refresh on each deployment
+const CACHE = "mizzion-v2025-12-17-01";
 const APP_SHELL = [
   "/",                 // index.html
   "/manifest.webmanifest",
@@ -23,11 +24,12 @@ self.addEventListener("activate", (e) => {
   );
 });
 
-// Fetch: network-first for navigation, cache-first for static
+// Fetch: network-first for navigation and JS bundles, cache-first for other assets
 self.addEventListener("fetch", (e) => {
   const req = e.request;
+  const url = new URL(req.url);
 
-  // For SPA navigations use network-first with offline fallback
+  // For SPA navigations always use network-first with offline fallback
   if (req.mode === "navigate") {
     e.respondWith(
       fetch(req).catch(() => caches.match("/offline.html"))
@@ -35,7 +37,24 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // For others: try cache, then network, then cache fallback
+  // For JavaScript bundles, always try network first to get latest code
+  if (url.pathname.endsWith('.js')) {
+    e.respondWith(
+      fetch(req)
+        .then((res) => {
+          // Cache the new JS bundle
+          if (req.method === "GET" && res.status === 200) {
+            const resClone = res.clone();
+            caches.open(CACHE).then((cache) => cache.put(req, resClone));
+          }
+          return res;
+        })
+        .catch(() => caches.match(req).then(cached => cached || caches.match("/offline.html")))
+    );
+    return;
+  }
+
+  // For other assets: try cache first, then network
   e.respondWith(
     caches.match(req).then((cached) =>
       cached ||
