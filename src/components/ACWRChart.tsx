@@ -4,6 +4,22 @@ import type { AthleteBaselines } from "@/hooks/useAthleteBaselines";
 import type { WeeklyMetric } from "@/hooks/useWeeklyMetrics";
 import { getACWRZoneStatus, generateACWRZoneFeedback, getACWRTrendDirection } from "@/utils/acwrZones";
 
+const CustomLabel = ({ viewBox, value, fill }: any) => {
+  const { x, y } = viewBox;
+  return (
+    <text
+      x={x + 10}
+      y={y - 5}
+      fill={fill}
+      fontSize={14}
+      fontWeight="bold"
+      style={{ fill }}
+    >
+      {value}
+    </text>
+  );
+};
+
 interface ACWRChartProps {
   weeklyMetrics: WeeklyMetric[];
   baselines: AthleteBaselines | null;
@@ -222,7 +238,7 @@ export default function ACWRChart({ weeklyMetrics, baselines, dateRangeLabel }: 
             stroke="#22d3ee"
             strokeWidth={2}
             strokeDasharray="0"
-            label={{ value: 'Sweet Spot', position: 'right', fill: '#22d3ee', fontSize: 14, fontWeight: 700 }}
+            label={<CustomLabel value="Sweet Spot" fill="#22d3ee" />}
           />
 
           <ReferenceLine
@@ -230,7 +246,7 @@ export default function ACWRChart({ weeklyMetrics, baselines, dateRangeLabel }: 
             stroke="#F97316"
             strokeWidth={2}
             strokeDasharray="0"
-            label={{ value: 'Caution', position: 'right', fill: '#F97316', fontSize: 14, fontWeight: 700 }}
+            label={<CustomLabel value="Caution" fill="#F97316" />}
           />
 
           <ReferenceLine
@@ -238,7 +254,7 @@ export default function ACWRChart({ weeklyMetrics, baselines, dateRangeLabel }: 
             stroke="#ef4444"
             strokeWidth={2}
             strokeDasharray="0"
-            label={{ value: 'High Risk', position: 'insideTopRight', fill: '#ef4444', fontSize: 14, fontWeight: 700 }}
+            label={<CustomLabel value="High Risk" fill="#ef4444" />}
           />
 
           {showPersonalZone && (
