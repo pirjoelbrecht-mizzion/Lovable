@@ -389,7 +389,7 @@ export default function ActivityDetail() {
               </div>
             )}
 
-            {activity.temperature !== undefined && activity.temperature > 20 && userId && (
+            {userId && (
               <div className="activity-card">
                 <WeatherImpactCard logEntry={activity} userId={userId} />
               </div>
