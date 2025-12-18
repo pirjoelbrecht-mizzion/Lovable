@@ -8,6 +8,7 @@ import { analyzeTerrainFromStreams } from '@/engine/trailAnalysis';
 import { ActivitySegments } from '@/components/activity/ActivitySegments';
 import { ActivityBestEfforts } from '@/components/activity/ActivityBestEfforts';
 import { ActivityGear } from '@/components/activity/ActivityGear';
+import { WeatherImpactCard } from '@/components/activity/WeatherImpactCard';
 import { ArrowLeft, Mountain, ChevronDown, Camera, Thermometer, Droplets, Wind, Heart, TrendingUp, TrendingDown, Watch, Smartphone } from 'lucide-react';
 import './ActivityDetail.css';
 
@@ -22,6 +23,7 @@ export default function ActivityDetail() {
   const [gear, setGear] = useState<AthleteGear | null>(null);
   const [loading, setLoading] = useState(true);
   const [terrainExpanded, setTerrainExpanded] = useState(false);
+  const [userId, setUserId] = useState<string>('');
 
   useEffect(() => {
     if (!id) return;
@@ -33,6 +35,9 @@ export default function ActivityDetail() {
 
     try {
       setLoading(true);
+
+      const uid = await getCurrentUserId();
+      if (uid) setUserId(uid);
 
       const { data, error } = await supabase
         .from('log_entries')
@@ -384,6 +389,12 @@ export default function ActivityDetail() {
               </div>
             )}
 
+            {activity.temperature !== undefined && activity.temperature > 20 && userId && (
+              <div className="activity-card">
+                <WeatherImpactCard logEntry={activity} userId={userId} />
+              </div>
+            )}
+
             {segments.length > 0 && (
               <div className="activity-card">
                 <ActivitySegments segments={segments} />
@@ -423,49 +434,6 @@ export default function ActivityDetail() {
                       <div className="activity-condition-label">Weather</div>
                     </div>
                   )}
-                </div>
-              </div>
-            )}
-
-            {activity.temperature !== undefined && activity.temperature > 25 && (
-              <div className="activity-heat-card">
-                <div className="activity-heat-header">
-                  <div className="activity-heat-title-row">
-                    <span className="activity-heat-icon">fire</span>
-                    <span className="activity-heat-title">Heat Impact</span>
-                  </div>
-                  <div className="activity-heat-level">
-                    <span className="activity-heat-level-text">Level</span>
-                    <span className="activity-heat-level-value">
-                      {activity.temperature >= 35 ? 4 : activity.temperature >= 30 ? 3 : 2}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="activity-heat-metrics">
-                  <div className="activity-heat-metric">
-                    <div className="activity-heat-metric-value">{Math.round(activity.temperature)}C</div>
-                    <div className="activity-heat-metric-label">Temp</div>
-                  </div>
-                  {activity.humidity !== undefined && (
-                    <div className="activity-heat-metric">
-                      <div className="activity-heat-metric-value">{activity.humidity}%</div>
-                      <div className="activity-heat-metric-label">Humidity</div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="activity-heat-impacts">
-                  <div className="activity-heat-impact">
-                    <Heart className="activity-heat-impact-icon" size={14} style={{ color: '#ef4444' }} />
-                    <span className="activity-heat-impact-text">HR elevated</span>
-                    <span className="activity-heat-impact-value">+5-10 bpm</span>
-                  </div>
-                  <div className="activity-heat-impact">
-                    <TrendingDown className="activity-heat-impact-icon" size={14} style={{ color: '#f97316' }} />
-                    <span className="activity-heat-impact-text">Pace impact</span>
-                    <span className="activity-heat-impact-value">-5-10%</span>
-                  </div>
                 </div>
               </div>
             )}
