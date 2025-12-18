@@ -28,7 +28,6 @@ interface TerrainAnalysisData {
   total_climbing_distance_km: number | null;
   significant_climbs_count: number;
   vam_first_to_last_dropoff_pct: number | null;
-  total_climb_elevation_m: number | null;
 }
 
 export function ClimbAnalysis({ logEntryId, userId }: ClimbAnalysisProps) {
@@ -51,7 +50,7 @@ export function ClimbAnalysis({ logEntryId, userId }: ClimbAnalysisProps) {
           .order('climb_number', { ascending: true }),
         supabase
           .from('activity_terrain_analysis')
-          .select('peak_vam, average_climb_vam, total_climbing_time_min, total_climbing_distance_km, significant_climbs_count, vam_first_to_last_dropoff_pct, total_climb_elevation_m')
+          .select('peak_vam, average_climb_vam, total_climbing_time_min, total_climbing_distance_km, significant_climbs_count, vam_first_to_last_dropoff_pct')
           .eq('log_entry_id', logEntryId)
           .eq('user_id', userId)
           .maybeSingle()
