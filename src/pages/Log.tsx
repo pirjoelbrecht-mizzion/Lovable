@@ -346,6 +346,7 @@ export default function Log() {
                   </div>
                   <div className="small" style={{ color: "var(--muted)" }}>
                     {e.dateISO} • {e.km ?? "—"} km
+                    {e.elevationGain ? ` • ${Math.round(e.elevationGain)}m gain` : ""}
                   </div>
                   <div className="small" style={{ marginTop: 6 }}>
                     {e.durationMin ? `Duration: ${e.durationMin} min` : "Duration: —"}
@@ -353,6 +354,7 @@ export default function Log() {
                     {e.hrAvg ? `HR: ${e.hrAvg} bpm` : "HR: —"}
                     {" • "}
                     {e.source ?? "Manual"}
+                    {e.sportType ? ` • ${e.sportType}` : ""}
                   </div>
                 </article>
               );

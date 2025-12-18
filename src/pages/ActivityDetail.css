@@ -807,3 +807,71 @@
     gap: 6px;
   }
 }
+
+/* Title row with sport badge */
+.activity-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.activity-sport-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  background: rgba(34, 211, 238, 0.15);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  border-radius: 12px;
+  color: #22d3ee;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Meta row with source and device */
+.activity-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.activity-source,
+.activity-device {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.activity-source svg,
+.activity-device svg {
+  width: 12px;
+  height: 12px;
+  opacity: 0.7;
+}
+
+/* Generic card wrapper */
+.activity-card {
+  background: #0b1221;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 20px rgba(30, 58, 138, 0.15);
+}
+
+@media (min-width: 768px) {
+  .activity-sport-badge {
+    font-size: 11px;
+    padding: 4px 10px;
+  }
+
+  .activity-source,
+  .activity-device {
+    font-size: 12px;
+  }
+}

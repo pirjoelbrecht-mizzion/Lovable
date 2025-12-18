@@ -1,11 +1,14 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { LogEntry, ActivityPhoto } from '@/types';
+import type { LogEntry, ActivityPhoto, ActivitySegment, ActivityBestEffort, AthleteGear } from '@/types';
 import RouteMap from '@/components/RouteMap';
 import { stravaRichDataService } from '@/services/stravaRichDataService';
 import { supabase, getCurrentUserId } from '@/lib/supabase';
 import { analyzeTerrainFromStreams } from '@/engine/trailAnalysis';
-import { ArrowLeft, Mountain, ChevronDown, Camera, Thermometer, Droplets, Wind, Heart, TrendingUp, TrendingDown } from 'lucide-react';
+import { ActivitySegments } from '@/components/activity/ActivitySegments';
+import { ActivityBestEfforts } from '@/components/activity/ActivityBestEfforts';
+import { ActivityGear } from '@/components/activity/ActivityGear';
+import { ArrowLeft, Mountain, ChevronDown, Camera, Thermometer, Droplets, Wind, Heart, TrendingUp, TrendingDown, Watch, Smartphone } from 'lucide-react';
 import './ActivityDetail.css';
 
 export default function ActivityDetail() {
@@ -14,6 +17,9 @@ export default function ActivityDetail() {
 
   const [activity, setActivity] = useState<LogEntry | null>(null);
   const [photos, setPhotos] = useState<ActivityPhoto[]>([]);
+  const [segments, setSegments] = useState<ActivitySegment[]>([]);
+  const [bestEfforts, setBestEfforts] = useState<ActivityBestEffort[]>([]);
+  const [gear, setGear] = useState<AthleteGear | null>(null);
   const [loading, setLoading] = useState(true);
   const [terrainExpanded, setTerrainExpanded] = useState(false);
 
@@ -72,6 +78,17 @@ export default function ActivityDetail() {
 
       const photosData = await stravaRichDataService.getActivityPhotos(id);
       setPhotos(photosData);
+
+      const segmentsData = await stravaRichDataService.getActivitySegments(id);
+      setSegments(segmentsData);
+
+      const effortsData = await stravaRichDataService.getActivityBestEfforts(id);
+      setBestEfforts(effortsData);
+
+      if (logEntry.gearId) {
+        const gearData = await stravaRichDataService.getGear(logEntry.gearId);
+        setGear(gearData);
+      }
     } catch (error) {
       console.error('Error loading activity data:', error);
     } finally {
@@ -163,8 +180,27 @@ export default function ActivityDetail() {
             <ArrowLeft size={18} />
           </button>
           <div className="activity-header-info">
-            <h1 className="activity-title">{activity.title}</h1>
-            <p className="activity-date">{formatDate(activity.dateISO)}</p>
+            <div className="activity-title-row">
+              <h1 className="activity-title">{activity.title}</h1>
+              {activity.sportType && (
+                <span className="activity-sport-badge">{activity.sportType}</span>
+              )}
+            </div>
+            <div className="activity-meta-row">
+              <span className="activity-date">{formatDate(activity.dateISO)}</span>
+              {activity.source && (
+                <span className="activity-source">
+                  <Smartphone size={12} />
+                  {activity.source}
+                </span>
+              )}
+              {activity.deviceName && (
+                <span className="activity-device">
+                  <Watch size={12} />
+                  {activity.deviceName}
+                </span>
+              )}
+            </div>
           </div>
         </header>
 
@@ -347,6 +383,18 @@ export default function ActivityDetail() {
                 </div>
               </div>
             )}
+
+            {segments.length > 0 && (
+              <div className="activity-card">
+                <ActivitySegments segments={segments} />
+              </div>
+            )}
+
+            {bestEfforts.length > 0 && (
+              <div className="activity-card">
+                <ActivityBestEfforts efforts={bestEfforts} />
+              </div>
+            )}
           </div>
 
           <div className="activity-sidebar">
@@ -439,6 +487,29 @@ export default function ActivityDetail() {
                   <span className="activity-conditions-title">Notes</span>
                 </div>
                 <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0, lineHeight: 1.5 }}>{activity.description}</p>
+              </div>
+            )}
+
+            {gear && (
+              <div className="activity-conditions-card">
+                <ActivityGear gear={gear} />
+              </div>
+            )}
+
+            {activity.externalId && (
+              <div className="activity-conditions-card">
+                <div className="activity-conditions-header">
+                  <span className="activity-conditions-icon">link</span>
+                  <span className="activity-conditions-title">External Link</span>
+                </div>
+                <a
+                  href={`https://www.strava.com/activities/${activity.externalId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: '13px', color: '#22d3ee', textDecoration: 'none' }}
+                >
+                  View on Strava
+                </a>
               </div>
             )}
           </div>
