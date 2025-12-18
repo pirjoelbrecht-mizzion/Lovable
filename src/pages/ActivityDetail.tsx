@@ -371,7 +371,7 @@ export default function ActivityDetail() {
 
             {userId && activity.elevationGain && activity.elevationGain > 100 && (
               <div className="activity-card">
-                <ClimbAnalysis logEntryId={activity.id} userId={userId} />
+                <ClimbAnalysis logEntryId={activity.id} userId={userId} activity={activity} />
               </div>
             )}
 

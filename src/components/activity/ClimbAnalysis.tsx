@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Mountain, TrendingUp, Clock, MapPin, Activity } from 'lucide-react';
+import { Mountain, TrendingUp, Clock, MapPin, Activity, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { analyzeTerrainFromStreams } from '@/engine/trailAnalysis';
 import type { ClimbSegment } from '@/engine/trailAnalysis';
+import type { LogEntry } from '@/types';
 
 interface ClimbAnalysisProps {
   logEntryId: string;
   userId: string;
+  activity: LogEntry;
 }
 
 interface ClimbData {
@@ -30,10 +33,11 @@ interface TerrainAnalysisData {
   vam_first_to_last_dropoff_pct: number | null;
 }
 
-export function ClimbAnalysis({ logEntryId, userId }: ClimbAnalysisProps) {
+export function ClimbAnalysis({ logEntryId, userId, activity }: ClimbAnalysisProps) {
   const [climbs, setClimbs] = useState<ClimbData[]>([]);
   const [terrainStats, setTerrainStats] = useState<TerrainAnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [analyzing, setAnalyzing] = useState(false);
 
   useEffect(() => {
     loadClimbData();
@@ -70,6 +74,71 @@ export function ClimbAnalysis({ logEntryId, userId }: ClimbAnalysisProps) {
     }
   }
 
+  async function analyzeActivity() {
+    if (!activity.elevationStream || !activity.distanceStream) {
+      console.error('Missing elevation or distance stream data');
+      return;
+    }
+
+    setAnalyzing(true);
+    try {
+      const elevationStream = Array.isArray(activity.elevationStream)
+        ? activity.elevationStream
+        : JSON.parse(activity.elevationStream as any);
+
+      const distanceStream = Array.isArray(activity.distanceStream)
+        ? activity.distanceStream
+        : JSON.parse(activity.distanceStream as any);
+
+      const terrainAnalysis = analyzeTerrainFromStreams(
+        distanceStream,
+        elevationStream,
+        activity.durationMin
+      );
+
+      for (const climb of terrainAnalysis.climbs) {
+        await supabase
+          .from('activity_climb_segments')
+          .upsert({
+            log_entry_id: logEntryId,
+            user_id: userId,
+            climb_number: climb.climbNumber,
+            start_distance_m: climb.startDistanceM,
+            end_distance_m: climb.endDistanceM,
+            elevation_gain_m: climb.elevationGainM,
+            duration_min: climb.durationMin,
+            vam: climb.vam,
+            average_grade_pct: climb.averageGradePct,
+            distance_km: climb.distanceKm,
+            category: climb.category
+          }, {
+            onConflict: 'log_entry_id,climb_number'
+          });
+      }
+
+      await supabase
+        .from('activity_terrain_analysis')
+        .upsert({
+          log_entry_id: logEntryId,
+          user_id: userId,
+          peak_vam: terrainAnalysis.peakVam,
+          average_climb_vam: terrainAnalysis.averageClimbVam,
+          total_climbing_time_min: terrainAnalysis.totalClimbingTimeMin,
+          total_climbing_distance_km: terrainAnalysis.totalClimbingDistanceKm,
+          significant_climbs_count: terrainAnalysis.significantClimbsCount,
+          vam_first_to_last_dropoff_pct: terrainAnalysis.vamFirstToLastDropoffPct
+        }, {
+          onConflict: 'log_entry_id,user_id'
+        });
+
+      await loadClimbData();
+    } catch (error) {
+      console.error('Error analyzing terrain:', error);
+    } finally {
+      setAnalyzing(false);
+    }
+  }
+
   if (loading) {
     return (
       <div style={{ padding: '24px', textAlign: 'center', color: '#8b949e' }}>
@@ -78,8 +147,46 @@ export function ClimbAnalysis({ logEntryId, userId }: ClimbAnalysisProps) {
     );
   }
 
-  if (climbs.length === 0 || !terrainStats) {
-    return null;
+  const needsAnalysis = climbs.length === 0 || !terrainStats || !terrainStats.peak_vam;
+
+  if (needsAnalysis) {
+    return (
+      <div style={{
+        background: 'rgba(22, 27, 34, 0.8)',
+        border: '1px solid rgba(240, 246, 252, 0.1)',
+        borderRadius: '12px',
+        padding: '32px',
+        textAlign: 'center'
+      }}>
+        <Mountain size={48} style={{ color: '#8b949e', margin: '0 auto 16px' }} />
+        <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600', color: '#c9d1d9' }}>
+          Climb Analysis Available
+        </h3>
+        <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#8b949e', lineHeight: '1.5' }}>
+          This activity has {activity.elevationGain ? `${Math.round(activity.elevationGain)}m` : ''} elevation gain. Analyze to see VAM metrics and climb breakdowns.
+        </p>
+        <button
+          onClick={analyzeActivity}
+          disabled={analyzing}
+          style={{
+            padding: '10px 20px',
+            background: analyzing ? 'rgba(56, 139, 253, 0.3)' : '#238636',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: analyzing ? 'not-allowed' : 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <RefreshCw size={16} style={{ animation: analyzing ? 'spin 1s linear infinite' : 'none' }} />
+          {analyzing ? 'Analyzing...' : 'Analyze Climbs'}
+        </button>
+      </div>
+    );
   }
 
   const formatDuration = (minutes: number) => {
