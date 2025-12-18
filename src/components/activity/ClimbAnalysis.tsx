@@ -128,7 +128,7 @@ export function ClimbAnalysis({ logEntryId, userId, activity }: ClimbAnalysisPro
           significant_climbs_count: terrainAnalysis.significantClimbsCount,
           vam_first_to_last_dropoff_pct: terrainAnalysis.vamFirstToLastDropoffPct
         }, {
-          onConflict: 'log_entry_id,user_id'
+          onConflict: 'log_entry_id'
         });
 
       await loadClimbData();
