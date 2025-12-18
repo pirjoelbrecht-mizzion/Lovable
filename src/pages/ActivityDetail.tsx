@@ -9,6 +9,7 @@ import { ActivitySegments } from '@/components/activity/ActivitySegments';
 import { ActivityBestEfforts } from '@/components/activity/ActivityBestEfforts';
 import { ActivityGear } from '@/components/activity/ActivityGear';
 import { WeatherImpactCard } from '@/components/activity/WeatherImpactCard';
+import { ClimbAnalysis } from '@/components/activity/ClimbAnalysis';
 import { ArrowLeft, Mountain, ChevronDown, Camera, Thermometer, Droplets, Wind, Heart, TrendingUp, TrendingDown, Watch, Smartphone } from 'lucide-react';
 import './ActivityDetail.css';
 
@@ -365,6 +366,12 @@ export default function ActivityDetail() {
                     )}
                   </div>
                 )}
+              </div>
+            )}
+
+            {userId && activity.elevationGain && activity.elevationGain > 100 && (
+              <div className="activity-card">
+                <ClimbAnalysis logEntryId={activity.id} userId={userId} />
               </div>
             )}
 
