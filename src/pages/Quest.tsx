@@ -94,12 +94,13 @@ function getMonday() {
 
 function detectSessionType(title: string, notes?: string): string {
   const text = `${title} ${notes || ""}`.toLowerCase();
+  // Check for strength training first (highest priority)
+  if (/strength|gym|lift|weights|me session/i.test(text)) return "strength";
   if (/rest|off|mobility|recover/i.test(text)) return "rest";
   if (/recovery/i.test(text)) return "recovery";
   if (/tempo|quality|threshold/i.test(text)) return "tempo";
   if (/interval|speed|rep|hill/i.test(text)) return "intervals";
   if (/long|endurance/i.test(text)) return "long";
-  if (/strength|gym|lift/i.test(text)) return "strength";
   if (/workout|hard/i.test(text)) return "workout";
   return "easy";
 }
