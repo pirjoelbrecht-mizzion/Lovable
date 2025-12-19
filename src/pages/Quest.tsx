@@ -469,13 +469,18 @@ export default function Quest() {
       let emoji = SESSION_EMOJIS[sessionType] || "🏃";
 
       // Enrich strength sessions with ME assignment data
-      if (sessionType === 'strength' && meAssignment) {
-        title = `ME ${meAssignment.meType.replace('_', ' ').toUpperCase()}`;
-        const loadInfo = loadRegulation?.shouldAdjust
-          ? ` • Load ${loadRegulation.adjustmentType === 'reduce' ? 'Reduced' : 'Adjusted'}`
-          : '';
-        notes = `${meAssignment.reason}${loadInfo ? '\n\n' + loadRegulation.reason : ''}${coachingMessage ? '\n\n' + coachingMessage : ''}`;
-        emoji = loadRegulation?.shouldAdjust ? "⚠️" : "💪";
+      if (sessionType === 'strength') {
+        if (meAssignment) {
+          title = `ME ${meAssignment.meType.replace('_', ' ').toUpperCase()}`;
+          const loadInfo = loadRegulation?.shouldAdjust
+            ? ` • Load ${loadRegulation.adjustmentType === 'reduce' ? 'Reduced' : 'Adjusted'}`
+            : '';
+          notes = `${meAssignment.reason}${loadInfo ? '\n\n' + loadRegulation.reason : ''}${coachingMessage ? '\n\n' + coachingMessage : ''}`;
+          emoji = loadRegulation?.shouldAdjust ? "⚠️" : "💪";
+        }
+        // Ensure strength sessions have no distance/pace
+        sessionType = 'strength';
+        emoji = emoji || "💪";
       }
 
       // Use actual duration if available, otherwise estimate
@@ -506,7 +511,14 @@ export default function Quest() {
       else if (/z4|zone 4|threshold/i.test(notes)) zones = "Zone 4";
       else if (/z5|zone 5|vo2/i.test(notes)) zones = "Zone 5";
 
-      const pace = km && km > 0 ? `${(profile.paceBase - 0.5).toFixed(1)} - ${profile.paceBase.toFixed(1)} min/km` : undefined;
+      let pace = km && km > 0 ? `${(profile.paceBase - 0.5).toFixed(1)} - ${profile.paceBase.toFixed(1)} min/km` : undefined;
+
+      // Override distance and pace for strength sessions
+      let finalDistance = km && km > 0 ? `${km}K` : undefined;
+      if (sessionType === 'strength') {
+        finalDistance = undefined;
+        pace = undefined;
+      }
 
       // Check if this workout is completed
       const monday = getMonday();
@@ -517,7 +529,10 @@ export default function Quest() {
 
       // Build description with elevation if available
       let description = notes || `${title} session as planned.`;
-      if (elevation && elevation > 0) {
+      if (sessionType === 'strength' && notes) {
+        // For strength sessions, use the enriched notes directly
+        description = notes;
+      } else if (elevation && elevation > 0) {
         description = `${km && km > 0 ? `${km}km` : ''} ${elevation ? `• ${Math.round(elevation)}m↑` : ''} ${duration ? `• ${duration}` : ''}`.trim();
         if (notes && !notes.includes('Est.')) {
           description += ` • ${notes}`;
@@ -531,7 +546,7 @@ export default function Quest() {
         type: title,
         emoji,
         duration,
-        distance: km && km > 0 ? `${km}K` : undefined,
+        distance: finalDistance,
         elevation: elevation && elevation > 0 ? Math.round(elevation) : undefined,
         pace,
         zones,
