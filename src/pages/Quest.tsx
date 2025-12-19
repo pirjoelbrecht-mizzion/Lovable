@@ -23,6 +23,7 @@ import { getCurrentUserProfile } from "@/lib/userProfile";
 import { getUserSettings } from "@/lib/userSettings";
 import { buildAthleteProfile, calculateReadiness, type AthleteProfile } from "@/lib/adaptive-coach";
 import { Calendar, Flag, Map, Thermometer, Users, Zap, ChevronRight, Activity, TrendingUp, Mountain } from "lucide-react";
+import { useStrengthTraining } from "@/hooks/useStrengthTraining";
 import "./Quest.css";
 
 type SessionNode = {
@@ -120,6 +121,9 @@ export default function Quest() {
   const [races, setRaces] = useState<Race[]>([]);
   const [viewMode, setViewMode] = useState<"bubbles" | "list" | "mobile">("bubbles");
   const [selectedSession, setSelectedSession] = useState<SessionNode | null>(null);
+
+  // Get strength training data
+  const { meAssignment, loadRegulation, coachingMessage } = useStrengthTraining(null, 'base');
   const [weekPlan, setWeekPlan] = useState<WeekPlan>(() => {
     const plan = getWeekPlan();
     console.log('[Quest] Initial weekPlan loaded:', plan?.length, 'days');
@@ -458,11 +462,21 @@ export default function Quest() {
       const mainSession = day.sessions[0];
       const fallback = defaultPlan ? defaultPlan[idx] : null;
 
-      const title = mainSession?.title || fallback?.title || "Rest";
+      let title = mainSession?.title || fallback?.title || "Rest";
       const km = mainSession?.km ?? fallback?.km;
-      const notes = mainSession?.notes || fallback?.notes || "";
-      const sessionType = detectSessionType(title, notes);
-      const emoji = SESSION_EMOJIS[sessionType] || "🏃";
+      let notes = mainSession?.notes || fallback?.notes || "";
+      let sessionType = detectSessionType(title, notes);
+      let emoji = SESSION_EMOJIS[sessionType] || "🏃";
+
+      // Enrich strength sessions with ME assignment data
+      if (sessionType === 'strength' && meAssignment) {
+        title = `ME ${meAssignment.meType.replace('_', ' ').toUpperCase()}`;
+        const loadInfo = loadRegulation?.shouldAdjust
+          ? ` • Load ${loadRegulation.adjustmentType === 'reduce' ? 'Reduced' : 'Adjusted'}`
+          : '';
+        notes = `${meAssignment.reason}${loadInfo ? '\n\n' + loadRegulation.reason : ''}${coachingMessage ? '\n\n' + coachingMessage : ''}`;
+        emoji = loadRegulation?.shouldAdjust ? "⚠️" : "💪";
+      }
 
       // Use actual duration if available, otherwise estimate
       const durationMin = (mainSession as any)?.durationMin ?? (fallback as any)?.durationMin;
@@ -531,7 +545,7 @@ export default function Quest() {
         size: isToday ? 94 : pos.size,
       };
     });
-  }, [weekPlan, weatherData, today, profile, completionStatus]);
+  }, [weekPlan, weatherData, today, profile, completionStatus, meAssignment, loadRegulation, coachingMessage]);
 
   // Generate today's training data for mobile view
   const todayData = useTodayTrainingData(sessions, profile);
