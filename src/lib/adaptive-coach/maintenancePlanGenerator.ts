@@ -110,42 +110,23 @@ export function generateMaintenancePlan(input: MaintenancePlanInput): Maintenanc
     isHard: false,
   });
 
-  // Wednesday: Tempo or Easy
-  if (includeWorkouts) {
-    days.push({
-      day: 'Wednesday',
-      dayOfWeek: 3,
-      date: '',
-      workout: {
-        type: 'tempo',
-        title: 'Tempo Run',
-        distanceKm: moderateVolume * 0.60,
-        durationMin: Math.round(moderateVolume * 0.60 * 6.5),
-        description: 'Warm up 10min easy, 20-30min at comfortably hard pace (marathon effort), cool down 10min easy.',
-        purpose: 'Lactate threshold maintenance',
-        intensityZones: ['Zone 3-4'],
-        verticalGain: Math.round((athlete.averageVertical || 0) * 0.15),
-      },
-      isHard: true,
-    });
-  } else {
-    days.push({
-      day: 'Wednesday',
-      dayOfWeek: 3,
-      date: '',
-      workout: {
-        type: 'easy',
-        title: 'Easy Run',
-        distanceKm: remainingEasy * 0.20,
-        durationMin: Math.round(remainingEasy * 0.20 * 8),
-        description: 'Easy conversational pace.',
-        purpose: 'Aerobic maintenance',
-        intensityZones: ['Zone 2'],
-        verticalGain: Math.round((athlete.averageVertical || 0) * 0.12),
-      },
-      isHard: false,
-    });
-  }
+  // Wednesday: Strength Training (ME session)
+  days.push({
+    day: 'Wednesday',
+    dayOfWeek: 3,
+    date: '',
+    workout: {
+      type: 'strength',
+      title: 'Strength Training',
+      distanceKm: 0,
+      durationMin: 45,
+      description: 'Muscular Endurance (ME) session. Focus on terrain-specific strength work.',
+      purpose: 'Running-specific strength and injury prevention',
+      intensityZones: [],
+      verticalGain: 0,
+    },
+    isHard: false,
+  });
 
   // Thursday: Easy
   days.push({

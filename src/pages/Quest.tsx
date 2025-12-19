@@ -166,29 +166,23 @@ export default function Quest() {
   const today = todayDayIndex();
   const profile = loadUserProfile();
 
-  // Module 4: Adaptive Training Plan (DISABLED for now - causing plan overwrite issues)
+  // Adaptive Decision Engine - single source of truth for training plans
   const {
     adjustedPlan,
     decision: adaptiveDecision,
     isExecuting: isModule4Running,
     lastExecuted: module4LastExecuted,
   } = useAdaptiveTrainingPlan({
-    autoExecute: false, // DISABLED: Was overwriting Strength Training sessions
-    dailyExecution: false, // DISABLED: Was running every day and regenerating plan
+    autoExecute: true,
+    dailyExecution: true,
     onPlanAdjusted: (decision, plan) => {
-      console.log('[Quest] Module 4 adjusted plan received:', plan?.length, 'days');
-      // Extra validation - only accept valid 7-day plans
+      console.log('[Quest] Adaptive Engine plan:', plan?.length, 'days');
       if (plan && plan.length === 7 && plan.every(day => day.sessions && day.sessions.length > 0)) {
-        console.log('[Quest] Plan validated, applying');
         setWeekPlan(plan);
-      } else {
-        console.error('[Quest] Received invalid plan from Module 4, ignoring');
       }
     },
     onError: (error) => {
-      console.error('[Quest] Module 4 error:', error);
-      // Silently log errors to avoid spamming users
-      // The existing valid plan will continue to display
+      console.error('[Quest] Adaptive Engine error:', error);
     },
   });
 

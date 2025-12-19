@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import useSession from '@/hooks/useSession';
+import useSession from '@/lib/useSession';
 import { useStrengthTraining } from '@/hooks/useStrengthTraining';
 import {
   StrengthExerciseCard,
@@ -19,13 +19,12 @@ import { Dumbbell, Mountain, Settings, Activity, AlertCircle, CheckCircle, Trend
 type TabType = 'overview' | 'terrain' | 'exercises' | 'session' | 'soreness';
 
 export default function StrengthTraining() {
-  const { user } = useSession();
+  const { user, loading: authLoading, isAuthed } = useSession();
   const userId = user?.id;
 
-  // Debug logging
   useEffect(() => {
-    console.log('[StrengthTraining] Auth state:', { user, userId, hasUser: !!user });
-  }, [user, userId]);
+    console.log('[StrengthTraining] Auth state:', { user: user?.email, userId, isAuthed });
+  }, [user, userId, isAuthed]);
 
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [exercises, setExercises] = useState<StrengthExercise[]>([]);
@@ -110,14 +109,18 @@ export default function StrengthTraining() {
     { id: 'soreness' as TabType, label: 'Track Soreness', icon: <AlertCircle size={18} /> },
   ];
 
-  // Allow access even without userId for demo/development mode
-  if (!userId && !user) {
+  if (authLoading) {
+    return (
+      <div style={{ padding: 20, textAlign: 'center' }}>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthed) {
     return (
       <div style={{ padding: 20, textAlign: 'center' }}>
         <p>Please sign in to access strength training features.</p>
-        <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>
-          Debug: user = {JSON.stringify(user)}, userId = {userId}
-        </p>
       </div>
     );
   }

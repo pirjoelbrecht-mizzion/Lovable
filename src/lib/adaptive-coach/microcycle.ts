@@ -432,7 +432,19 @@ function selectWeekWorkouts(input: WorkoutSelectionInput): Workout[] {
     }
   }
 
-  // 3. Fill with easy runs (use variety)
+  // 3. Add Strength Training (Wednesday)
+  const strengthWorkout: Workout = {
+    type: 'strength',
+    title: 'Strength Training',
+    description: 'Muscular Endurance (ME) session. Focus on terrain-specific strength work.',
+    distanceKm: 0,
+    durationMin: 45,
+    verticalGain: 0,
+    intensityZones: [],
+  };
+  workouts.push({ ...strengthWorkout, id: 'strength_wednesday' });
+
+  // 4. Fill with easy runs (use variety)
   const remainingDays = 7 - workouts.length - 2; // -2 for rest days
 
   // Get different easy workout types for variety
@@ -471,7 +483,7 @@ function selectWeekWorkouts(input: WorkoutSelectionInput): Workout[] {
     }
   }
 
-  // 4. Rest days
+  // 5. Rest days
   const restEntry = getWorkoutById('rest');
   if (restEntry) {
     workouts.push({ ...restEntry.template, id: 'rest_monday' });
@@ -503,11 +515,11 @@ function distributeWorkouts(
   const pattern: { [key: string]: string } = {
     Mon: 'rest_monday',
     Tue: 'tuesday_vo2|tuesday_hills',
-    Wed: 'easy_0',
+    Wed: 'strength_wednesday', // Strength Training / ME session
     Thu: 'thursday_tempo|thursday_strides',
     Fri: 'rest_friday',
     Sat: 'saturday_long',
-    Sun: 'easy_1',
+    Sun: 'easy_0|easy_1',
   };
 
   // CRITICAL: Use local dates to avoid timezone shifts
