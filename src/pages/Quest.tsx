@@ -166,15 +166,15 @@ export default function Quest() {
   const today = todayDayIndex();
   const profile = loadUserProfile();
 
-  // Module 4: Adaptive Training Plan with automatic triggers
+  // Module 4: Adaptive Training Plan (DISABLED for now - causing plan overwrite issues)
   const {
     adjustedPlan,
     decision: adaptiveDecision,
     isExecuting: isModule4Running,
     lastExecuted: module4LastExecuted,
   } = useAdaptiveTrainingPlan({
-    autoExecute: true,
-    dailyExecution: true,
+    autoExecute: false, // DISABLED: Was overwriting Strength Training sessions
+    dailyExecution: false, // DISABLED: Was running every day and regenerating plan
     onPlanAdjusted: (decision, plan) => {
       console.log('[Quest] Module 4 adjusted plan received:', plan?.length, 'days');
       // Extra validation - only accept valid 7-day plans
