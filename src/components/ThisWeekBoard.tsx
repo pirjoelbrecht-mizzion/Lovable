@@ -1,9 +1,11 @@
 import { Reorder } from "framer-motion";
 import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import TrainingBubble from "./TrainingBubble";
 import "./ThisWeekBoard.css";
 import { loadUserProfile } from "@/state/userData";
 import { calcHrZones, calcPaceZones } from "@/utils/stravaImport";
+import { useStrengthTraining } from "@/hooks/useStrengthTraining";
 
 const dayData = [
   { label: "Mon", weather: "Sunny", temp: "10°C" },
@@ -146,8 +148,11 @@ function formatPace(pace: number): string {
 }
 
 export default function ThisWeekBoard() {
+  const navigate = useNavigate();
   const [order, setOrder] = useState(defaultSessions.map((s) => s.id));
   const [sessions, setSessions] = useState(defaultSessions);
+
+  const { meAssignment, loadRegulation, coachingMessage } = useStrengthTraining(null, 'base');
 
   useEffect(() => {
     const user = loadUserProfile();
@@ -183,15 +188,21 @@ export default function ThisWeekBoard() {
       },
       {
         id: "wed",
-        title: "Strength",
-        sub: "40 min • Core",
-        color: "var(--bubble-strength)",
+        title: meAssignment ? `ME ${meAssignment.meType.replace('_', ' ').toUpperCase()}` : "Strength",
+        sub: meAssignment
+          ? (loadRegulation?.shouldAdjust
+            ? `40 min • Load ${loadRegulation.adjustmentType === 'reduce' ? 'Reduced' : 'Adjusted'}`
+            : "40 min • ME Session")
+          : "40 min • Core",
+        color: loadRegulation?.shouldAdjust ? "var(--bubble-intervals)" : "var(--bubble-strength)",
         icon: iconMap.strength,
         details: {
           bestTime: "Afternoon",
           pace: "—",
           heartRate: "—",
-          instructions: "Focus on form — Ultra Legs or Mountain Legs routine.",
+          instructions: meAssignment
+            ? `${meAssignment.reason}. ${loadRegulation?.reason || coachingMessage || 'Focus on form and technique.'}`
+            : "Focus on form — Ultra Legs or Mountain Legs routine.",
         },
       },
       {
@@ -249,7 +260,7 @@ export default function ThisWeekBoard() {
     ];
 
     setSessions(updated);
-  }, []);
+  }, [meAssignment, loadRegulation, coachingMessage]);
 
   // lookup by id for easy re-mapping
   const sessionMap = useMemo(
@@ -314,6 +325,43 @@ export default function ThisWeekBoard() {
           </Reorder.Item>
         ))}
       </Reorder.Group>
+
+      {meAssignment && (
+        <div style={{
+          marginTop: 16,
+          padding: 12,
+          background: 'rgba(139, 92, 246, 0.1)',
+          border: '1px solid rgba(139, 92, 246, 0.3)',
+          borderRadius: 8,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
+              💪 Adaptive Strength Training Active
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+              {loadRegulation?.shouldAdjust
+                ? `Load ${loadRegulation.adjustmentType} - ${loadRegulation.reason}`
+                : `ME ${meAssignment.meType.replace('_', ' ').toUpperCase()} assigned`}
+            </div>
+          </div>
+          <button
+            className="btn"
+            style={{
+              fontSize: 12,
+              padding: '6px 12px',
+              background: '#8b5cf6',
+              color: 'white',
+              border: 'none'
+            }}
+            onClick={() => navigate('/strength-training')}
+          >
+            Manage
+          </button>
+        </div>
+      )}
     </section>
   );
 }

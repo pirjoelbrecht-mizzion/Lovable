@@ -951,6 +951,51 @@ export default function SettingsV2() {
                 })}
               </div>
             </div>
+
+            {/* Strength Training Section */}
+            <div style={{
+              marginTop: 24,
+              padding: 20,
+              background: 'rgba(139, 92, 246, 0.1)',
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+              borderRadius: 12,
+            }}>
+              <h3 className="h2" style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                💪 Adaptive Strength Training
+              </h3>
+              <p className="small" style={{ color: 'var(--muted)', marginBottom: 16 }}>
+                Terrain-based ME assignment with automatic load regulation. Track soreness,
+                adjust training load, and resolve ME vs Z3 conflicts automatically.
+              </p>
+              <button
+                className="btn"
+                style={{
+                  background: '#8b5cf6',
+                  color: 'white',
+                  padding: '14px 24px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '15px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+                onClick={() => navigate('/strength-training')}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#7c3aed';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#8b5cf6';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                🚀 Open Strength Training System
+              </button>
+            </div>
           </div>
         )}
 
