@@ -22,6 +22,7 @@ import LearningDemo from "./pages/LearningDemo";
 import EnvironmentalLearning from "./pages/EnvironmentalLearning";
 import HeatImpactDemo from "./pages/HeatImpactDemo";
 import ACWRDemo from "./pages/ACWRDemo";
+import StrengthTraining from "./pages/StrengthTraining";
 
 // NEW triad pages
 import Quest from "./pages/Quest";
@@ -89,6 +90,9 @@ const router = createBrowserRouter([
 
       // ACWR Card Demo
       { path: "acwr-demo", element: <ACWRDemo /> },
+
+      // Strength Training System
+      { path: "strength-training", element: <StrengthTraining /> },
 
       // Legacy routes (still available)
       { path: "log", element: <Log /> },
