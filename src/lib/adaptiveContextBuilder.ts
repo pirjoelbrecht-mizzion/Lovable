@@ -415,7 +415,35 @@ export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | Adaptiv
   }
 
   // Convert plan to adaptive format (handles both formats)
-  const adaptivePlan = plan ? convertToAdaptiveWeekPlan(plan) : convertToAdaptiveWeekPlan([] as any);
+  // If no plan exists, create a default base plan
+  let adaptivePlan: AdaptiveWeeklyPlan;
+  if (!plan || (Array.isArray(plan) && plan.length === 0)) {
+    // Generate a default 7-day base plan
+    const monday = getMondayOfWeek();
+    const defaultPlan: LocalStorageWeekPlan = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(monday);
+      date.setDate(date.getDate() + i);
+      return {
+        label: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i],
+        dateISO: date.toISOString().slice(0, 10),
+        sessions: [{
+          id: `default_${i}`,
+          title: 'Easy Run',
+          type: 'easy',
+          notes: 'Base training',
+          km: 8,
+          distanceKm: 8,
+          durationMin: 48,
+          zones: ['Z2'],
+          elevationGain: 0,
+          source: 'coach' as const
+        }]
+      };
+    });
+    adaptivePlan = convertToAdaptiveWeekPlan(defaultPlan);
+  } else {
+    adaptivePlan = convertToAdaptiveWeekPlan(plan);
+  }
 
   // Get athlete profile
   const athlete = buildAthleteProfile();
