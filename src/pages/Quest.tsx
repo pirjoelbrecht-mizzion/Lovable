@@ -813,17 +813,32 @@ export default function Quest() {
                   </span>
                 )}
               </h2>
-              <button
-                className="quest-list-btn"
-                onClick={() => {
-                  const modes: Array<"bubbles" | "list" | "mobile"> = ["bubbles", "list", "mobile"];
-                  const currentIndex = modes.indexOf(viewMode);
-                  const nextIndex = (currentIndex + 1) % modes.length;
-                  setViewMode(modes[nextIndex]);
-                }}
-              >
-                {viewMode === "bubbles" ? "📋 List" : viewMode === "list" ? "📱 Today" : "🫧 Bubbles"}
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  className="quest-list-btn"
+                  onClick={() => {
+                    if (confirm('Reset this week\'s plan? This will load the default training template.')) {
+                      localStorage.removeItem('weekPlan_current');
+                      localStorage.removeItem('userWeekPlan');
+                      window.location.reload();
+                    }
+                  }}
+                  style={{ fontSize: '12px', padding: '6px 12px' }}
+                >
+                  🔄 Reset Plan
+                </button>
+                <button
+                  className="quest-list-btn"
+                  onClick={() => {
+                    const modes: Array<"bubbles" | "list" | "mobile"> = ["bubbles", "list", "mobile"];
+                    const currentIndex = modes.indexOf(viewMode);
+                    const nextIndex = (currentIndex + 1) % modes.length;
+                    setViewMode(modes[nextIndex]);
+                  }}
+                >
+                  {viewMode === "bubbles" ? "📋 List" : viewMode === "list" ? "📱 Today" : "🫧 Bubbles"}
+                </button>
+              </div>
             </div>
             {viewMode === "mobile" ? (
               <>

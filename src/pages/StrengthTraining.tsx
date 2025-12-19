@@ -22,6 +22,11 @@ export default function StrengthTraining() {
   const { user } = useSession();
   const userId = user?.id;
 
+  // Debug logging
+  useEffect(() => {
+    console.log('[StrengthTraining] Auth state:', { user, userId, hasUser: !!user });
+  }, [user, userId]);
+
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [exercises, setExercises] = useState<StrengthExercise[]>([]);
   const [templates, setTemplates] = useState<MESessionTemplate[]>([]);
@@ -45,7 +50,7 @@ export default function StrengthTraining() {
     checkRecovery,
     refreshData,
     shouldPromptSoreness,
-  } = useStrengthTraining(null, 'base');
+  } = useStrengthTraining(userId || null, 'base');
 
   useEffect(() => {
     loadExercises();
@@ -105,10 +110,14 @@ export default function StrengthTraining() {
     { id: 'soreness' as TabType, label: 'Track Soreness', icon: <AlertCircle size={18} /> },
   ];
 
-  if (!userId) {
+  // Allow access even without userId for demo/development mode
+  if (!userId && !user) {
     return (
       <div style={{ padding: 20, textAlign: 'center' }}>
         <p>Please sign in to access strength training features.</p>
+        <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>
+          Debug: user = {JSON.stringify(user)}, userId = {userId}
+        </p>
       </div>
     );
   }
