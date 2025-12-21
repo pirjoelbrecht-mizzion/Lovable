@@ -100,7 +100,7 @@ export async function fetchUserTerrainAccess(userId: string): Promise<UserTerrai
     return {
       userId: data.user_id,
       hasGymAccess: data.has_gym_access ?? data.gym_access ?? false,
-      hasHillsAccess: data.has_hills_access ?? (data.steep_hills_access !== 'none') ?? false,
+      hasHillsAccess: data.has_hills_access ?? (data.steep_hills_access !== 'no') ?? false,
       maxHillGrade: data.max_hill_grade ?? data.detected_max_grade ?? 10,
       treadmillAccess: data.treadmill_access ?? false,
       stairsAccess: data.stairs_access ?? false,
@@ -119,8 +119,8 @@ export async function upsertUserTerrainAccess(userId: string, access: Partial<Us
     console.log('[upsertUserTerrainAccess] Starting with userId:', userId, 'access:', access);
 
     const steepHillsValue = access.hasHillsAccess
-      ? (access.maxHillGrade && access.maxHillGrade >= 15 ? 'steep' : 'moderate')
-      : 'none';
+      ? (access.maxHillGrade && access.maxHillGrade >= 15 ? 'yes' : 'some')
+      : 'no';
 
     const { data: existing } = await supabase
       .from('user_terrain_access')
@@ -180,7 +180,7 @@ export async function upsertUserTerrainAccess(userId: string, access: Partial<Us
     return {
       userId: result.user_id,
       hasGymAccess: result.has_gym_access ?? result.gym_access ?? false,
-      hasHillsAccess: result.has_hills_access ?? (result.steep_hills_access !== 'none') ?? false,
+      hasHillsAccess: result.has_hills_access ?? (result.steep_hills_access !== 'no') ?? false,
       maxHillGrade: result.max_hill_grade ?? 10,
       treadmillAccess: result.treadmill_access ?? false,
       stairsAccess: result.stairs_access ?? false,

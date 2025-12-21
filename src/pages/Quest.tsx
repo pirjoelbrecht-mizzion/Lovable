@@ -94,7 +94,8 @@ function getMonday() {
   return monday.toISOString().slice(0, 10);
 }
 
-function detectSessionType(title: string, notes?: string): string {
+function detectSessionType(title: string, notes?: string, explicitType?: string): string {
+  if (explicitType === 'strength') return 'strength';
   const text = `${title} ${notes || ""}`.toLowerCase();
   // Check for strength training first (highest priority)
   if (/strength|gym|lift|weights|me session/i.test(text)) return "strength";
@@ -462,7 +463,8 @@ export default function Quest() {
       let title = mainSession?.title || fallback?.title || "Rest";
       const km = mainSession?.km ?? fallback?.km;
       let notes = mainSession?.notes || fallback?.notes || "";
-      let sessionType = detectSessionType(title, notes);
+      const explicitType = (mainSession as any)?.type || (fallback as any)?.type;
+      let sessionType = detectSessionType(title, notes, explicitType);
       let emoji = SESSION_EMOJIS[sessionType] || "🏃";
 
       // Enrich strength sessions with ME assignment data
@@ -818,6 +820,7 @@ export default function Quest() {
                     if (confirm('Reset this week\'s plan? This will load the default training template.')) {
                       localStorage.removeItem('weekPlan_current');
                       localStorage.removeItem('userWeekPlan');
+                      localStorage.removeItem('planner:week');
                       window.location.reload();
                     }
                   }}
