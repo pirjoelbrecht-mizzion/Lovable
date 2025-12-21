@@ -72,7 +72,12 @@ export function CosmicWeekView({ weekData, onWorkoutClick }: CosmicWeekViewProps
     const x = DAY_POSITIONS[dayIndex];
     const workouts = day.workouts;
 
-    if (workouts.length === 0) return;
+    if (workouts.length === 0) {
+      console.log(`[CosmicWeekView] Skipping day ${day.day} - no workouts`);
+      return;
+    }
+
+    console.log(`[CosmicWeekView] Rendering ${workouts.length} workouts for ${day.day}:`, workouts);
 
     const yStart = 160;
     const yEnd = 380;

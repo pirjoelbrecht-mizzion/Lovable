@@ -879,6 +879,8 @@ export default function Quest() {
                         } as any];
                       }
 
+                      if (idx === 1) console.log(`[Quest/Cosmic] Day ${idx} (${DAYS[idx]}): daySessions before map:`, daySessions);
+
                       const allWorkouts = daySessions.map((session, sessionIdx) => {
                         const sessionType = detectSessionType(session.title || '', session.notes, (session as any)?.type);
                         return {
@@ -902,7 +904,7 @@ export default function Quest() {
                         workouts: allWorkouts,
                         isToday: idx === today,
                       };
-                      if (idx === 0) console.log('[Quest/Cosmic] Day 0 result:', result);
+                      if (idx === 1) console.log('[Quest/Cosmic] Day 1 result:', result);
                       return result;
                     });
                   })()}
