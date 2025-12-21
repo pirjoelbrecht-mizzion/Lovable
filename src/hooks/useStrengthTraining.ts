@@ -156,6 +156,9 @@ export function useStrengthTraining(
         setTerrainAccess(updated);
         await loadData();
         console.log('[useStrengthTraining] Data reloaded');
+
+        window.dispatchEvent(new CustomEvent('strength:terrain-updated'));
+        console.log('[useStrengthTraining] Dispatched strength:terrain-updated event');
       } else {
         console.log('[useStrengthTraining] No updated data returned');
       }

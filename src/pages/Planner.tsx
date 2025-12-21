@@ -24,6 +24,8 @@ import WorkoutGenerator from "@/components/WorkoutGenerator";
 import { generateWorkout } from "@/utils/workoutGenerator";
 import CoachSummary from "@/components/CoachSummary";
 import AdaptiveCoachPanel from "@/components/AdaptiveCoachPanel";
+import { fetchUserTerrainAccess, determineMEType } from "@/services/strengthTrainingService";
+import useSession from "@/lib/useSession";
 
 /** ---------- Local types ---------- */
 type Session = {
@@ -104,11 +106,22 @@ function clamp(n: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, n));
 }
 
+function formatMEType(meType: string): string {
+  const typeMap: Record<string, string> = {
+    'outdoor_steep': 'Outdoor Steep Hills',
+    'outdoor_moderate': 'Outdoor Moderate Hills',
+    'gym_based': 'Gym-Based',
+    'treadmill_stairs': 'Treadmill/Stairs',
+    'bodyweight': 'Bodyweight',
+  };
+  return typeMap[meType] || meType.replace(/_/g, ' ');
+}
+
 /** ---------- Build Plan with Optional Taper Override ---------- */
 function buildPlanFromAI(
   ai: ReturnType<typeof reasonWeekly>,
   raceWeeks: number,
-  opts?: { taperCutPct?: number }
+  opts?: { taperCutPct?: number; includeStrength?: boolean; meType?: string }
 ): PlanWeek {
   const base = makeEmptyWeek();
   const volPercent = ai.fatigueScore > 0.7 ? 0.8 : ai.fatigueScore < 0.3 ? 1.1 : 1.0;
@@ -141,7 +154,7 @@ function buildPlanFromAI(
   if (ai.fatigueScore > 0.7)
     base[1].sessions.push({
       title: "Rest / Mobility",
-      notes: "Light walk + mobility 15–20’",
+      notes: "Light walk + mobility 15–20'",
     });
   else
     base[1].sessions.push({
@@ -156,11 +169,23 @@ function buildPlanFromAI(
       notes: "Controlled tempo or short hills. WU/CD.",
     });
   else base[2].sessions.push({ title: "Easy", km: ezKm, notes: "Z2 only." });
+
   base[3].sessions.push({
     title: "Easy",
     km: ezKm,
     notes: "Z2. Cadence focus.",
   });
+
+  if (opts?.includeStrength && opts?.meType && raceWeeks > 1) {
+    const formattedType = formatMEType(opts.meType);
+    base[3].sessions.push({
+      title: "Strength Training",
+      type: "strength",
+      durationMin: 45,
+      notes: `${formattedType} - Muscular Endurance session. Check Strength Training page for details.`,
+    });
+  }
+
   base[4].sessions.push({
     title: hasQuality ? "Moderate" : "Easy",
     km: hasQuality ? midKm : ezKm,
@@ -171,6 +196,17 @@ function buildPlanFromAI(
     km: ai.fatigueScore > 0.7 ? undefined : 4,
     notes: ai.fatigueScore > 0.7 ? "Extra recovery day." : "Very easy.",
   });
+
+  if (opts?.includeStrength && opts?.meType && raceWeeks > 1 && ai.fatigueScore <= 0.6) {
+    const formattedType = formatMEType(opts.meType);
+    base[5].sessions.push({
+      title: "Strength Training",
+      type: "strength",
+      durationMin: 45,
+      notes: `${formattedType} - Light ME session. Optional if fatigued.`,
+    });
+  }
+
   base[6].sessions.push({
     title: "Long Run",
     km: longKm,
@@ -342,6 +378,7 @@ function SessionEditor({
 /** ---------- Page ---------- */
 export default function Planner() {
   const t = useT();
+  const { user } = useSession();
   const [week, setWeek] = useState<PlanWeek>(() =>
     normalizeWeek(load<any>("planner:week", makeEmptyWeek()))
   );
@@ -362,6 +399,10 @@ export default function Planner() {
   // NEW: daily weather cache for displayed days + geolocate state
   const [dailyWx, setDailyWx] = useState<Record<string, any>>({});
   const [geoReady, setGeoReady] = useState<boolean>(!!getSavedLocation());
+
+  // Strength training integration
+  const [meType, setMeType] = useState<string | null>(null);
+  const [hasStrengthAccess, setHasStrengthAccess] = useState(false);
 
   // User context
   const health = load<HealthState>("health", "ok");
@@ -414,6 +455,26 @@ export default function Planner() {
     window.addEventListener("plan:updated", handlePlanUpdate);
     return () => window.removeEventListener("plan:updated", handlePlanUpdate);
   }, []);
+
+  useEffect(() => {
+    async function loadTerrainAccess() {
+      if (!user?.id) return;
+      const terrainAccess = await fetchUserTerrainAccess(user.id);
+      if (terrainAccess) {
+        setHasStrengthAccess(true);
+        const assignment = determineMEType(terrainAccess);
+        setMeType(assignment.meType);
+        console.log('[Planner] Loaded terrain access:', terrainAccess, 'ME Type:', assignment.meType);
+      } else {
+        setHasStrengthAccess(false);
+        setMeType(null);
+      }
+    }
+    loadTerrainAccess();
+
+    window.addEventListener('strength:terrain-updated', loadTerrainAccess);
+    return () => window.removeEventListener('strength:terrain-updated', loadTerrainAccess);
+  }, [user?.id]);
 
   // Auto-adapt vs actual logged KM
   useEffect(() => {
@@ -481,6 +542,8 @@ export default function Planner() {
 
     const plan = buildPlanFromAI(aiView, Math.max(0, Math.round(wTo ?? 99)), {
       taperCutPct: taperCutPct,
+      includeStrength: hasStrengthAccess,
+      meType: meType || undefined,
     });
     setPending(plan);
     setShowConfirm(true);
