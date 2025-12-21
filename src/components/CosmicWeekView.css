@@ -1,238 +1,231 @@
-.cosmic-week-view {
+.cosmic-week-view-container {
   position: relative;
   width: 100%;
-  height: 550px;
-  background: linear-gradient(180deg, #0a0118 0%, #1a0b2e 50%, #0a0118 100%);
+  height: 520px;
+  background: linear-gradient(180deg, #0a0118 0%, #1a0b2e 40%, #0f051d 100%);
+  border-radius: 12px;
   overflow: hidden;
-  border-radius: 16px;
   box-shadow:
-    0 0 40px rgba(139, 92, 246, 0.2),
-    inset 0 0 60px rgba(0, 0, 0, 0.5);
+    0 0 60px rgba(139, 92, 246, 0.15),
+    inset 0 0 80px rgba(0, 0, 0, 0.6);
 }
 
-/* Grid Background */
-.cosmic-grid {
+.cosmic-grid-bg {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(139, 92, 246, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(139, 92, 246, 0.1) 1px, transparent 1px);
-  background-size: 40px 40px;
-  background-position: center bottom;
-  transform: perspective(500px) rotateX(60deg);
-  transform-origin: center bottom;
-  opacity: 0.4;
+    linear-gradient(rgba(139, 92, 246, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 92, 246, 0.08) 1px, transparent 1px);
+  background-size: 50px 50px;
+  background-position: center bottom 20px;
+  transform: perspective(600px) rotateX(65deg) scale(1.4);
+  transform-origin: center 80%;
+  opacity: 0.5;
   pointer-events: none;
 }
 
-.cosmic-grid::before {
+.cosmic-grid-bg::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 0%, rgba(10, 1, 24, 0.8) 60%, rgba(10, 1, 24, 1) 100%);
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(10, 1, 24, 0.5) 50%,
+    rgba(10, 1, 24, 0.95) 100%
+  );
 }
 
-/* Weekly Stress Bar */
-.weekly-stress-bar {
+.weekly-indicators {
   position: absolute;
-  top: 20px;
+  top: 24px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 12px;
+  gap: 14px;
   z-index: 10;
 }
 
-.stress-dot {
-  width: 12px;
-  height: 12px;
+.day-indicator {
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(139, 92, 246, 0.2);
   transition: all 0.3s ease;
-  box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.3);
 }
 
-.stress-dot.active {
-  animation: pulse-dot 2s ease-in-out infinite;
+.day-indicator.active {
+  animation: indicator-pulse 2.5s ease-in-out infinite;
 }
 
-.stress-dot.today {
-  width: 16px;
-  height: 16px;
+.day-indicator.today {
+  width: 18px;
+  height: 18px;
   box-shadow: 0 0 20px currentColor;
 }
 
-@keyframes pulse-dot {
+@keyframes indicator-pulse {
   0%, 100% {
     transform: scale(1);
     opacity: 1;
   }
   50% {
-    transform: scale(1.2);
-    opacity: 0.8;
+    transform: scale(1.3);
+    opacity: 0.7;
   }
 }
 
-/* SVG Connections */
-.cosmic-connections {
+.cosmic-svg-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none;
   z-index: 1;
+  pointer-events: none;
 }
 
-.today-line {
-  filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.8));
-  animation: pulse-line 2s ease-in-out infinite;
+.day-line {
+  opacity: 1;
 }
 
-@keyframes pulse-line {
+.day-line-today {
+  filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.6));
+  animation: today-line-pulse 3s ease-in-out infinite;
+}
+
+@keyframes today-line-pulse {
   0%, 100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.6;
+    opacity: 0.5;
   }
 }
 
-/* Bubbles Container */
-.cosmic-bubbles-container {
+.workout-connection {
+  transition: opacity 0.3s ease;
+}
+
+.cosmic-content-layer {
   position: absolute;
   inset: 0;
   z-index: 2;
 }
 
-.day-column {
+.day-column-container {
   position: absolute;
-  width: 100px;
-  height: 100%;
+  inset: 0;
 }
 
-/* Day Labels */
-.day-label {
+.day-label-circle {
   position: absolute;
-  top: 50px;
+  top: 60px;
   transform: translateX(-50%);
-  z-index: 5;
-}
-
-.day-circle {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: rgba(139, 92, 246, 0.2);
-  border: 2px solid rgba(139, 92, 246, 0.6);
+  background: rgba(139, 92, 246, 0.15);
+  border: 2px solid rgba(139, 92, 246, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.85);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   box-shadow:
-    0 0 15px rgba(139, 92, 246, 0.4),
-    inset 0 0 10px rgba(139, 92, 246, 0.2);
+    0 0 18px rgba(139, 92, 246, 0.3),
+    inset 0 0 12px rgba(139, 92, 246, 0.15);
   transition: all 0.3s ease;
+  z-index: 5;
 }
 
-.day-label.today .day-circle {
-  width: 36px;
-  height: 36px;
-  background: rgba(6, 182, 212, 0.3);
-  border-color: rgba(6, 182, 212, 1);
+.day-label-circle.today {
+  width: 42px;
+  height: 42px;
+  font-size: 16px;
+  background: rgba(6, 182, 212, 0.2);
+  border-color: rgba(6, 182, 212, 0.9);
   box-shadow:
-    0 0 25px rgba(6, 182, 212, 0.8),
-    inset 0 0 15px rgba(6, 182, 212, 0.3);
-  animation: pulse-circle 2s ease-in-out infinite;
+    0 0 30px rgba(6, 182, 212, 0.7),
+    inset 0 0 16px rgba(6, 182, 212, 0.2);
+  animation: today-label-pulse 2.5s ease-in-out infinite;
 }
 
-@keyframes pulse-circle {
+@keyframes today-label-pulse {
   0%, 100% {
-    transform: scale(1);
+    transform: translateX(-50%) scale(1);
     box-shadow:
-      0 0 25px rgba(6, 182, 212, 0.8),
-      inset 0 0 15px rgba(6, 182, 212, 0.3);
+      0 0 30px rgba(6, 182, 212, 0.7),
+      inset 0 0 16px rgba(6, 182, 212, 0.2);
   }
   50% {
-    transform: scale(1.1);
+    transform: translateX(-50%) scale(1.08);
     box-shadow:
-      0 0 35px rgba(6, 182, 212, 1),
-      inset 0 0 20px rgba(6, 182, 212, 0.5);
+      0 0 45px rgba(6, 182, 212, 1),
+      inset 0 0 24px rgba(6, 182, 212, 0.4);
   }
 }
 
-/* Workout Bubbles */
-.cosmic-bubble {
+.add-workout-btn {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(6, 182, 212, 0.12);
+  border: 2px dashed rgba(6, 182, 212, 0.4);
+  color: rgba(6, 182, 212, 0.7);
+  font-size: 32px;
+  font-weight: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 3;
+}
+
+.add-workout-btn:hover {
+  background: rgba(6, 182, 212, 0.25);
+  border-style: solid;
+  border-color: rgba(6, 182, 212, 0.8);
+  box-shadow: 0 0 25px rgba(6, 182, 212, 0.5);
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.cosmic-workout-bubble {
   position: absolute;
   transform: translate(-50%, -50%);
   cursor: pointer;
-  z-index: 3;
   border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, var(--bubble-color), rgba(0, 0, 0, 0.8));
-  border: 2px solid var(--bubble-color);
+  background: radial-gradient(
+    circle at 35% 35%,
+    var(--workout-color),
+    rgba(0, 0, 0, 0.85)
+  );
+  border: 2.5px solid var(--workout-color);
   box-shadow:
-    0 0 20px var(--bubble-glow),
-    inset 0 0 15px rgba(255, 255, 255, 0.1),
-    inset 0 0 30px var(--bubble-glow);
+    0 0 25px var(--workout-color),
+    inset 0 0 20px rgba(255, 255, 255, 0.08),
+    inset 0 0 40px var(--workout-color);
   transition: all 0.3s ease;
-  filter: drop-shadow(0 0 10px var(--bubble-glow));
+  z-index: 3;
 }
 
-.cosmic-bubble:hover {
-  filter: drop-shadow(0 0 20px var(--bubble-glow));
-  border-width: 3px;
-}
-
-.cosmic-bubble.completed {
-  background: radial-gradient(circle at 30% 30%, #10B981, rgba(0, 0, 0, 0.8));
-  border-color: #10B981;
-  box-shadow:
-    0 0 20px #10B981,
-    inset 0 0 15px rgba(16, 185, 129, 0.3);
-}
-
-.cosmic-bubble.today {
-  animation: pulse-today 2s ease-in-out infinite;
-}
-
-@keyframes pulse-today {
-  0%, 100% {
-    transform: translate(-50%, -50%) scale(1);
-    box-shadow:
-      0 0 20px var(--bubble-glow),
-      inset 0 0 15px rgba(255, 255, 255, 0.1),
-      inset 0 0 30px var(--bubble-glow);
-  }
-  50% {
-    transform: translate(-50%, -50%) scale(1.05);
-    box-shadow:
-      0 0 40px var(--bubble-glow),
-      inset 0 0 20px rgba(255, 255, 255, 0.2),
-      inset 0 0 40px var(--bubble-glow);
-  }
-}
-
-.cosmic-bubble.selected {
-  border-width: 4px;
-  box-shadow:
-    0 0 40px var(--bubble-glow),
-    inset 0 0 25px rgba(255, 255, 255, 0.2);
-}
-
-/* Bubble Ring */
-.bubble-ring {
+.cosmic-workout-bubble::before {
+  content: '';
   position: absolute;
-  inset: -4px;
+  inset: -6px;
   border-radius: 50%;
-  border: 2px solid var(--bubble-color);
-  opacity: 0.3;
-  animation: rotate-ring 8s linear infinite;
+  border: 2px solid var(--workout-color);
+  opacity: 0.2;
+  animation: bubble-ring-rotate 10s linear infinite;
 }
 
-@keyframes rotate-ring {
+@keyframes bubble-ring-rotate {
   from {
     transform: rotate(0deg);
   }
@@ -241,167 +234,202 @@
   }
 }
 
-.cosmic-bubble.today .bubble-ring {
-  animation: pulse-ring 2s ease-in-out infinite;
+.cosmic-workout-bubble.today-workout {
+  animation: today-bubble-pulse 2.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px var(--workout-color));
 }
 
-@keyframes pulse-ring {
+@keyframes today-bubble-pulse {
   0%, 100% {
-    transform: scale(1);
-    opacity: 0.3;
+    transform: translate(-50%, -50%) scale(1);
+    box-shadow:
+      0 0 25px var(--workout-color),
+      inset 0 0 20px rgba(255, 255, 255, 0.08),
+      inset 0 0 40px var(--workout-color);
   }
   50% {
-    transform: scale(1.2);
-    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1.08);
+    box-shadow:
+      0 0 45px var(--workout-color),
+      inset 0 0 30px rgba(255, 255, 255, 0.15),
+      inset 0 0 60px var(--workout-color);
   }
 }
 
-/* Bubble Content */
-.bubble-content {
+.cosmic-workout-bubble.completed {
+  background: radial-gradient(
+    circle at 35% 35%,
+    #10B981,
+    rgba(0, 0, 0, 0.85)
+  );
+  border-color: #10B981;
+  --workout-color: #10B981;
+  box-shadow:
+    0 0 25px #10B981,
+    inset 0 0 20px rgba(16, 185, 129, 0.2);
+}
+
+.bubble-glow {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--workout-color), transparent 70%);
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+.bubble-inner {
   position: relative;
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
   z-index: 1;
 }
 
-.bubble-icon {
-  font-size: 1.5em;
-  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.8));
+.workout-icon {
+  font-size: 28px;
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.9));
 }
 
-.now-badge {
-  font-size: 12px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.95);
+.now-label {
+  font-size: 16px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.98);
   text-transform: uppercase;
-  letter-spacing: 1px;
-  text-shadow: 0 0 10px currentColor;
+  letter-spacing: 2px;
+  text-shadow:
+    0 0 12px currentColor,
+    0 0 24px currentColor;
+  animation: now-text-glow 2s ease-in-out infinite;
 }
 
-.completed-check {
+@keyframes now-text-glow {
+  0%, 100% {
+    text-shadow:
+      0 0 12px currentColor,
+      0 0 24px currentColor;
+  }
+  50% {
+    text-shadow:
+      0 0 18px currentColor,
+      0 0 36px currentColor,
+      0 0 48px currentColor;
+  }
+}
+
+.check-badge {
   position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 18px;
-  height: 18px;
+  top: -6px;
+  right: -6px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: #10B981;
   color: white;
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 10px #10B981;
-  font-weight: 700;
+  box-shadow:
+    0 0 15px #10B981,
+    0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
-/* Tooltip */
-.bubble-tooltip {
+.workout-tooltip {
   position: absolute;
-  bottom: calc(100% + 12px);
+  bottom: calc(100% + 16px);
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(10, 1, 24, 0.95);
-  border: 1px solid var(--bubble-color);
-  border-radius: 8px;
-  padding: 8px 12px;
-  min-width: 120px;
+  background: rgba(10, 1, 24, 0.96);
+  border: 1.5px solid var(--workout-color);
+  border-radius: 10px;
+  padding: 10px 14px;
+  min-width: 140px;
   text-align: center;
   box-shadow:
-    0 0 20px var(--bubble-glow),
-    inset 0 0 10px rgba(255, 255, 255, 0.05);
+    0 0 25px var(--workout-color),
+    0 4px 16px rgba(0, 0, 0, 0.5),
+    inset 0 0 12px rgba(255, 255, 255, 0.05);
   pointer-events: none;
   white-space: nowrap;
   z-index: 100;
 }
 
-.bubble-tooltip::after {
+.workout-tooltip::after {
   content: '';
   position: absolute;
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  border: 6px solid transparent;
-  border-top-color: var(--bubble-color);
+  border: 8px solid transparent;
+  border-top-color: var(--workout-color);
 }
 
 .tooltip-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: white;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
 }
 
-.tooltip-detail {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.7);
+.tooltip-details {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
 }
 
-/* Add Workout Button */
-.add-workout-button {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: rgba(6, 182, 212, 0.2);
-  border: 2px dashed rgba(6, 182, 212, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  z-index: 3;
-}
-
-.add-workout-button:hover {
-  background: rgba(6, 182, 212, 0.3);
-  border-style: solid;
-  border-color: rgba(6, 182, 212, 1);
-  box-shadow: 0 0 20px rgba(6, 182, 212, 0.6);
-}
-
-.add-icon {
-  font-size: 28px;
-  font-weight: 300;
-  color: rgba(6, 182, 212, 0.9);
-}
-
-/* Responsive */
 @media (max-width: 768px) {
-  .cosmic-week-view {
+  .cosmic-week-view-container {
     height: 400px;
   }
 
-  .day-circle {
-    width: 28px;
-    height: 28px;
+  .day-label-circle {
+    width: 32px;
+    height: 32px;
     font-size: 12px;
   }
 
-  .cosmic-bubble {
-    transform: translate(-50%, -50%) scale(0.8);
+  .day-label-circle.today {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
   }
 
-  .bubble-tooltip {
-    font-size: 11px;
+  .cosmic-workout-bubble {
+    transform: translate(-50%, -50%) scale(0.85);
+  }
+
+  .cosmic-workout-bubble.today-workout {
+    transform: translate(-50%, -50%) scale(0.85);
+  }
+
+  .workout-tooltip {
+    font-size: 12px;
+    padding: 8px 12px;
   }
 }
 
 @media (max-width: 480px) {
-  .cosmic-week-view {
+  .cosmic-week-view-container {
     height: 350px;
   }
 
-  .cosmic-connections {
+  .workout-connection {
     display: none;
   }
 
-  .cosmic-bubble {
+  .cosmic-workout-bubble {
     transform: translate(-50%, -50%) scale(0.7);
+  }
+
+  .cosmic-workout-bubble.today-workout {
+    transform: translate(-50%, -50%) scale(0.75);
+  }
+
+  .cosmic-grid-bg {
+    opacity: 0.3;
   }
 }
