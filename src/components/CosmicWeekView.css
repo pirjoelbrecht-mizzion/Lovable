@@ -1,0 +1,407 @@
+.cosmic-week-view {
+  position: relative;
+  width: 100%;
+  height: 550px;
+  background: linear-gradient(180deg, #0a0118 0%, #1a0b2e 50%, #0a0118 100%);
+  overflow: hidden;
+  border-radius: 16px;
+  box-shadow:
+    0 0 40px rgba(139, 92, 246, 0.2),
+    inset 0 0 60px rgba(0, 0, 0, 0.5);
+}
+
+/* Grid Background */
+.cosmic-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(139, 92, 246, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 92, 246, 0.1) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: center bottom;
+  transform: perspective(500px) rotateX(60deg);
+  transform-origin: center bottom;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.cosmic-grid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(10, 1, 24, 0.8) 60%, rgba(10, 1, 24, 1) 100%);
+}
+
+/* Weekly Stress Bar */
+.weekly-stress-bar {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  z-index: 10;
+}
+
+.stress-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+}
+
+.stress-dot.active {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.stress-dot.today {
+  width: 16px;
+  height: 16px;
+  box-shadow: 0 0 20px currentColor;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+/* SVG Connections */
+.cosmic-connections {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.today-line {
+  filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.8));
+  animation: pulse-line 2s ease-in-out infinite;
+}
+
+@keyframes pulse-line {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Bubbles Container */
+.cosmic-bubbles-container {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.day-column {
+  position: absolute;
+  width: 100px;
+  height: 100%;
+}
+
+/* Day Labels */
+.day-label {
+  position: absolute;
+  top: 50px;
+  transform: translateX(-50%);
+  z-index: 5;
+}
+
+.day-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(139, 92, 246, 0.2);
+  border: 2px solid rgba(139, 92, 246, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow:
+    0 0 15px rgba(139, 92, 246, 0.4),
+    inset 0 0 10px rgba(139, 92, 246, 0.2);
+  transition: all 0.3s ease;
+}
+
+.day-label.today .day-circle {
+  width: 36px;
+  height: 36px;
+  background: rgba(6, 182, 212, 0.3);
+  border-color: rgba(6, 182, 212, 1);
+  box-shadow:
+    0 0 25px rgba(6, 182, 212, 0.8),
+    inset 0 0 15px rgba(6, 182, 212, 0.3);
+  animation: pulse-circle 2s ease-in-out infinite;
+}
+
+@keyframes pulse-circle {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 25px rgba(6, 182, 212, 0.8),
+      inset 0 0 15px rgba(6, 182, 212, 0.3);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow:
+      0 0 35px rgba(6, 182, 212, 1),
+      inset 0 0 20px rgba(6, 182, 212, 0.5);
+  }
+}
+
+/* Workout Bubbles */
+.cosmic-bubble {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  z-index: 3;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, var(--bubble-color), rgba(0, 0, 0, 0.8));
+  border: 2px solid var(--bubble-color);
+  box-shadow:
+    0 0 20px var(--bubble-glow),
+    inset 0 0 15px rgba(255, 255, 255, 0.1),
+    inset 0 0 30px var(--bubble-glow);
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 0 10px var(--bubble-glow));
+}
+
+.cosmic-bubble:hover {
+  filter: drop-shadow(0 0 20px var(--bubble-glow));
+  border-width: 3px;
+}
+
+.cosmic-bubble.completed {
+  background: radial-gradient(circle at 30% 30%, #10B981, rgba(0, 0, 0, 0.8));
+  border-color: #10B981;
+  box-shadow:
+    0 0 20px #10B981,
+    inset 0 0 15px rgba(16, 185, 129, 0.3);
+}
+
+.cosmic-bubble.today {
+  animation: pulse-today 2s ease-in-out infinite;
+}
+
+@keyframes pulse-today {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    box-shadow:
+      0 0 20px var(--bubble-glow),
+      inset 0 0 15px rgba(255, 255, 255, 0.1),
+      inset 0 0 30px var(--bubble-glow);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.05);
+    box-shadow:
+      0 0 40px var(--bubble-glow),
+      inset 0 0 20px rgba(255, 255, 255, 0.2),
+      inset 0 0 40px var(--bubble-glow);
+  }
+}
+
+.cosmic-bubble.selected {
+  border-width: 4px;
+  box-shadow:
+    0 0 40px var(--bubble-glow),
+    inset 0 0 25px rgba(255, 255, 255, 0.2);
+}
+
+/* Bubble Ring */
+.bubble-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--bubble-color);
+  opacity: 0.3;
+  animation: rotate-ring 8s linear infinite;
+}
+
+@keyframes rotate-ring {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cosmic-bubble.today .bubble-ring {
+  animation: pulse-ring 2s ease-in-out infinite;
+}
+
+@keyframes pulse-ring {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.6;
+  }
+}
+
+/* Bubble Content */
+.bubble-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  z-index: 1;
+}
+
+.bubble-icon {
+  font-size: 1.5em;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.8));
+}
+
+.now-badge {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 0 10px currentColor;
+}
+
+.completed-check {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #10B981;
+  color: white;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 10px #10B981;
+  font-weight: 700;
+}
+
+/* Tooltip */
+.bubble-tooltip {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 1, 24, 0.95);
+  border: 1px solid var(--bubble-color);
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-width: 120px;
+  text-align: center;
+  box-shadow:
+    0 0 20px var(--bubble-glow),
+    inset 0 0 10px rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 100;
+}
+
+.bubble-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--bubble-color);
+}
+
+.tooltip-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 4px;
+}
+
+.tooltip-detail {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Add Workout Button */
+.add-workout-button {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(6, 182, 212, 0.2);
+  border: 2px dashed rgba(6, 182, 212, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 3;
+}
+
+.add-workout-button:hover {
+  background: rgba(6, 182, 212, 0.3);
+  border-style: solid;
+  border-color: rgba(6, 182, 212, 1);
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.6);
+}
+
+.add-icon {
+  font-size: 28px;
+  font-weight: 300;
+  color: rgba(6, 182, 212, 0.9);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .cosmic-week-view {
+    height: 400px;
+  }
+
+  .day-circle {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .cosmic-bubble {
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+
+  .bubble-tooltip {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .cosmic-week-view {
+    height: 350px;
+  }
+
+  .cosmic-connections {
+    display: none;
+  }
+
+  .cosmic-bubble {
+    transform: translate(-50%, -50%) scale(0.7);
+  }
+}

@@ -25,6 +25,7 @@ import { buildAthleteProfile, calculateReadiness, type AthleteProfile } from "@/
 import { Calendar, Flag, Map, Thermometer, Users, Zap, ChevronRight, Activity, TrendingUp, Mountain } from "lucide-react";
 import { useStrengthTraining } from "@/hooks/useStrengthTraining";
 import { MESessionInline } from "@/components/MESessionInline";
+import { CosmicWeekView } from "@/components/CosmicWeekView";
 import "./Quest.css";
 
 type SessionNode = {
@@ -123,7 +124,7 @@ export default function Quest() {
   const t = useT();
   const [openQuick, setOpenQuick] = useState(false);
   const [races, setRaces] = useState<Race[]>([]);
-  const [viewMode, setViewMode] = useState<"bubbles" | "list" | "mobile">("bubbles");
+  const [viewMode, setViewMode] = useState<"bubbles" | "list" | "mobile" | "cosmic">("cosmic");
   const [selectedSession, setSelectedSession] = useState<SessionNode | null>(null);
 
   // Get strength training data
@@ -846,17 +847,58 @@ export default function Quest() {
                 <button
                   className="quest-list-btn"
                   onClick={() => {
-                    const modes: Array<"bubbles" | "list" | "mobile"> = ["bubbles", "list", "mobile"];
+                    const modes: Array<"cosmic" | "bubbles" | "list" | "mobile"> = ["cosmic", "bubbles", "list", "mobile"];
                     const currentIndex = modes.indexOf(viewMode);
                     const nextIndex = (currentIndex + 1) % modes.length;
                     setViewMode(modes[nextIndex]);
                   }}
                 >
-                  {viewMode === "bubbles" ? "📋 List" : viewMode === "list" ? "📱 Today" : "🫧 Bubbles"}
+                  {viewMode === "cosmic" ? "🫧 Bubbles" : viewMode === "bubbles" ? "📋 List" : viewMode === "list" ? "📱 Today" : "🌌 Cosmic"}
                 </button>
               </div>
             </div>
-            {viewMode === "mobile" ? (
+            {viewMode === "cosmic" ? (
+              <>
+                <CosmicWeekView
+                  weekData={weekPlan.map((day, idx) => {
+                    const allWorkouts = day.sessions.map((session, sessionIdx) => {
+                      const sessionType = detectSessionType(session.title || '', session.notes, (session as any)?.type);
+                      return {
+                        id: `${idx}-${sessionIdx}`,
+                        type: sessionType as any,
+                        title: session.title || 'Workout',
+                        duration: (session as any)?.durationMin
+                          ? `${Math.floor((session as any).durationMin / 60)}h ${Math.floor((session as any).durationMin % 60)}m`.replace(/0h /, '')
+                          : session.km ? estimateDuration(session.km, sessionType) : '30 min',
+                        distance: session.km ? `${session.km}K` : undefined,
+                        completed: completionStatus[idx] || false,
+                        isToday: idx === today,
+                        elevation: (session as any)?.elevationGain,
+                        zones: (session as any)?.zones,
+                      };
+                    });
+
+                    return {
+                      day: DAYS[idx],
+                      dayShort: DAYS_SHORT[idx],
+                      workouts: allWorkouts,
+                      isToday: idx === today,
+                    };
+                  })}
+                  onWorkoutClick={(workout, day) => {
+                    const dayIndex = DAYS.indexOf(day);
+                    const sessionIndex = parseInt(workout.id.split('-')[1]);
+                    const session = sessions[dayIndex];
+                    if (session) {
+                      setSelectedSession(session);
+                    }
+                  }}
+                  onAddClick={(day) => {
+                    console.log('Add workout for', day);
+                  }}
+                />
+              </>
+            ) : viewMode === "mobile" ? (
               <>
                 {/* NEW: Mobile Training View */}
                 {todayData ? (
