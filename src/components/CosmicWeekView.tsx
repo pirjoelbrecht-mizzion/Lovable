@@ -56,6 +56,8 @@ const DAY_POSITIONS = [80, 160, 240, 320, 400, 480, 560];
 export function CosmicWeekView({ weekData, onWorkoutClick }: CosmicWeekViewProps) {
   const [hoveredWorkout, setHoveredWorkout] = useState<string | null>(null);
 
+  console.log('[CosmicWeekView] Received weekData:', weekData.map(d => ({ day: d.day, workoutCount: d.workouts.length })));
+
   const allWorkouts: Array<{
     workout: Workout;
     day: string;

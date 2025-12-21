@@ -863,10 +863,21 @@ export default function Quest() {
                   weekData={(() => {
                     const hasUserPlan = weekPlan.some(day => day.sessions && day.sessions.length > 0);
                     const defaultPlan = hasUserPlan ? null : loadWeekPlan();
+                    console.log('[Quest/Cosmic] hasUserPlan:', hasUserPlan, 'defaultPlan:', defaultPlan);
 
                     return weekPlan.map((day, idx) => {
                       const fallback = defaultPlan ? defaultPlan[idx] : null;
-                      const daySessions = day.sessions && day.sessions.length > 0 ? day.sessions : (fallback?.sessions || []);
+                      let daySessions = day.sessions && day.sessions.length > 0 ? day.sessions : [];
+
+                      // If no user sessions and we have a fallback, create a session from fallback
+                      if (daySessions.length === 0 && fallback) {
+                        daySessions = [{
+                          title: fallback.title || 'Rest',
+                          km: fallback.km,
+                          notes: fallback.notes || '',
+                          type: fallback.type
+                        } as any];
+                      }
 
                       const allWorkouts = daySessions.map((session, sessionIdx) => {
                         const sessionType = detectSessionType(session.title || '', session.notes, (session as any)?.type);
@@ -885,12 +896,14 @@ export default function Quest() {
                         };
                       });
 
-                      return {
+                      const result = {
                         day: DAYS[idx],
                         dayShort: DAYS_SHORT[idx],
                         workouts: allWorkouts,
                         isToday: idx === today,
                       };
+                      if (idx === 0) console.log('[Quest/Cosmic] Day 0 result:', result);
+                      return result;
                     });
                   })()}
                   onWorkoutClick={(workout, day) => {
