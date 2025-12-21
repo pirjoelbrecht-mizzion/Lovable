@@ -116,6 +116,8 @@ export async function fetchUserTerrainAccess(userId: string): Promise<UserTerrai
 
 export async function upsertUserTerrainAccess(userId: string, access: Partial<UserTerrainAccess>): Promise<UserTerrainAccess | null> {
   try {
+    console.log('[upsertUserTerrainAccess] Starting with userId:', userId, 'access:', access);
+
     const steepHillsValue = access.hasHillsAccess
       ? (access.maxHillGrade && access.maxHillGrade >= 15 ? 'steep' : 'moderate')
       : 'none';
@@ -125,6 +127,8 @@ export async function upsertUserTerrainAccess(userId: string, access: Partial<Us
       .select('id')
       .eq('user_id', userId)
       .maybeSingle();
+
+    console.log('[upsertUserTerrainAccess] Existing record:', existing);
 
     const payload = {
       user_id: userId,
@@ -141,25 +145,37 @@ export async function upsertUserTerrainAccess(userId: string, access: Partial<Us
       updated_at: new Date().toISOString(),
     };
 
+    console.log('[upsertUserTerrainAccess] Payload:', payload);
+
     let result;
     if (existing) {
+      console.log('[upsertUserTerrainAccess] Updating existing record');
       const { data, error } = await supabase
         .from('user_terrain_access')
         .update(payload)
         .eq('user_id', userId)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('[upsertUserTerrainAccess] Update error:', error);
+        throw error;
+      }
       result = data;
     } else {
+      console.log('[upsertUserTerrainAccess] Inserting new record');
       const { data, error } = await supabase
         .from('user_terrain_access')
         .insert(payload)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('[upsertUserTerrainAccess] Insert error:', error);
+        throw error;
+      }
       result = data;
     }
+
+    console.log('[upsertUserTerrainAccess] Result:', result);
 
     return {
       userId: result.user_id,
@@ -174,7 +190,7 @@ export async function upsertUserTerrainAccess(userId: string, access: Partial<Us
       lastUpdated: result.updated_at,
     };
   } catch (err) {
-    console.error('Error upserting terrain access:', err);
+    console.error('[upsertUserTerrainAccess] Error:', err);
     return null;
   }
 }

@@ -972,10 +972,23 @@ export function TerrainAccessSettings({ currentAccess, detectedMaxGrade, onSave 
   const [usesPoles, setUsesPoles] = useState(currentAccess?.usesPoles ?? false);
   const [isSkimoAthlete, setIsSkimoAthlete] = useState(currentAccess?.isSkimoAthlete ?? false);
   const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const handleSave = async () => {
+    console.log('[TerrainAccessSettings] Save clicked');
     setSaving(true);
+    setSaveSuccess(false);
     try {
+      console.log('[TerrainAccessSettings] Calling onSave with:', {
+        hasGymAccess,
+        hasHillsAccess,
+        treadmillAccess: hasTreadmillAccess,
+        stairsAccess: hasStairsAccess,
+        maxHillGrade,
+        usesPoles,
+        isSkimoAthlete,
+        manualOverride: true,
+      });
       await onSave({
         hasGymAccess,
         hasHillsAccess,
@@ -986,6 +999,11 @@ export function TerrainAccessSettings({ currentAccess, detectedMaxGrade, onSave 
         isSkimoAthlete,
         manualOverride: true,
       });
+      console.log('[TerrainAccessSettings] Save completed successfully');
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      console.error('[TerrainAccessSettings] Save error:', err);
     } finally {
       setSaving(false);
     }
@@ -1190,6 +1208,24 @@ export function TerrainAccessSettings({ currentAccess, detectedMaxGrade, onSave 
         )}
       </div>
 
+      {saveSuccess && (
+        <div style={{
+          padding: 16,
+          background: 'rgba(34, 197, 94, 0.1)',
+          border: '1px solid rgba(34, 197, 94, 0.3)',
+          borderRadius: 12,
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+        }}>
+          <Check size={20} color="#22c55e" />
+          <span style={{ color: '#22c55e', fontWeight: 600 }}>
+            Settings saved successfully!
+          </span>
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: 12 }}>
         <button
           onClick={() => {
@@ -1223,7 +1259,7 @@ export function TerrainAccessSettings({ currentAccess, detectedMaxGrade, onSave 
           style={{
             flex: 1,
             padding: '12px 24px',
-            background: 'var(--primary)',
+            background: saveSuccess ? 'var(--success)' : 'var(--primary)',
             border: 'none',
             borderRadius: 10,
             color: 'white',
@@ -1232,7 +1268,7 @@ export function TerrainAccessSettings({ currentAccess, detectedMaxGrade, onSave 
             opacity: saving ? 0.7 : 1,
           }}
         >
-          {saving ? 'Saving...' : 'Save Settings'}
+          {saving ? 'Saving...' : saveSuccess ? 'Saved!' : 'Save Settings'}
         </button>
       </div>
     </div>

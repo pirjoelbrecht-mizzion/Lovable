@@ -143,12 +143,21 @@ export function useStrengthTraining(
 
   const updateTerrainAccess = useCallback(
     async (access: Partial<UserTerrainAccess>) => {
-      if (!userId) return;
+      console.log('[useStrengthTraining] updateTerrainAccess called with:', access);
+      if (!userId) {
+        console.log('[useStrengthTraining] No userId, returning early');
+        return;
+      }
 
+      console.log('[useStrengthTraining] Calling upsertUserTerrainAccess...');
       const updated = await upsertUserTerrainAccess(userId, access);
+      console.log('[useStrengthTraining] upsertUserTerrainAccess result:', updated);
       if (updated) {
         setTerrainAccess(updated);
         await loadData();
+        console.log('[useStrengthTraining] Data reloaded');
+      } else {
+        console.log('[useStrengthTraining] No updated data returned');
       }
     },
     [userId, loadData]
