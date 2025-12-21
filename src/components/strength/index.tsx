@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dumbbell,
   Play,
@@ -973,6 +973,19 @@ export function TerrainAccessSettings({ currentAccess, detectedMaxGrade, onSave 
   const [isSkimoAthlete, setIsSkimoAthlete] = useState(currentAccess?.isSkimoAthlete ?? false);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  useEffect(() => {
+    if (currentAccess) {
+      console.log('[TerrainAccessSettings] Updating form from loaded data:', currentAccess);
+      setHasGymAccess(currentAccess.hasGymAccess ?? false);
+      setHasHillsAccess(currentAccess.hasHillsAccess ?? false);
+      setHasTreadmillAccess(currentAccess.treadmillAccess ?? false);
+      setHasStairsAccess(currentAccess.stairsAccess ?? false);
+      setMaxHillGrade(currentAccess.maxHillGrade ?? detectedMaxGrade ?? 10);
+      setUsesPoles(currentAccess.usesPoles ?? false);
+      setIsSkimoAthlete(currentAccess.isSkimoAthlete ?? false);
+    }
+  }, [currentAccess, detectedMaxGrade]);
 
   const handleSave = async () => {
     console.log('[TerrainAccessSettings] Save clicked');

@@ -162,13 +162,23 @@ function buildPlanFromAI(
       km: ezKm,
       notes: "Z2. Optional strides.",
     });
-  if (hasQuality)
+  if (opts?.includeStrength && opts?.meType && raceWeeks > 1) {
+    const formattedType = formatMEType(opts.meType);
+    base[2].sessions.push({
+      title: "Strength Training",
+      type: "strength",
+      durationMin: 45,
+      notes: `${formattedType} - Muscular Endurance session. Check Strength Training page for details.`,
+    });
+  } else if (hasQuality) {
     base[2].sessions.push({
       title: "Quality",
       km: midKm,
       notes: "Controlled tempo or short hills. WU/CD.",
     });
-  else base[2].sessions.push({ title: "Easy", km: ezKm, notes: "Z2 only." });
+  } else {
+    base[2].sessions.push({ title: "Easy", km: ezKm, notes: "Z2 only." });
+  }
 
   base[3].sessions.push({
     title: "Easy",
@@ -176,36 +186,27 @@ function buildPlanFromAI(
     notes: "Z2. Cadence focus.",
   });
 
-  if (opts?.includeStrength && opts?.meType && raceWeeks > 1) {
-    const formattedType = formatMEType(opts.meType);
-    base[3].sessions.push({
-      title: "Strength Training",
-      type: "strength",
-      durationMin: 45,
-      notes: `${formattedType} - Muscular Endurance session. Check Strength Training page for details.`,
-    });
-  }
-
   base[4].sessions.push({
     title: hasQuality ? "Moderate" : "Easy",
     km: hasQuality ? midKm : ezKm,
     notes: hasQuality ? "Progress to steady." : "Keep easy.",
   });
+
+  if (opts?.includeStrength && opts?.meType && raceWeeks > 1 && ai.fatigueScore <= 0.6 && hasQuality) {
+    const formattedType = formatMEType(opts.meType);
+    base[4].sessions.push({
+      title: "Strength Training",
+      type: "strength",
+      durationMin: 40,
+      notes: `${formattedType} - Light ME session. Optional if fatigued.`,
+    });
+  }
+
   base[5].sessions.push({
     title: ai.fatigueScore > 0.7 ? "Rest" : "Shake-out",
     km: ai.fatigueScore > 0.7 ? undefined : 4,
     notes: ai.fatigueScore > 0.7 ? "Extra recovery day." : "Very easy.",
   });
-
-  if (opts?.includeStrength && opts?.meType && raceWeeks > 1 && ai.fatigueScore <= 0.6) {
-    const formattedType = formatMEType(opts.meType);
-    base[5].sessions.push({
-      title: "Strength Training",
-      type: "strength",
-      durationMin: 45,
-      notes: `${formattedType} - Light ME session. Optional if fatigued.`,
-    });
-  }
 
   base[6].sessions.push({
     title: "Long Run",
