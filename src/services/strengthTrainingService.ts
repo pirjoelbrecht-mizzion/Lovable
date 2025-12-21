@@ -99,15 +99,15 @@ export async function fetchUserTerrainAccess(userId: string): Promise<UserTerrai
 
     return {
       userId: data.user_id,
-      hasGymAccess: data.has_gym_access || false,
-      hasHillsAccess: data.has_hills_access || false,
-      maxHillGrade: data.max_hill_grade || 10,
-      treadmillAccess: data.treadmill_access || false,
-      stairsAccess: data.stairs_access || false,
-      usesPoles: data.uses_poles || false,
-      isSkimoAthlete: data.is_skimo_athlete || false,
-      manualOverride: data.manual_override || false,
-      lastUpdated: data.last_updated || data.updated_at,
+      hasGymAccess: data.has_gym_access ?? data.gym_access ?? false,
+      hasHillsAccess: data.has_hills_access ?? (data.steep_hills_access !== 'none') ?? false,
+      maxHillGrade: data.max_hill_grade ?? data.detected_max_grade ?? 10,
+      treadmillAccess: data.treadmill_access ?? false,
+      stairsAccess: data.stairs_access ?? false,
+      usesPoles: data.uses_poles ?? false,
+      isSkimoAthlete: data.is_skimo_athlete ?? false,
+      manualOverride: data.manual_override ?? false,
+      lastUpdated: data.updated_at,
     };
   } catch {
     return null;
@@ -116,39 +116,62 @@ export async function fetchUserTerrainAccess(userId: string): Promise<UserTerrai
 
 export async function upsertUserTerrainAccess(userId: string, access: Partial<UserTerrainAccess>): Promise<UserTerrainAccess | null> {
   try {
-    const { data, error } = await supabase
-      .from('user_terrain_access')
-      .upsert({
-        user_id: userId,
-        has_gym_access: access.hasGymAccess,
-        has_hills_access: access.hasHillsAccess,
-        max_hill_grade: access.maxHillGrade,
-        treadmill_access: access.treadmillAccess,
-        stairs_access: access.stairsAccess,
-        uses_poles: access.usesPoles,
-        is_skimo_athlete: access.isSkimoAthlete,
-        manual_override: access.manualOverride,
-        updated_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
+    const steepHillsValue = access.hasHillsAccess
+      ? (access.maxHillGrade && access.maxHillGrade >= 15 ? 'steep' : 'moderate')
+      : 'none';
 
-    if (error) {
-      console.error('Error upserting terrain access:', error);
-      return null;
+    const { data: existing } = await supabase
+      .from('user_terrain_access')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    const payload = {
+      user_id: userId,
+      gym_access: access.hasGymAccess ?? false,
+      has_gym_access: access.hasGymAccess ?? false,
+      steep_hills_access: steepHillsValue,
+      has_hills_access: access.hasHillsAccess ?? false,
+      max_hill_grade: access.maxHillGrade ?? 10,
+      treadmill_access: access.treadmillAccess ?? false,
+      stairs_access: access.stairsAccess ?? false,
+      uses_poles: access.usesPoles ?? false,
+      is_skimo_athlete: access.isSkimoAthlete ?? false,
+      manual_override: access.manualOverride ?? false,
+      updated_at: new Date().toISOString(),
+    };
+
+    let result;
+    if (existing) {
+      const { data, error } = await supabase
+        .from('user_terrain_access')
+        .update(payload)
+        .eq('user_id', userId)
+        .select()
+        .single();
+      if (error) throw error;
+      result = data;
+    } else {
+      const { data, error } = await supabase
+        .from('user_terrain_access')
+        .insert(payload)
+        .select()
+        .single();
+      if (error) throw error;
+      result = data;
     }
 
     return {
-      userId: data.user_id,
-      hasGymAccess: data.has_gym_access,
-      hasHillsAccess: data.has_hills_access,
-      maxHillGrade: data.max_hill_grade,
-      treadmillAccess: data.treadmill_access,
-      stairsAccess: data.stairs_access,
-      usesPoles: data.uses_poles,
-      isSkimoAthlete: data.is_skimo_athlete,
-      manualOverride: data.manual_override,
-      lastUpdated: data.updated_at,
+      userId: result.user_id,
+      hasGymAccess: result.has_gym_access ?? result.gym_access ?? false,
+      hasHillsAccess: result.has_hills_access ?? (result.steep_hills_access !== 'none') ?? false,
+      maxHillGrade: result.max_hill_grade ?? 10,
+      treadmillAccess: result.treadmill_access ?? false,
+      stairsAccess: result.stairs_access ?? false,
+      usesPoles: result.uses_poles ?? false,
+      isSkimoAthlete: result.is_skimo_athlete ?? false,
+      manualOverride: result.manual_override ?? false,
+      lastUpdated: result.updated_at,
     };
   } catch (err) {
     console.error('Error upserting terrain access:', err);
