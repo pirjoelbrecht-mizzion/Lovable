@@ -49,7 +49,7 @@ export default function StrengthTraining() {
     checkRecovery,
     refreshData,
     shouldPromptSoreness,
-  } = useStrengthTraining(userId || null, 'base');
+  } = useStrengthTraining(null, 'base');
 
   useEffect(() => {
     loadExercises();

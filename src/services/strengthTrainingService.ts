@@ -17,14 +17,18 @@ export async function fetchStrengthExercises(): Promise<StrengthExercise[]> {
     .select('*')
     .order('category', { ascending: true });
 
-  if (error) throw error;
-  return data.map(row => ({
+  if (error) {
+    console.error('Error fetching exercises:', error);
+    return [];
+  }
+
+  return (data || []).map(row => ({
     id: row.id,
     name: row.name,
     category: row.category,
     exerciseType: row.exercise_type,
     targetMuscles: row.target_muscles || [],
-    techniqueCues: row.technique_cues || [],
+    techniqueCues: row.technique_cues || row.cues || [],
     videoUrl: row.video_url,
     isUpperBody: row.is_upper_body || false,
   }));
@@ -36,99 +40,120 @@ export async function fetchMESessionTemplates(): Promise<MESessionTemplate[]> {
     .select('*')
     .order('workout_number', { ascending: true });
 
-  if (error) throw error;
-  return data.map(row => ({
+  if (error) {
+    console.error('Error fetching templates:', error);
+    return [];
+  }
+
+  return (data || []).map(row => ({
     id: row.id,
     name: row.name,
-    workoutNumber: row.workout_number,
-    meType: row.me_type,
-    meCategory: row.me_category,
+    workoutNumber: row.workout_number || 1,
+    meType: row.me_type || 'gym_based',
+    meCategory: row.category || 'gym_lower',
     terrainRequirement: row.terrain_requirement,
-    durationMinutes: row.duration_minutes,
+    durationMinutes: row.duration_minutes || 35,
     description: row.description,
     exercises: row.exercises || [],
-    restProtocol: row.rest_protocol,
+    restProtocol: row.rest_protocol || { between_sets_seconds: 60, between_exercises_seconds: 90 },
   }));
 }
 
 export async function detectTerrainFromActivities(userId: string): Promise<{ maxGrade: number; avgElevationVariance: number }> {
-  const { data, error } = await supabase
-    .from('log_entries')
-    .select('elevation_gain, distance')
-    .eq('user_id', userId)
-    .not('elevation_gain', 'is', null)
-    .gt('distance', 1)
-    .order('created_at', { ascending: false })
-    .limit(50);
+  try {
+    const { data, error } = await supabase
+      .from('log_entries')
+      .select('elevation_gain, distance')
+      .eq('user_id', userId)
+      .not('elevation_gain', 'is', null)
+      .gt('distance', 1)
+      .order('created_at', { ascending: false })
+      .limit(50);
 
-  if (error || !data || data.length === 0) {
+    if (error || !data || data.length === 0) {
+      return { maxGrade: 0, avgElevationVariance: 0 };
+    }
+
+    const grades = data
+      .map(row => ((row.elevation_gain || 0) / ((row.distance || 1) * 1000)) * 100)
+      .filter(g => g > 0 && g < 50);
+
+    const maxGrade = grades.length > 0 ? Math.max(...grades) : 0;
+    const avgVariance = grades.length > 0 ? grades.reduce((a, b) => a + b, 0) / grades.length : 0;
+
+    return { maxGrade, avgElevationVariance: avgVariance };
+  } catch {
     return { maxGrade: 0, avgElevationVariance: 0 };
   }
-
-  const grades = data
-    .map(row => ((row.elevation_gain || 0) / ((row.distance || 1) * 1000)) * 100)
-    .filter(g => g > 0 && g < 50);
-
-  const maxGrade = grades.length > 0 ? Math.max(...grades) : 0;
-  const avgVariance = grades.length > 0 ? grades.reduce((a, b) => a + b, 0) / grades.length : 0;
-
-  return { maxGrade, avgElevationVariance: avgVariance };
 }
 
 export async function fetchUserTerrainAccess(userId: string): Promise<UserTerrainAccess | null> {
-  const { data, error } = await supabase
-    .from('user_terrain_access')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle();
+  try {
+    const { data, error } = await supabase
+      .from('user_terrain_access')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
 
-  if (error || !data) return null;
+    if (error || !data) return null;
 
-  return {
-    userId: data.user_id,
-    hasGymAccess: data.has_gym_access,
-    hasHillsAccess: data.has_hills_access,
-    maxHillGrade: data.max_hill_grade,
-    treadmillAccess: data.treadmill_access,
-    stairsAccess: data.stairs_access,
-    usesPoles: data.uses_poles,
-    isSkimoAthlete: data.is_skimo_athlete,
-    manualOverride: data.manual_override,
-    lastUpdated: data.last_updated,
-  };
+    return {
+      userId: data.user_id,
+      hasGymAccess: data.has_gym_access || false,
+      hasHillsAccess: data.has_hills_access || false,
+      maxHillGrade: data.max_hill_grade || 10,
+      treadmillAccess: data.treadmill_access || false,
+      stairsAccess: data.stairs_access || false,
+      usesPoles: data.uses_poles || false,
+      isSkimoAthlete: data.is_skimo_athlete || false,
+      manualOverride: data.manual_override || false,
+      lastUpdated: data.last_updated || data.updated_at,
+    };
+  } catch {
+    return null;
+  }
 }
 
-export async function upsertUserTerrainAccess(userId: string, access: Partial<UserTerrainAccess>): Promise<UserTerrainAccess> {
-  const { data, error } = await supabase
-    .from('user_terrain_access')
-    .upsert({
-      user_id: userId,
-      has_gym_access: access.hasGymAccess,
-      has_hills_access: access.hasHillsAccess,
-      max_hill_grade: access.maxHillGrade,
-      treadmill_access: access.treadmillAccess,
-      stairs_access: access.stairsAccess,
-      uses_poles: access.usesPoles,
-      is_skimo_athlete: access.isSkimoAthlete,
-      manual_override: access.manualOverride,
-      last_updated: new Date().toISOString(),
-    })
-    .select()
-    .single();
+export async function upsertUserTerrainAccess(userId: string, access: Partial<UserTerrainAccess>): Promise<UserTerrainAccess | null> {
+  try {
+    const { data, error } = await supabase
+      .from('user_terrain_access')
+      .upsert({
+        user_id: userId,
+        has_gym_access: access.hasGymAccess,
+        has_hills_access: access.hasHillsAccess,
+        max_hill_grade: access.maxHillGrade,
+        treadmill_access: access.treadmillAccess,
+        stairs_access: access.stairsAccess,
+        uses_poles: access.usesPoles,
+        is_skimo_athlete: access.isSkimoAthlete,
+        manual_override: access.manualOverride,
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
 
-  if (error) throw error;
-  return {
-    userId: data.user_id,
-    hasGymAccess: data.has_gym_access,
-    hasHillsAccess: data.has_hills_access,
-    maxHillGrade: data.max_hill_grade,
-    treadmillAccess: data.treadmill_access,
-    stairsAccess: data.stairs_access,
-    usesPoles: data.uses_poles,
-    isSkimoAthlete: data.is_skimo_athlete,
-    manualOverride: data.manual_override,
-    lastUpdated: data.last_updated,
-  };
+    if (error) {
+      console.error('Error upserting terrain access:', error);
+      return null;
+    }
+
+    return {
+      userId: data.user_id,
+      hasGymAccess: data.has_gym_access,
+      hasHillsAccess: data.has_hills_access,
+      maxHillGrade: data.max_hill_grade,
+      treadmillAccess: data.treadmill_access,
+      stairsAccess: data.stairs_access,
+      usesPoles: data.uses_poles,
+      isSkimoAthlete: data.is_skimo_athlete,
+      manualOverride: data.manual_override,
+      lastUpdated: data.updated_at,
+    };
+  } catch (err) {
+    console.error('Error upserting terrain access:', err);
+    return null;
+  }
 }
 
 export function determineMEType(terrainAccess: UserTerrainAccess | null): MEAssignment {
@@ -136,7 +161,7 @@ export function determineMEType(terrainAccess: UserTerrainAccess | null): MEAssi
     return {
       meType: 'gym_based',
       templateId: '',
-      reason: 'No terrain access configured. Defaulting to gym-based ME.',
+      reason: 'Gym-based ME recommended. Configure terrain access for more options.',
       alternativeTemplates: [],
     };
   }
@@ -145,7 +170,7 @@ export function determineMEType(terrainAccess: UserTerrainAccess | null): MEAssi
     return {
       meType: 'outdoor_steep',
       templateId: '',
-      reason: 'Steep hills available (≥15% grade). Optimal for outdoor hill ME.',
+      reason: 'Steep hills available. Optimal for running-specific ME.',
       alternativeTemplates: ['gym_based', 'treadmill_stairs'],
     };
   }
@@ -154,7 +179,7 @@ export function determineMEType(terrainAccess: UserTerrainAccess | null): MEAssi
     return {
       meType: 'gym_based',
       templateId: '',
-      reason: 'Gym access available. Progressive loading with weights.',
+      reason: 'Gym access allows progressive overload with controlled movements.',
       alternativeTemplates: terrainAccess.hasHillsAccess ? ['outdoor_weighted'] : [],
     };
   }
@@ -163,7 +188,7 @@ export function determineMEType(terrainAccess: UserTerrainAccess | null): MEAssi
     return {
       meType: 'outdoor_weighted',
       templateId: '',
-      reason: 'Moderate hills available. Use weighted vest or pack.',
+      reason: 'Moderate hills available. Use weighted vest/pack for ME stimulus.',
       alternativeTemplates: ['gym_based'],
     };
   }
@@ -172,7 +197,7 @@ export function determineMEType(terrainAccess: UserTerrainAccess | null): MEAssi
     return {
       meType: 'treadmill_stairs',
       templateId: '',
-      reason: 'Treadmill or stairs available. Indoor ME alternative.',
+      reason: 'Indoor training options available.',
       alternativeTemplates: ['gym_based'],
     };
   }
@@ -180,31 +205,35 @@ export function determineMEType(terrainAccess: UserTerrainAccess | null): MEAssi
   return {
     meType: 'gym_based',
     templateId: '',
-    reason: 'Limited terrain access. Defaulting to gym-based ME.',
+    reason: 'Default gym-based ME training.',
     alternativeTemplates: [],
   };
 }
 
 export async function fetchUserStrengthProgress(userId: string, meCategory: string): Promise<UserStrengthProgress | null> {
-  const { data, error } = await supabase
-    .from('user_strength_progress')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('me_category', meCategory)
-    .maybeSingle();
+  try {
+    const { data, error } = await supabase
+      .from('user_strength_progress')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('category', meCategory)
+      .maybeSingle();
 
-  if (error || !data) return null;
+    if (error || !data) return null;
 
-  return {
-    userId: data.user_id,
-    meCategory: data.me_category,
-    currentWorkoutNumber: data.current_workout_number,
-    lastCompletedWorkout: data.last_completed_workout,
-    lastSessionDate: data.last_session_date,
-    totalSessions: data.total_sessions,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
-  };
+    return {
+      userId: data.user_id,
+      meCategory: data.category || meCategory,
+      currentWorkoutNumber: data.current_workout_number || 1,
+      lastCompletedWorkout: data.current_workout_number || null,
+      lastSessionDate: data.last_session_date,
+      totalSessions: data.total_sessions_completed || 0,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export function calculateProgressionDecision(
@@ -229,7 +258,7 @@ export function calculateProgressionDecision(
     return {
       action: 'advance',
       targetWorkoutNumber: nextWorkout,
-      reason: `${daysSince} days since last session. Progression on track—advancing to next workout.`,
+      reason: `${daysSince} days since last session. Advancing to next workout.`,
       daysSinceLastSession: daysSince,
     };
   }
@@ -247,44 +276,49 @@ export function calculateProgressionDecision(
   return {
     action: 'regress',
     targetWorkoutNumber: targetWorkout,
-    reason: `${daysSince} days since last session. Regressing 2 workouts due to extended break.`,
+    reason: `${daysSince} days since last session. Regressing due to extended break.`,
     daysSinceLastSession: daysSince,
   };
 }
 
 export async function getMETemplateForUser(userId: string): Promise<{ template: MESessionTemplate; progression: ProgressionDecision } | null> {
-  const terrainAccess = await fetchUserTerrainAccess(userId);
-  const meAssignment = determineMEType(terrainAccess);
+  try {
+    const terrainAccess = await fetchUserTerrainAccess(userId);
+    const meAssignment = determineMEType(terrainAccess);
+    const templates = await fetchMESessionTemplates();
+    const progress = await fetchUserStrengthProgress(userId, 'gym_lower');
+    const progressionDecision = calculateProgressionDecision(progress, progress?.lastSessionDate || null);
 
-  const templates = await fetchMESessionTemplates();
-  const progress = await fetchUserStrengthProgress(userId, 'gym_lower');
+    const matchingTemplate = templates.find(
+      t => t.meType === meAssignment.meType && t.workoutNumber === progressionDecision.targetWorkoutNumber
+    ) || templates.find(t => t.workoutNumber === progressionDecision.targetWorkoutNumber);
 
-  const progressionDecision = calculateProgressionDecision(progress, progress?.lastSessionDate || null);
+    if (!matchingTemplate) return null;
 
-  const matchingTemplate = templates.find(
-    t => t.meType === meAssignment.meType && t.workoutNumber === progressionDecision.targetWorkoutNumber
-  );
-
-  if (!matchingTemplate) return null;
-
-  return {
-    template: matchingTemplate,
-    progression: progressionDecision,
-  };
+    return {
+      template: matchingTemplate,
+      progression: progressionDecision,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function restartProgression(userId: string, meCategory: string): Promise<void> {
-  await supabase
-    .from('user_strength_progress')
-    .upsert({
-      user_id: userId,
-      me_category: meCategory,
-      current_workout_number: 1,
-      last_completed_workout: null,
-      last_session_date: null,
-      total_sessions: 0,
-      updated_at: new Date().toISOString(),
-    });
+  try {
+    await supabase
+      .from('user_strength_progress')
+      .upsert({
+        user_id: userId,
+        category: meCategory,
+        current_workout_number: 1,
+        last_session_date: null,
+        total_sessions_completed: 0,
+        updated_at: new Date().toISOString(),
+      });
+  } catch (err) {
+    console.error('Error restarting progression:', err);
+  }
 }
 
 export async function logStrengthSession(
@@ -297,167 +331,129 @@ export async function logStrengthSession(
     notes?: string;
   }
 ): Promise<void> {
-  const { error } = await supabase.from('user_strength_sessions').insert({
-    user_id: userId,
-    template_id: session.templateId,
-    me_category: session.meCategory,
-    workout_number: session.workoutNumber,
-    completed_exercises: session.completedExercises,
-    notes: session.notes,
-    session_date: new Date().toISOString(),
-  });
+  try {
+    await supabase.from('user_strength_sessions').insert({
+      user_id: userId,
+      template_id: session.templateId || null,
+      category: session.meCategory,
+      workout_number: session.workoutNumber,
+      exercises_completed: session.completedExercises,
+      notes: session.notes,
+      completed_date: new Date().toISOString().split('T')[0],
+    });
 
-  if (error) throw error;
+    const { data: currentProgress } = await supabase
+      .from('user_strength_progress')
+      .select('total_sessions_completed')
+      .eq('user_id', userId)
+      .eq('category', session.meCategory)
+      .maybeSingle();
 
-  await supabase.from('user_strength_progress').upsert({
-    user_id: userId,
-    me_category: session.meCategory,
-    current_workout_number: session.workoutNumber,
-    last_completed_workout: session.workoutNumber,
-    last_session_date: new Date().toISOString(),
-    total_sessions: supabase.raw('COALESCE(total_sessions, 0) + 1'),
-    updated_at: new Date().toISOString(),
-  });
+    const currentTotal = currentProgress?.total_sessions_completed || 0;
+
+    await supabase.from('user_strength_progress').upsert({
+      user_id: userId,
+      category: session.meCategory,
+      current_workout_number: session.workoutNumber,
+      last_session_date: new Date().toISOString(),
+      total_sessions_completed: currentTotal + 1,
+      updated_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('Error logging strength session:', err);
+  }
 }
 
 export async function recordSoreness(userId: string, data: {
-  triggerSessionId: string | null;
-  bodyAreas: { muscleGroup: string; level: number }[];
+  triggerSessionId?: string | null;
+  bodyAreas?: { muscleGroup: string; level: number }[];
   overallSoreness: number;
-  isFollowup: boolean;
-  originalRecordId: string | null;
-  hasPain: boolean;
-  notes: string;
-}): Promise<SorenessRecord> {
-  const { data: record, error } = await supabase
-    .from('user_soreness_records')
-    .insert({
-      user_id: userId,
-      trigger_session_id: data.triggerSessionId,
-      body_areas: data.bodyAreas,
-      overall_soreness: data.overallSoreness,
-      is_followup: data.isFollowup,
-      original_record_id: data.originalRecordId,
-      has_pain: data.hasPain,
-      notes: data.notes,
-      recorded_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
+  isFollowup?: boolean;
+  originalRecordId?: string | null;
+  hasPain?: boolean;
+  notes?: string;
+}): Promise<SorenessRecord | null> {
+  try {
+    const primaryArea = data.bodyAreas?.[0];
 
-  if (error) throw error;
+    const { data: record, error } = await supabase
+      .from('user_soreness_records')
+      .insert({
+        user_id: userId,
+        recorded_date: new Date().toISOString().split('T')[0],
+        muscle_group: primaryArea?.muscleGroup || 'general',
+        soreness_level: data.overallSoreness,
+        pain_location: data.hasPain ? (primaryArea?.muscleGroup || 'general') : null,
+        notes: data.notes,
+        affects_training: data.overallSoreness >= 6 || data.hasPain,
+      })
+      .select()
+      .single();
 
-  return {
-    id: record.id,
-    userId: record.user_id,
-    triggerSessionId: record.trigger_session_id,
-    bodyAreas: record.body_areas,
-    overallSoreness: record.overall_soreness,
-    isFollowup: record.is_followup,
-    originalRecordId: record.original_record_id,
-    hasPain: record.has_pain,
-    notes: record.notes,
-    recordedAt: record.recorded_at,
-    followupCompletedAt: record.followup_completed_at,
-  };
+    if (error) {
+      console.error('Error recording soreness:', error);
+      return null;
+    }
+
+    return {
+      id: record.id,
+      userId: record.user_id,
+      triggerSessionId: null,
+      bodyAreas: [{ muscleGroup: record.muscle_group, level: record.soreness_level }],
+      overallSoreness: record.soreness_level,
+      isFollowup: false,
+      originalRecordId: null,
+      hasPain: !!record.pain_location,
+      notes: record.notes,
+      recordedAt: record.recorded_date,
+      followupCompletedAt: null,
+    };
+  } catch (err) {
+    console.error('Error recording soreness:', err);
+    return null;
+  }
 }
 
 export async function getRecentSoreness(userId: string, days: number = 7): Promise<SorenessRecord[]> {
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - days);
+  try {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
 
-  const { data, error } = await supabase
-    .from('user_soreness_records')
-    .select('*')
-    .eq('user_id', userId)
-    .gte('recorded_at', cutoffDate.toISOString())
-    .order('recorded_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('user_soreness_records')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('recorded_date', cutoffDate.toISOString().split('T')[0])
+      .order('recorded_date', { ascending: false });
 
-  if (error || !data) return [];
+    if (error || !data) return [];
 
-  return data.map(row => ({
-    id: row.id,
-    userId: row.user_id,
-    triggerSessionId: row.trigger_session_id,
-    bodyAreas: row.body_areas,
-    overallSoreness: row.overall_soreness,
-    isFollowup: row.is_followup,
-    originalRecordId: row.original_record_id,
-    hasPain: row.has_pain,
-    notes: row.notes,
-    recordedAt: row.recorded_at,
-    followupCompletedAt: row.followup_completed_at,
-  }));
-}
-
-export async function getPendingFollowupChecks(userId: string): Promise<SorenessRecord[]> {
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - 3);
-
-  const { data, error } = await supabase
-    .from('user_soreness_records')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('is_followup', false)
-    .is('followup_completed_at', null)
-    .gte('recorded_at', cutoffDate.toISOString())
-    .lte('recorded_at', new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString());
-
-  if (error || !data) return [];
-
-  return data.map(row => ({
-    id: row.id,
-    userId: row.user_id,
-    triggerSessionId: row.trigger_session_id,
-    bodyAreas: row.body_areas,
-    overallSoreness: row.overall_soreness,
-    isFollowup: row.is_followup,
-    originalRecordId: row.original_record_id,
-    hasPain: row.has_pain,
-    notes: row.notes,
-    recordedAt: row.recorded_at,
-    followupCompletedAt: row.followup_completed_at,
-  }));
-}
-
-export async function getActiveLoadAdjustment(userId: string): Promise<LoadAdjustment | null> {
-  const { data, error } = await supabase
-    .from('user_load_adjustments')
-    .select('*')
-    .eq('user_id', userId)
-    .is('reverted_at', null)
-    .order('triggered_at', { ascending: false })
-    .maybeSingle();
-
-  if (error || !data) return null;
-
-  return {
-    id: data.id,
-    userId: data.user_id,
-    triggerRecordId: data.trigger_record_id,
-    adjustmentType: data.adjustment_type,
-    reason: data.reason,
-    exitCriteria: data.exit_criteria,
-    triggeredAt: data.triggered_at,
-    revertedAt: data.reverted_at,
-  };
-}
-
-export async function checkAndRevertAdjustmentIfRecovered(userId: string): Promise<boolean> {
-  const activeAdjustment = await getActiveLoadAdjustment(userId);
-  if (!activeAdjustment) return false;
-
-  const recentSoreness = await getRecentSoreness(userId, 3);
-  if (recentSoreness.length === 0) return false;
-
-  const latest = recentSoreness[0];
-  if (latest.overallSoreness <= 3 && !latest.hasPain) {
-    await supabase
-      .from('user_load_adjustments')
-      .update({ reverted_at: new Date().toISOString() })
-      .eq('id', activeAdjustment.id);
-    return true;
+    return data.map(row => ({
+      id: row.id,
+      userId: row.user_id,
+      triggerSessionId: null,
+      bodyAreas: [{ muscleGroup: row.muscle_group, level: row.soreness_level }],
+      overallSoreness: row.soreness_level,
+      isFollowup: false,
+      originalRecordId: null,
+      hasPain: !!row.pain_location,
+      notes: row.notes,
+      recordedAt: row.recorded_date,
+      followupCompletedAt: null,
+    }));
+  } catch {
+    return [];
   }
+}
 
+export async function getPendingFollowupChecks(_userId: string): Promise<SorenessRecord[]> {
+  return [];
+}
+
+export async function getActiveLoadAdjustment(_userId: string): Promise<LoadAdjustment | null> {
+  return null;
+}
+
+export async function checkAndRevertAdjustmentIfRecovered(_userId: string): Promise<boolean> {
   return false;
 }

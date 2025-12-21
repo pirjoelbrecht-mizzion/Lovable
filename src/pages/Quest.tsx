@@ -24,6 +24,7 @@ import { getUserSettings } from "@/lib/userSettings";
 import { buildAthleteProfile, calculateReadiness, type AthleteProfile } from "@/lib/adaptive-coach";
 import { Calendar, Flag, Map, Thermometer, Users, Zap, ChevronRight, Activity, TrendingUp, Mountain } from "lucide-react";
 import { useStrengthTraining } from "@/hooks/useStrengthTraining";
+import { MESessionInline } from "@/components/MESessionInline";
 import "./Quest.css";
 
 type SessionNode = {
@@ -42,6 +43,7 @@ type SessionNode = {
   completed: boolean;
   isToday: boolean;
   isAdapted: boolean;
+  isMESession: boolean;
   x: number;
   y: number;
   size: number;
@@ -124,7 +126,7 @@ export default function Quest() {
   const [selectedSession, setSelectedSession] = useState<SessionNode | null>(null);
 
   // Get strength training data
-  const { meAssignment, loadRegulation, coachingMessage } = useStrengthTraining(null, 'base');
+  const { meAssignment, loadRegulation, coachingMessage, templates: meTemplates } = useStrengthTraining(null, 'base');
   const [weekPlan, setWeekPlan] = useState<WeekPlan>(() => {
     const plan = getWeekPlan();
     console.log('[Quest] Initial weekPlan loaded:', plan?.length, 'days');
@@ -550,6 +552,7 @@ export default function Quest() {
         completed: isCompleted,
         isToday,
         isAdapted,
+        isMESession: sessionType === 'strength' && !!meAssignment,
         x: pos.x,
         y: pos.y,
         size: isToday ? 94 : pos.size,
@@ -1086,8 +1089,52 @@ export default function Quest() {
               ✕
             </button>
 
-            {/* NEW: Use enhanced mobile UI for today's session */}
-            {selectedSession.isToday && todayData ? (
+            {/* ME Session view with inline exercise list */}
+            {selectedSession.isMESession && meAssignment && meTemplates.length > 0 ? (
+              <div style={{
+                maxWidth: '480px',
+                margin: '0 auto',
+                maxHeight: 'calc(100vh - 80px)',
+                overflowY: 'auto',
+                padding: '16px'
+              }}>
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 4 }}>{selectedSession.dayFull}</div>
+                  {selectedSession.isToday && (
+                    <span style={{
+                      padding: '2px 8px',
+                      background: 'var(--success)',
+                      color: 'white',
+                      borderRadius: 4,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      marginLeft: 8
+                    }}>
+                      TODAY
+                    </span>
+                  )}
+                </div>
+                <MESessionInline
+                  template={meTemplates[0]}
+                  targetedWeakness={coachingMessage}
+                  loadRegulation={loadRegulation}
+                />
+                {selectedSession.weather && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '10px 12px',
+                    background: 'rgba(255,255,255,0.05)',
+                    borderRadius: 8,
+                    marginTop: 12
+                  }}>
+                    <span>{selectedSession.weather.icon}</span>
+                    <span style={{ fontSize: 13 }}>{selectedSession.weather.temp}° • {selectedSession.weather.condition}</span>
+                  </div>
+                )}
+              </div>
+            ) : selectedSession.isToday && todayData ? (
               <div style={{
                 maxWidth: '448px',
                 margin: '0 auto',
@@ -1105,7 +1152,6 @@ export default function Quest() {
                   }}
                   onComplete={() => handleWorkoutComplete(selectedSession)}
                   onEdit={() => {
-                    // Edit functionality
                     setSelectedSession(null);
                   }}
                 />
@@ -1181,7 +1227,7 @@ export default function Quest() {
                         textAlign: 'center',
                         fontWeight: 600
                       }}>
-                        ✓ Completed - Feedback submitted
+                        Completed - Feedback submitted
                       </div>
                     )}
                   </div>
