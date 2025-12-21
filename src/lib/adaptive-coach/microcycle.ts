@@ -698,5 +698,11 @@ export function personalizeWorkout(
     personalized.distanceKm = Math.round(avg);
   }
 
+  // Apply terrain-specific adaptations based on athlete's surface preference
+  if (athlete.surfacePreference) {
+    const { adaptWorkoutToSurface } = require('./workout-library');
+    return adaptWorkoutToSurface(personalized, athlete.surfacePreference);
+  }
+
   return personalized;
 }

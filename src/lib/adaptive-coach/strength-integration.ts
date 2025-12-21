@@ -8,6 +8,66 @@ import type {
 } from '@/types/strengthTraining';
 import type { WeeklyPlan, TrainingPhase, DailyPlan } from './types';
 
+/**
+ * Generate suggested terrain access configuration based on surface preference
+ * This helps auto-configure terrain access when user selects their surface preference
+ */
+export function suggestTerrainAccessFromSurface(
+  surfacePreference: 'road' | 'trail' | 'treadmill' | 'mixed',
+  strengthPreference?: 'none' | 'base' | 'mountain' | 'ultra'
+): Partial<UserTerrainAccess> {
+  const baseAccess: Partial<UserTerrainAccess> = {
+    manualOverride: false,
+    lastUpdated: new Date().toISOString(),
+  };
+
+  switch (surfacePreference) {
+    case 'trail':
+      return {
+        ...baseAccess,
+        hasHillsAccess: true,
+        maxHillGrade: strengthPreference === 'mountain' || strengthPreference === 'ultra' ? 15 : 8,
+        treadmillAccess: false,
+        hasGymAccess: strengthPreference === 'ultra' || strengthPreference === 'mountain',
+        stairsAccess: true,
+        usesPoles: strengthPreference === 'ultra',
+      };
+
+    case 'road':
+      return {
+        ...baseAccess,
+        hasHillsAccess: false,
+        maxHillGrade: 0,
+        treadmillAccess: false,
+        hasGymAccess: strengthPreference !== 'none',
+        stairsAccess: true,
+        usesPoles: false,
+      };
+
+    case 'treadmill':
+      return {
+        ...baseAccess,
+        hasHillsAccess: false,
+        maxHillGrade: 0,
+        treadmillAccess: true,
+        hasGymAccess: true,
+        stairsAccess: true,
+        usesPoles: false,
+      };
+
+    case 'mixed':
+      return {
+        ...baseAccess,
+        hasHillsAccess: true,
+        maxHillGrade: 10,
+        treadmillAccess: true,
+        hasGymAccess: strengthPreference !== 'none',
+        stairsAccess: true,
+        usesPoles: false,
+      };
+  }
+}
+
 interface StrengthIntegrationInput {
   weeklyPlan: WeeklyPlan;
   terrainAccess: UserTerrainAccess | null;
@@ -53,7 +113,7 @@ export function integrateStrengthTraining(input: StrengthIntegrationInput): Stre
     };
   }
 
-  const meAssignment = determineMEAssignment(terrainAccess, raceType, usesPoles);
+  const meAssignment = determineMEAssignment(terrainAccess, raceType, usesPoles, undefined);
 
   const modifiedPlan = insertMESessionsIntoPlan(weeklyPlan, meAssignment, phase, loadRegulation);
 
@@ -97,7 +157,8 @@ function shouldIncludeME(phase: TrainingPhase, terrainAccess: UserTerrainAccess 
 function determineMEAssignment(
   terrainAccess: UserTerrainAccess | null,
   raceType?: string,
-  usesPoles?: boolean
+  usesPoles?: boolean,
+  strengthPreference?: 'none' | 'base' | 'mountain' | 'ultra'
 ): MEAssignment {
   const includeUpperBody = shouldIncludeUpperBodyME(terrainAccess, raceType, usesPoles);
 
@@ -133,6 +194,14 @@ function determineMEAssignment(
     meType = 'treadmill_stairs';
     reason = 'Stairs provide excellent ME stimulus without gym equipment.';
     alternativeTemplates.push('gym_based');
+  }
+
+  if (strengthPreference === 'ultra') {
+    reason += ' Advanced strength focus: Include eccentric work and extended ME sessions.';
+  } else if (strengthPreference === 'mountain') {
+    reason += ' Mountain legs focus: Emphasize leg strength and power for climbing.';
+  } else if (strengthPreference === 'base') {
+    reason += ' Basic strength: Keep ME sessions moderate and focus on form.';
   }
 
   return {

@@ -704,3 +704,84 @@ export function meetsPrerequisites(
 
   return true;
 }
+
+/**
+ * Adapt workout based on athlete's surface/terrain preference
+ * Provides terrain-specific guidance and modifications
+ */
+export function adaptWorkoutToSurface(
+  workout: Workout,
+  surfacePreference?: "road" | "trail" | "treadmill" | "mixed"
+): Workout {
+  if (!surfacePreference || surfacePreference === "mixed") {
+    return workout;
+  }
+
+  const adapted = { ...workout };
+
+  switch (workout.type) {
+    case 'long':
+    case 'aerobic':
+      if (surfacePreference === 'trail') {
+        adapted.notes = `${adapted.notes || ''}\n\nTrail Running: ${getTrailSpecificGuidance(workout.type)}`.trim();
+        if (workout.durationRange) {
+          adapted.durationRange = [
+            Math.round(workout.durationRange[0] * 1.15),
+            Math.round(workout.durationRange[1] * 1.15)
+          ];
+        }
+      } else if (surfacePreference === 'treadmill') {
+        adapted.notes = `${adapted.notes || ''}\n\nTreadmill: ${getTreadmillGuidance(workout.type)}`.trim();
+      }
+      break;
+
+    case 'tempo':
+    case 'threshold':
+      if (surfacePreference === 'trail') {
+        adapted.notes = `${adapted.notes || ''}\n\nTrail: Effort-based pacing. Focus on sustained hard effort rather than specific pace. Adjust for terrain changes.`.trim();
+      } else if (surfacePreference === 'treadmill') {
+        adapted.notes = `${adapted.notes || ''}\n\nTreadmill: Use 1-2% incline to simulate outdoor effort. Stay mentally engaged with music or intervals.`.trim();
+      }
+      break;
+
+    case 'hill_repeats':
+    case 'hill_sprints':
+      if (surfacePreference === 'treadmill') {
+        adapted.title = workout.title.replace('Hill', 'Treadmill Hill');
+        adapted.notes = `${adapted.notes || ''}\n\nTreadmill: Set to 6-12% grade. Focus on powerful uphill drive and controlled downhill recovery.`.trim();
+        adapted.crossTrainAlternative = 'Stair climber or stadium stairs';
+      } else if (surfacePreference === 'road') {
+        adapted.notes = `${adapted.notes || ''}\n\nRoad: Find a moderate hill (4-8% grade). Parking garages or overpasses work well. Focus on form and power.`.trim();
+      }
+      break;
+
+    case 'vo2':
+    case 'threshold':
+      if (surfacePreference === 'trail') {
+        adapted.notes = `${adapted.notes || ''}\n\nTrail: Consider using a smoother fire road or groomed trail for intervals. Technical trails may limit intensity control.`.trim();
+      }
+      break;
+  }
+
+  return adapted;
+}
+
+function getTrailSpecificGuidance(workoutType: WorkoutType): string {
+  const guidance: Record<string, string> = {
+    long: 'Allow extra time for technical terrain. Focus on effort/time rather than distance. Practice fueling and navigation.',
+    aerobic: 'Embrace varied terrain for strength gains. Slower pace is normal on trails - focus on consistent effort.',
+    tempo: 'Use fire roads or smooth trails for sustained efforts. Technical sections = easy recovery.',
+    easy: 'Perfect for trail recovery - softer surface reduces impact. Walk steep sections as needed.'
+  };
+  return guidance[workoutType] || 'Adapt pacing to terrain. Effort matters more than pace on trails.';
+}
+
+function getTreadmillGuidance(workoutType: WorkoutType): string {
+  const guidance: Record<string, string> = {
+    long: 'Break into segments. Vary incline (0-3%) every 15-20 min to engage different muscles. Use entertainment to stay engaged.',
+    aerobic: 'Set 1% incline to simulate outdoor effort. Consider progressive incline increases for variety.',
+    tempo: 'Steady effort on slight incline (1-2%). Lock in your pace and maintain focus.',
+    easy: 'Perfect for form focus. Keep it conversational and relaxed. Try zero-drop if training for trails.'
+  };
+  return guidance[workoutType] || 'Maintain proper form. Use slight incline to match outdoor effort.';
+}

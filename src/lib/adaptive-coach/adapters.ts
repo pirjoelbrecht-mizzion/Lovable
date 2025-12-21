@@ -79,6 +79,8 @@ export function buildAthleteProfile(
     injuryHistory: [], // TODO: Extract from notes/feedback
     aerobicThreshold,
     lactateThreshold,
+    surfacePreference: userProfile.surface,
+    strengthPreference: userProfile.strengthPreference,
   };
 }
 

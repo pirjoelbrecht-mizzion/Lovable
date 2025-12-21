@@ -50,11 +50,15 @@ export interface AthleteProfile {
   aerobicThreshold?: number;      // AeT HR (bpm)
   lactateThreshold?: number;      // LT HR (bpm)
 
+  // Terrain & Training Preferences (from onboarding)
+  surfacePreference?: "road" | "trail" | "treadmill" | "mixed";
+  strengthPreference?: "none" | "base" | "mountain" | "ultra";
+
   // Computed by Module 2 (Athlete Profiler)
-  category?: AthleteCategory;     
-  startMileage?: number;          
-  volumeCeiling?: number;         
-  recoveryRatio?: "2:1" | "3:1";  
+  category?: AthleteCategory;
+  startMileage?: number;
+  volumeCeiling?: number;
+  recoveryRatio?: "2:1" | "3:1";
 }
 
 //
