@@ -29,95 +29,89 @@ interface CosmicWeekViewProps {
   onAddClick?: (day: string) => void;
 }
 
-const WORKOUT_COLORS: Record<WorkoutType, { color: string; icon: string }> = {
-  rest: { color: '#10B981', icon: '😌' },
-  recovery: { color: '#34D399', icon: '🧘' },
-  easy: { color: '#06B6D4', icon: '🏃' },
-  tempo: { color: '#8B5CF6', icon: '⚡' },
-  intervals: { color: '#EF4444', icon: '🔥' },
-  long: { color: '#3B82F6', icon: '🏔️' },
-  strength: { color: '#F59E0B', icon: '💪' },
-  workout: { color: '#EC4899', icon: '🔥' },
+const WORKOUT_COLORS: Record<WorkoutType, string> = {
+  rest: '#10B981',
+  recovery: '#34D399',
+  easy: '#06B6D4',
+  tempo: '#8B5CF6',
+  intervals: '#EF4444',
+  long: '#3B82F6',
+  strength: '#F59E0B',
+  workout: '#EC4899',
 };
 
-const BASE_X_POSITIONS = [50, 150, 250, 350, 450, 550, 650];
+const WORKOUT_ICONS: Record<WorkoutType, string> = {
+  rest: '😌',
+  recovery: '🧘',
+  easy: '🏃',
+  tempo: '⚡',
+  intervals: '🔥',
+  long: '🏔️',
+  strength: '💪',
+  workout: '🔥',
+};
 
-export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicWeekViewProps) {
+export function CosmicWeekView({ weekData, onWorkoutClick }: CosmicWeekViewProps) {
   const [hoveredWorkout, setHoveredWorkout] = useState<string | null>(null);
 
-  const calculatePositions = () => {
-    const positions: Array<{
-      workout: Workout;
-      x: number;
-      y: number;
-      size: number;
-      dayIndex: number;
-      day: string;
-    }> = [];
+  const allWorkouts: Array<{
+    workout: Workout;
+    day: string;
+    dayShort: string;
+    x: number;
+    y: number;
+    size: number;
+  }> = [];
 
-    weekData.forEach((day, dayIndex) => {
-      const x = BASE_X_POSITIONS[dayIndex];
-      const workouts = day.workouts;
+  const positions = [
+    { x: 180, y: 140 },
+    { x: 280, y: 210 },
+    { x: 180, y: 320 },
+    { x: 320, y: 380 },
+    { x: 440, y: 280 },
+    { x: 440, y: 180 },
+    { x: 540, y: 240 },
+  ];
 
-      if (workouts.length === 0) return;
+  let posIndex = 0;
+  weekData.forEach((day) => {
+    day.workouts.forEach((workout) => {
+      if (posIndex < positions.length) {
+        const pos = positions[posIndex];
+        const size = workout.isToday ? 140 : 95;
 
-      const yStart = 120;
-      const yEnd = 420;
-      const availableHeight = yEnd - yStart;
-
-      workouts.forEach((workout, workoutIndex) => {
-        let size = 50;
-        if (workout.isToday) size = 90;
-        else if (workout.type === 'long' || workout.type === 'intervals') size = 70;
-        else if (workout.type === 'strength') size = 60;
-        else if (workout.type === 'easy') size = 55;
-
-        let y: number;
-        if (workouts.length === 1) {
-          y = yStart + availableHeight / 2;
-        } else {
-          const spacing = availableHeight / (workouts.length + 1);
-          y = yStart + spacing * (workoutIndex + 1);
-        }
-
-        positions.push({
+        allWorkouts.push({
           workout,
-          x,
-          y,
-          size,
-          dayIndex,
           day: day.day,
+          dayShort: day.dayShort,
+          x: pos.x,
+          y: pos.y,
+          size,
         });
-      });
+        posIndex++;
+      }
     });
-
-    return positions;
-  };
-
-  const positions = calculatePositions();
+  });
 
   const renderConnections = () => {
     const paths: JSX.Element[] = [];
 
-    for (let i = 0; i < positions.length - 1; i++) {
-      const current = positions[i];
-      const next = positions[i + 1];
+    for (let i = 0; i < allWorkouts.length - 1; i++) {
+      const current = allWorkouts[i];
+      const next = allWorkouts[i + 1];
+      const color = WORKOUT_COLORS[current.workout.type] || '#8B5CF6';
 
-      if (next.dayIndex === current.dayIndex + 1 || next.dayIndex === current.dayIndex) {
-        const color = WORKOUT_COLORS[current.workout.type]?.color || '#8B5CF6';
-
-        paths.push(
-          <path
-            key={`connection-${i}`}
-            d={`M ${current.x} ${current.y} L ${next.x} ${next.y}`}
-            stroke={color}
-            strokeWidth="2"
-            fill="none"
-            opacity="0.4"
-            className="workout-connection"
-          />
-        );
-      }
+      paths.push(
+        <path
+          key={`connection-${i}`}
+          d={`M ${current.x} ${current.y} L ${next.x} ${next.y}`}
+          stroke={color}
+          strokeWidth="2"
+          fill="none"
+          opacity="0.3"
+          strokeDasharray="5,5"
+        />
+      );
     }
 
     return paths;
@@ -130,7 +124,7 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
       <div className="weekly-indicators">
         {weekData.map((day, idx) => {
           const hasWorkouts = day.workouts.length > 0;
-          const mainColor = hasWorkouts ? WORKOUT_COLORS[day.workouts[0].type]?.color : 'rgba(139, 92, 246, 0.3)';
+          const mainColor = hasWorkouts ? WORKOUT_COLORS[day.workouts[0].type] : 'rgba(139, 92, 246, 0.3)';
 
           return (
             <div
@@ -143,112 +137,62 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
       </div>
 
       <svg className="cosmic-svg-canvas" viewBox="0 0 720 520" preserveAspectRatio="xMidYMid meet">
-        <defs>
-          {Object.entries(WORKOUT_COLORS).map(([type, { color }]) => (
-            <filter key={`glow-${type}`} id={`glow-${type}`} x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="6" result="coloredBlur" />
-              <feMerge>
-                <feMergeNode in="coloredBlur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          ))}
-        </defs>
-
-        {BASE_X_POSITIONS.map((x, idx) => {
-          const isToday = weekData[idx]?.isToday;
-          return (
-            <line
-              key={`day-line-${idx}`}
-              x1={x}
-              y1="80"
-              x2={x}
-              y2="450"
-              stroke={isToday ? 'rgba(6, 182, 212, 0.5)' : 'rgba(139, 92, 246, 0.25)'}
-              strokeWidth={isToday ? '2' : '1.5'}
-              className={isToday ? 'day-line-today' : 'day-line'}
-            />
-          );
-        })}
-
         {renderConnections()}
       </svg>
 
       <div className="cosmic-content-layer">
-        {weekData.map((day, dayIndex) => {
-          const x = BASE_X_POSITIONS[dayIndex];
-
-          return (
-            <div key={dayIndex} className="day-column-container">
-              <div
-                className={`day-label-circle ${day.isToday ? 'today' : ''}`}
-                style={{ left: `${(x / 720) * 100}%` }}
-              >
-                {day.dayShort.charAt(0)}
-              </div>
-
-              {day.workouts.length === 0 && (
-                <button
-                  className="add-workout-btn"
-                  style={{
-                    left: `${(x / 720) * 100}%`,
-                    top: '50%',
-                  }}
-                  onClick={() => onAddClick?.(day.day)}
-                >
-                  +
-                </button>
-              )}
-            </div>
-          );
-        })}
-
-        {positions.map(({ workout, x, y, size, day }, index) => {
-          const colors = WORKOUT_COLORS[workout.type];
+        {allWorkouts.map(({ workout, day, dayShort, x, y, size }, index) => {
+          const color = WORKOUT_COLORS[workout.type];
+          const icon = WORKOUT_ICONS[workout.type];
           const isHovered = hoveredWorkout === workout.id;
+          const isToday = workout.isToday;
 
           return (
             <motion.div
               key={workout.id}
-              className={`cosmic-workout-bubble ${workout.completed ? 'completed' : ''} ${workout.isToday ? 'today-workout' : ''}`}
+              className={`cosmic-workout-bubble ${workout.completed ? 'completed' : ''} ${isToday ? 'today-workout' : ''}`}
               style={{
                 left: `${(x / 720) * 100}%`,
                 top: `${(y / 520) * 100}%`,
                 width: `${size}px`,
                 height: `${size}px`,
-                '--workout-color': colors.color,
+                '--workout-color': color,
               } as React.CSSProperties}
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: index * 0.08, duration: 0.4 }}
-              whileHover={{ scale: 1.15 }}
+              transition={{ delay: index * 0.12, duration: 0.5 }}
+              whileHover={{ scale: 1.1 }}
               onMouseEnter={() => setHoveredWorkout(workout.id)}
               onMouseLeave={() => setHoveredWorkout(null)}
               onClick={() => onWorkoutClick?.(workout, day)}
             >
               <div className="bubble-glow" />
-              <div className="bubble-inner">
-                {workout.isToday ? (
-                  <div className="now-label">NOW</div>
-                ) : (
-                  <div className="workout-icon">{colors.icon}</div>
-                )}
-                {workout.completed && <div className="check-badge">✓</div>}
-              </div>
 
-              {isHovered && (
-                <motion.div
-                  className="workout-tooltip"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
-                  <div className="tooltip-title">{workout.title}</div>
-                  <div className="tooltip-details">
-                    {workout.duration && <span>{workout.duration}</span>}
-                    {workout.distance && <span> • {workout.distance}</span>}
-                  </div>
-                </motion.div>
-              )}
+              <div className="bubble-content">
+                {isToday ? (
+                  <>
+                    <div className="now-badge">NOW</div>
+                    <div className="workout-day">{dayShort.toUpperCase()}</div>
+                    <div className="workout-title-main">{workout.title}</div>
+                    <div className="workout-details">
+                      {workout.distance && <span className="detail-distance">{workout.distance}</span>}
+                      {workout.duration && <span className="detail-duration">{workout.duration}</span>}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="workout-icon-large">{icon}</div>
+                    <div className="workout-day">{dayShort.toUpperCase()}</div>
+                    <div className="workout-title">{workout.title}</div>
+                    <div className="workout-meta">
+                      {workout.distance && <span>{workout.distance}</span>}
+                    </div>
+                    {workout.completed && (
+                      <div className="check-badge">✓</div>
+                    )}
+                  </>
+                )}
+              </div>
             </motion.div>
           );
         })}
