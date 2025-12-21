@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import useSession from './useSession';
+import useSession from '@/lib/useSession';
 import {
   fetchStrengthExercises,
   fetchMESessionTemplates,
