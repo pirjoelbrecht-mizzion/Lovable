@@ -39,16 +39,23 @@ However, the code was trying to save: `'steep'`, `'moderate'`, or `'none'`
 - `src/pages/Quest.tsx` (detectSessionType function signature, session mapping logic)
 
 ### 3. Strength Training Schedule Corrected
-**Previous Issue**: Documentation mentioned different days than implementation
+**Previous Issue**: Strength training was REPLACING the running on Wednesday instead of being ADDITIONAL to it
 
 **Current Schedule** (as implemented):
-- **Wednesday** (Primary): Strength Training session when enabled (45 min)
-  - Replaces quality workout on this day when strength training is active
+- **Wednesday** (Primary):
+  - Morning: Easy run (6-7km, Z2)
+  - Afternoon: Strength Training session when enabled (45 min)
+  - The running and strength are BOTH included as separate sessions
 - **Friday** (Optional): Second strength session (40 min)
   - Only added when fatigue score is low (≤ 0.6) and quality workouts are enabled
+  - Also includes morning easy run if added
+
+**Key Change**: Wednesday now ALWAYS has a morning easy run, and strength training is added as a SECOND session in the afternoon, not as a replacement.
 
 **Files Modified**:
-- `src/pages/Planner.tsx` (week generation logic)
+- `src/pages/Planner.tsx` (week generation logic - now adds easy run first, then strength)
+- `src/utils/weekPlan.ts` (default plan updated to show "Easy run + Strength")
+- `src/pages/Quest.tsx` (now displays multiple sessions per day correctly)
 
 ## How to Use the System
 
@@ -68,8 +75,11 @@ However, the code was trying to save: `'steep'`, `'moderate'`, or `'none'`
 ### Step 2: View Your Plan
 1. Go to **Quest** page
 2. You should see "This Week" with bubbles for each day
-3. Wednesday should show **Strength Training** session (if you have any plan loaded)
-4. If you don't see it, click **🔄 Reset Plan** button
+3. Wednesday should show:
+   - **Distance**: 6km (morning easy run)
+   - **Description**: Includes both the morning run AND the strength training session in the afternoon
+   - The bubble shows the running distance, with strength training details in the description
+4. If you don't see the full plan, click **🔄 Reset Plan** button
 
 ### Step 3: Generate New Plans (Optional)
 1. Go to **Planner** page
@@ -77,8 +87,9 @@ However, the code was trying to save: `'steep'`, `'moderate'`, or `'none'`
 3. Enable "Include Strength Training" option
 4. Click **Suggest Week**
 5. The generated plan will include:
-   - Wednesday: Primary strength session
-   - Friday: Optional second session (if conditions allow)
+   - Wednesday: Morning easy run (6km) + Afternoon strength session (45 min)
+   - Friday (optional): Morning easy run + Second strength session (40 min, only if fatigue is low)
+6. All days with strength training will show BOTH the running session AND the strength session
 
 ### Step 4: Start Training
 1. From **Quest** page, click on the Wednesday strength session bubble

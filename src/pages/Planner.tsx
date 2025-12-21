@@ -162,6 +162,13 @@ function buildPlanFromAI(
       km: ezKm,
       notes: "Z2. Optional strides.",
     });
+  // Wednesday: Easy run in morning, plus optional strength or quality
+  base[2].sessions.push({
+    title: "Easy",
+    km: Math.round(ezKm * 0.8), // Slightly shorter if doing strength later
+    notes: "Z2. Morning run.",
+  });
+
   if (opts?.includeStrength && opts?.meType && raceWeeks > 1) {
     const formattedType = formatMEType(opts.meType);
     base[2].sessions.push({
@@ -173,11 +180,9 @@ function buildPlanFromAI(
   } else if (hasQuality) {
     base[2].sessions.push({
       title: "Quality",
-      km: midKm,
+      km: midKm - Math.round(ezKm * 0.8),
       notes: "Controlled tempo or short hills. WU/CD.",
     });
-  } else {
-    base[2].sessions.push({ title: "Easy", km: ezKm, notes: "Z2 only." });
   }
 
   base[3].sessions.push({

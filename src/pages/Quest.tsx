@@ -458,6 +458,7 @@ export default function Quest() {
 
     return weekPlan.map((day, idx) => {
       const mainSession = day.sessions[0];
+      const secondSession = day.sessions[1]; // Check for multiple sessions
       const fallback = defaultPlan ? defaultPlan[idx] : null;
 
       let title = mainSession?.title || fallback?.title || "Rest";
@@ -465,6 +466,10 @@ export default function Quest() {
       let notes = mainSession?.notes || fallback?.notes || "";
       const explicitType = (mainSession as any)?.type || (fallback as any)?.type;
       let sessionType = detectSessionType(title, notes, explicitType);
+
+      // Check if there's a second session (e.g., strength training)
+      const hasStrengthSession = secondSession && ((secondSession as any)?.type === 'strength' || /strength|gym|ME/i.test(secondSession.title || ''));
+
       let emoji = SESSION_EMOJIS[sessionType] || "🏃";
 
       // Enrich strength sessions with ME assignment data
@@ -535,6 +540,16 @@ export default function Quest() {
         description = `${km && km > 0 ? `${km}km` : ''} ${elevation ? `• ${Math.round(elevation)}m↑` : ''} ${duration ? `• ${duration}` : ''}`.trim();
         if (notes && !notes.includes('Est.')) {
           description += ` • ${notes}`;
+        }
+      }
+
+      // Add strength session info if present
+      if (hasStrengthSession && secondSession) {
+        const strengthNotes = secondSession.notes || 'ME session';
+        description += `\n\n💪 ${secondSession.title || 'Strength Training'}: ${strengthNotes}`;
+        if (meAssignment) {
+          const meType = meAssignment.meType.replace('_', ' ').toUpperCase();
+          description = `${km && km > 0 ? `${km}km` : ''} ${duration ? `• ${duration}` : ''} Morning run\n\n💪 ME ${meType}: ${meAssignment.reason}`;
         }
       }
 
