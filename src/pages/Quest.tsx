@@ -860,31 +860,39 @@ export default function Quest() {
             {viewMode === "cosmic" ? (
               <>
                 <CosmicWeekView
-                  weekData={weekPlan.map((day, idx) => {
-                    const allWorkouts = day.sessions.map((session, sessionIdx) => {
-                      const sessionType = detectSessionType(session.title || '', session.notes, (session as any)?.type);
+                  weekData={(() => {
+                    const hasUserPlan = weekPlan.some(day => day.sessions && day.sessions.length > 0);
+                    const defaultPlan = hasUserPlan ? null : loadWeekPlan();
+
+                    return weekPlan.map((day, idx) => {
+                      const fallback = defaultPlan ? defaultPlan[idx] : null;
+                      const daySessions = day.sessions && day.sessions.length > 0 ? day.sessions : (fallback?.sessions || []);
+
+                      const allWorkouts = daySessions.map((session, sessionIdx) => {
+                        const sessionType = detectSessionType(session.title || '', session.notes, (session as any)?.type);
+                        return {
+                          id: `${idx}-${sessionIdx}`,
+                          type: sessionType as any,
+                          title: session.title || 'Workout',
+                          duration: (session as any)?.durationMin
+                            ? `${Math.floor((session as any).durationMin / 60)}h ${Math.floor((session as any).durationMin % 60)}m`.replace(/0h /, '')
+                            : session.km ? estimateDuration(session.km, sessionType) : '30 min',
+                          distance: session.km ? `${session.km}K` : undefined,
+                          completed: completionStatus[idx] || false,
+                          isToday: idx === today,
+                          elevation: (session as any)?.elevationGain,
+                          zones: (session as any)?.zones,
+                        };
+                      });
+
                       return {
-                        id: `${idx}-${sessionIdx}`,
-                        type: sessionType as any,
-                        title: session.title || 'Workout',
-                        duration: (session as any)?.durationMin
-                          ? `${Math.floor((session as any).durationMin / 60)}h ${Math.floor((session as any).durationMin % 60)}m`.replace(/0h /, '')
-                          : session.km ? estimateDuration(session.km, sessionType) : '30 min',
-                        distance: session.km ? `${session.km}K` : undefined,
-                        completed: completionStatus[idx] || false,
+                        day: DAYS[idx],
+                        dayShort: DAYS_SHORT[idx],
+                        workouts: allWorkouts,
                         isToday: idx === today,
-                        elevation: (session as any)?.elevationGain,
-                        zones: (session as any)?.zones,
                       };
                     });
-
-                    return {
-                      day: DAYS[idx],
-                      dayShort: DAYS_SHORT[idx],
-                      workouts: allWorkouts,
-                      isToday: idx === today,
-                    };
-                  })}
+                  })()}
                   onWorkoutClick={(workout, day) => {
                     const dayIndex = DAYS.indexOf(day);
                     const sessionIndex = parseInt(workout.id.split('-')[1]);
