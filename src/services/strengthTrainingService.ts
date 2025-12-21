@@ -158,6 +158,7 @@ export async function upsertUserTerrainAccess(userId: string, access: Partial<Us
         .single();
       if (error) {
         console.error('[upsertUserTerrainAccess] Update error:', error);
+        console.error('[upsertUserTerrainAccess] Error details:', JSON.stringify(error, null, 2));
         throw error;
       }
       result = data;
@@ -170,6 +171,10 @@ export async function upsertUserTerrainAccess(userId: string, access: Partial<Us
         .single();
       if (error) {
         console.error('[upsertUserTerrainAccess] Insert error:', error);
+        console.error('[upsertUserTerrainAccess] Error code:', error.code);
+        console.error('[upsertUserTerrainAccess] Error message:', error.message);
+        console.error('[upsertUserTerrainAccess] Error details:', error.details);
+        console.error('[upsertUserTerrainAccess] Error hint:', error.hint);
         throw error;
       }
       result = data;

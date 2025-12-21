@@ -145,22 +145,30 @@ export function useStrengthTraining(
     async (access: Partial<UserTerrainAccess>) => {
       console.log('[useStrengthTraining] updateTerrainAccess called with:', access);
       if (!userId) {
-        console.log('[useStrengthTraining] No userId, returning early');
+        console.error('[useStrengthTraining] ERROR: No userId available');
+        setError('Authentication required. Please log in.');
         return;
       }
 
-      console.log('[useStrengthTraining] Calling upsertUserTerrainAccess...');
-      const updated = await upsertUserTerrainAccess(userId, access);
-      console.log('[useStrengthTraining] upsertUserTerrainAccess result:', updated);
-      if (updated) {
-        setTerrainAccess(updated);
-        await loadData();
-        console.log('[useStrengthTraining] Data reloaded');
+      try {
+        console.log('[useStrengthTraining] Calling upsertUserTerrainAccess...');
+        const updated = await upsertUserTerrainAccess(userId, access);
+        console.log('[useStrengthTraining] upsertUserTerrainAccess result:', updated);
+        if (updated) {
+          setTerrainAccess(updated);
+          await loadData();
+          console.log('[useStrengthTraining] Data reloaded');
 
-        window.dispatchEvent(new CustomEvent('strength:terrain-updated'));
-        console.log('[useStrengthTraining] Dispatched strength:terrain-updated event');
-      } else {
-        console.log('[useStrengthTraining] No updated data returned');
+          window.dispatchEvent(new CustomEvent('strength:terrain-updated'));
+          console.log('[useStrengthTraining] Dispatched strength:terrain-updated event');
+        } else {
+          console.error('[useStrengthTraining] ERROR: upsertUserTerrainAccess returned null');
+          setError('Failed to save terrain settings. Please check console for details.');
+        }
+      } catch (err) {
+        console.error('[useStrengthTraining] Exception caught:', err);
+        setError(`Failed to save: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        throw err;
       }
     },
     [userId, loadData]
