@@ -26,7 +26,7 @@ interface DayWorkouts {
 interface CosmicWeekViewProps {
   weekData: DayWorkouts[];
   onWorkoutClick?: (workout: Workout, day: string) => void;
-  onAddClick?: (day: string) => void;
+  onAddClick?: () => void;
 }
 
 const WORKOUT_COLORS: Record<WorkoutType, string> = {
@@ -51,9 +51,14 @@ const WORKOUT_ICONS: Record<WorkoutType, string> = {
   workout: '🔥',
 };
 
+const isRaceWorkout = (workout: Workout): boolean => {
+  const title = workout.title?.toLowerCase() || '';
+  return title.includes('race') || title.includes('event') || title.includes('bt2') || title.includes('marathon') || title.includes('ultra');
+};
+
 const DAY_POSITIONS = [80, 160, 240, 320, 400, 480, 560];
 
-export function CosmicWeekView({ weekData, onWorkoutClick }: CosmicWeekViewProps) {
+export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicWeekViewProps) {
   const [hoveredWorkout, setHoveredWorkout] = useState<string | null>(null);
 
   console.log('[CosmicWeekView] Received weekData:', weekData.map(d => ({ day: d.day, workoutCount: d.workouts.length })));
@@ -172,15 +177,16 @@ export function CosmicWeekView({ weekData, onWorkoutClick }: CosmicWeekViewProps
         ))}
 
         {allWorkouts.map(({ workout, day, dayShort, x, y, size }, index) => {
-          const color = WORKOUT_COLORS[workout.type];
-          const icon = WORKOUT_ICONS[workout.type];
+          const isRace = isRaceWorkout(workout);
+          const color = isRace ? '#F59E0B' : WORKOUT_COLORS[workout.type];
+          const icon = isRace ? '🏆' : WORKOUT_ICONS[workout.type];
           const isHovered = hoveredWorkout === workout.id;
           const isToday = workout.isToday;
 
           return (
             <motion.div
               key={workout.id}
-              className={`cosmic-workout-bubble ${workout.completed ? 'completed' : ''} ${isToday ? 'today-workout' : ''}`}
+              className={`cosmic-workout-bubble ${workout.completed ? 'completed' : ''} ${isToday ? 'today-workout' : ''} ${isRace ? 'race-workout' : ''}`}
               style={{
                 left: `${(x / 640) * 100}%`,
                 top: `${(y / 520) * 100}%`,
@@ -230,6 +236,22 @@ export function CosmicWeekView({ weekData, onWorkoutClick }: CosmicWeekViewProps
             </motion.div>
           );
         })}
+
+        <motion.button
+          className="cosmic-add-button"
+          onClick={onAddClick}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5, duration: 0.3 }}
+        >
+          <div className="add-button-glow" />
+          <div className="add-button-content">
+            <span className="add-icon">+</span>
+            <span className="add-text">Add</span>
+          </div>
+        </motion.button>
       </div>
     </div>
   );

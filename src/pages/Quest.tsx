@@ -916,8 +916,8 @@ export default function Quest() {
                       setSelectedSession(session);
                     }
                   }}
-                  onAddClick={(day) => {
-                    console.log('Add workout for', day);
+                  onAddClick={() => {
+                    console.log('[Quest] Add workout clicked');
                   }}
                 />
               </>

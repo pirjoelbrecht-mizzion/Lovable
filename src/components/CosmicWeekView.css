@@ -611,6 +611,153 @@
   }
 }
 
+.cosmic-workout-bubble.race-workout {
+  border-color: #F59E0B;
+  box-shadow:
+    0 0 50px #F59E0B,
+    0 0 70px #F59E0B,
+    0 0 90px rgba(245, 158, 11, 0.6),
+    inset 0 0 30px rgba(255, 255, 255, 0.1),
+    inset 0 0 15px #F59E0B;
+  animation: race-bubble-pulse 2s ease-in-out infinite;
+}
+
+@keyframes race-bubble-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 50px #F59E0B,
+      0 0 70px #F59E0B,
+      0 0 90px rgba(245, 158, 11, 0.6),
+      inset 0 0 30px rgba(255, 255, 255, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 0 70px #F59E0B,
+      0 0 100px #F59E0B,
+      0 0 130px rgba(245, 158, 11, 0.8),
+      0 0 160px rgba(245, 158, 11, 0.5),
+      inset 0 0 50px rgba(255, 255, 255, 0.2);
+  }
+}
+
+.cosmic-add-button {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(6, 182, 212, 0.4), transparent 50%),
+    radial-gradient(circle at 70% 70%, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.95));
+  border: 3px solid rgba(6, 182, 212, 0.8);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  box-shadow:
+    0 0 40px rgba(6, 182, 212, 0.7),
+    0 0 60px rgba(6, 182, 212, 0.5),
+    inset 0 0 30px rgba(255, 255, 255, 0.05),
+    inset 0 0 15px rgba(6, 182, 212, 0.3);
+  transition: all 0.3s ease;
+}
+
+.cosmic-add-button:hover {
+  border-color: rgba(6, 182, 212, 1);
+  box-shadow:
+    0 0 60px rgba(6, 182, 212, 1),
+    0 0 90px rgba(6, 182, 212, 0.8),
+    0 0 120px rgba(6, 182, 212, 0.5),
+    inset 0 0 40px rgba(255, 255, 255, 0.1);
+}
+
+.add-button-glow {
+  position: absolute;
+  inset: -20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.5), transparent 60%);
+  opacity: 0.4;
+  pointer-events: none;
+  animation: add-glow-pulse 3s ease-in-out infinite;
+  filter: blur(15px);
+}
+
+@keyframes add-glow-pulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.15);
+  }
+}
+
+.add-button-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  z-index: 1;
+}
+
+.add-icon {
+  font-size: 32px;
+  font-weight: 300;
+  color: rgba(6, 182, 212, 1);
+  text-shadow:
+    0 0 20px currentColor,
+    0 0 40px currentColor;
+  line-height: 1;
+}
+
+.add-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow:
+    0 0 10px rgba(255, 255, 255, 0.5),
+    0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+@media (max-width: 768px) {
+  .cosmic-week-view-container {
+    height: 450px;
+  }
+
+  .cosmic-workout-bubble {
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+
+  .day-label {
+    width: 32px;
+    height: 32px;
+    font-size: 11px;
+  }
+
+  .day-label.today {
+    width: 38px;
+    height: 38px;
+  }
+
+  .cosmic-add-button {
+    width: 70px;
+    height: 70px;
+    bottom: 30px;
+  }
+
+  .add-icon {
+    font-size: 28px;
+  }
+}
+
 @media (max-width: 480px) {
   .cosmic-week-view-container {
     height: 380px;
@@ -628,5 +775,19 @@
 
   .cosmic-grid-bg {
     opacity: 0.4;
+  }
+
+  .cosmic-add-button {
+    width: 60px;
+    height: 60px;
+    bottom: 25px;
+  }
+
+  .add-icon {
+    font-size: 24px;
+  }
+
+  .add-text {
+    font-size: 10px;
   }
 }
