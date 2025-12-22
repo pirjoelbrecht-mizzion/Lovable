@@ -873,11 +873,13 @@ export default function Quest() {
                         daySessions = userSessions;
                       } else {
                         const title = fallback?.title || 'Rest';
-                        if (title.toLowerCase().includes('+ strength') || title.toLowerCase().includes('& strength')) {
-                          const runTitle = title.replace(/\s*[\+&]\s*strength/i, '').trim();
+                        const titleLower = title.toLowerCase();
+                        const hasRun = titleLower.includes('run') || titleLower.includes('easy');
+                        const hasStrength = titleLower.includes('strength');
+                        if (hasRun && hasStrength) {
                           daySessions = [
-                            { title: runTitle || 'Easy run', km: fallback?.km || 0, notes: fallback?.notes || '', type: fallback?.type || 'easy' },
-                            { title: 'Strength', km: 0, notes: 'ME session - terrain-based strength work', type: 'strength' }
+                            { title: 'Easy run', km: fallback?.km || 0, notes: '', type: 'easy' },
+                            { title: 'Strength', km: 0, notes: 'ME session', type: 'strength' }
                           ];
                         } else {
                           daySessions = [{ title, km: fallback?.km || 0, notes: fallback?.notes || '', type: fallback?.type || 'rest' }];

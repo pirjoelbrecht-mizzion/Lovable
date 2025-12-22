@@ -163,7 +163,11 @@
 .cosmic-bubble.extra {
   width: 40px;
   height: 40px;
+  min-width: 40px;
+  min-height: 40px;
   margin-top: 12px;
+  flex-shrink: 0;
+  border-width: 2px;
 }
 
 .bubble-glow-ring {
