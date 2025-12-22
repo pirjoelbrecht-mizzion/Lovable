@@ -868,14 +868,21 @@ export default function Quest() {
                       const userSessions = dayData?.sessions || [];
                       const fallback = defaultPlan[idx];
 
-                      let daySessions = userSessions.length > 0
-                        ? userSessions
-                        : [{
-                            title: fallback?.title || 'Rest',
-                            km: fallback?.km || 0,
-                            notes: fallback?.notes || '',
-                            type: fallback?.type || 'rest'
-                          }];
+                      let daySessions: any[] = [];
+                      if (userSessions.length > 0) {
+                        daySessions = userSessions;
+                      } else {
+                        const title = fallback?.title || 'Rest';
+                        if (title.toLowerCase().includes('+ strength') || title.toLowerCase().includes('& strength')) {
+                          const runTitle = title.replace(/\s*[\+&]\s*strength/i, '').trim();
+                          daySessions = [
+                            { title: runTitle || 'Easy run', km: fallback?.km || 0, notes: fallback?.notes || '', type: fallback?.type || 'easy' },
+                            { title: 'Strength', km: 0, notes: 'ME session - terrain-based strength work', type: 'strength' }
+                          ];
+                        } else {
+                          daySessions = [{ title, km: fallback?.km || 0, notes: fallback?.notes || '', type: fallback?.type || 'rest' }];
+                        }
+                      }
 
                       const allWorkouts = daySessions.map((session: any, sessionIdx: number) => {
                         const sessionType = detectSessionType(session.title || '', session.notes, session?.type);
