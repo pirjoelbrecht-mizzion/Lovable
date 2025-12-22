@@ -56,14 +56,17 @@ const isRaceWorkout = (workout: Workout): boolean => {
   return title.includes('race') || title.includes('event') || title.includes('bt2') || title.includes('marathon') || title.includes('ultra');
 };
 
-const DEFAULT_WEEK_WORKOUTS: Array<{ title: string; type: WorkoutType; distance?: string }> = [
-  { title: 'Rest / Mobility', type: 'rest' },
-  { title: 'Easy run', type: 'easy', distance: '8K' },
-  { title: 'Easy + Strength', type: 'easy', distance: '6K' },
-  { title: 'Easy run', type: 'easy', distance: '8K' },
-  { title: 'Workout', type: 'workout', distance: '10K' },
-  { title: 'Long run', type: 'long', distance: '16K' },
-  { title: 'Easy shakeout', type: 'easy', distance: '6K' },
+type DefaultWorkout = { title: string; type: WorkoutType; distance?: string };
+type DefaultDayWorkouts = DefaultWorkout[];
+
+const DEFAULT_WEEK_DATA: DefaultDayWorkouts[] = [
+  [{ title: 'Rest / Mobility', type: 'rest' }],
+  [{ title: 'Easy run', type: 'easy', distance: '8K' }],
+  [{ title: 'Easy run', type: 'easy', distance: '6K' }, { title: 'Strength', type: 'strength' }],
+  [{ title: 'Easy run', type: 'easy', distance: '8K' }],
+  [{ title: 'Workout', type: 'workout', distance: '10K' }],
+  [{ title: 'Long run', type: 'long', distance: '16K' }],
+  [{ title: 'Easy shakeout', type: 'easy', distance: '6K' }],
 ];
 
 const DAYS_FALLBACK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -78,15 +81,15 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
         day: dayName,
         dayShort: dayName,
         isToday: idx === todayIndex,
-        workouts: [{
-          id: `default-${idx}`,
-          type: DEFAULT_WEEK_WORKOUTS[idx].type,
-          title: DEFAULT_WEEK_WORKOUTS[idx].title,
-          distance: DEFAULT_WEEK_WORKOUTS[idx].distance,
+        workouts: DEFAULT_WEEK_DATA[idx].map((w, wIdx) => ({
+          id: `default-${idx}-${wIdx}`,
+          type: w.type,
+          title: w.title,
+          distance: w.distance,
           duration: '45 min',
           completed: idx < todayIndex,
-          isToday: idx === todayIndex,
-        }],
+          isToday: idx === todayIndex && wIdx === 0,
+        })),
       }));
 
   return (
