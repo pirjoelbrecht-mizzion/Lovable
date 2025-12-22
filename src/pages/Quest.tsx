@@ -868,23 +868,23 @@ export default function Quest() {
                       const userSessions = dayData?.sessions || [];
                       const fallback = defaultPlan[idx];
 
-                      let daySessions: any[] = [];
-                      if (userSessions.length > 0) {
-                        daySessions = userSessions;
-                      } else {
-                        const title = fallback?.title || 'Rest';
-                        const titleLower = title.toLowerCase();
-                        const hasRun = titleLower.includes('run') || titleLower.includes('easy');
-                        const hasStrength = titleLower.includes('strength');
+                      let daySessions: any[] = userSessions.length > 0
+                        ? userSessions
+                        : [{ title: fallback?.title || 'Rest', km: fallback?.km || 0, notes: fallback?.notes || '', type: fallback?.type || 'rest' }];
+
+                      const expandedSessions: any[] = [];
+                      for (const session of daySessions) {
+                        const title = (session.title || '').toLowerCase();
+                        const hasRun = title.includes('run') || title.includes('easy');
+                        const hasStrength = title.includes('strength');
                         if (hasRun && hasStrength) {
-                          daySessions = [
-                            { title: 'Easy run', km: fallback?.km || 0, notes: '', type: 'easy' },
-                            { title: 'Strength', km: 0, notes: 'ME session', type: 'strength' }
-                          ];
+                          expandedSessions.push({ ...session, title: 'Easy run', type: 'easy', notes: '' });
+                          expandedSessions.push({ title: 'Strength', km: 0, notes: 'ME session', type: 'strength' });
                         } else {
-                          daySessions = [{ title, km: fallback?.km || 0, notes: fallback?.notes || '', type: fallback?.type || 'rest' }];
+                          expandedSessions.push(session);
                         }
                       }
+                      daySessions = expandedSessions;
 
                       const allWorkouts = daySessions.map((session: any, sessionIdx: number) => {
                         const sessionType = detectSessionType(session.title || '', session.notes, session?.type);
