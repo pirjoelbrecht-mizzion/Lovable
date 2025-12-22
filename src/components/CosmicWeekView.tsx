@@ -58,10 +58,22 @@ const isRaceWorkout = (workout: Workout): boolean => {
 
 const DAY_POSITIONS = [80, 160, 240, 320, 400, 480, 560];
 
+const DEFAULT_WEEK_WORKOUTS: Array<{ title: string; type: WorkoutType; distance?: string }> = [
+  { title: 'Rest / Mobility', type: 'rest' },
+  { title: 'Easy run', type: 'easy', distance: '8K' },
+  { title: 'Easy run + Strength', type: 'easy', distance: '6K' },
+  { title: 'Easy run', type: 'easy', distance: '8K' },
+  { title: 'Workout', type: 'workout', distance: '10K' },
+  { title: 'Long run', type: 'long', distance: '16K' },
+  { title: 'Easy shakeout', type: 'easy', distance: '6K' },
+];
+
+const DAYS_FALLBACK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAYS_SHORT_FALLBACK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
 export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicWeekViewProps) {
   const [hoveredWorkout, setHoveredWorkout] = useState<string | null>(null);
-
-  console.log('[CosmicWeekView] Received weekData:', weekData.map(d => ({ day: d.day, workoutCount: d.workouts.length })));
+  const todayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
 
   const allWorkouts: Array<{
     workout: Workout;
@@ -73,30 +85,60 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
     size: number;
   }> = [];
 
-  weekData.forEach((day, dayIndex) => {
+  const effectiveWeekData = weekData && weekData.length === 7 && weekData.some(d => d.workouts.length > 0)
+    ? weekData
+    : DAYS_FALLBACK.map((dayName, idx) => ({
+        day: dayName,
+        dayShort: DAYS_SHORT_FALLBACK[idx],
+        isToday: idx === todayIndex,
+        workouts: [{
+          id: `default-${idx}`,
+          type: DEFAULT_WEEK_WORKOUTS[idx].type,
+          title: DEFAULT_WEEK_WORKOUTS[idx].title,
+          distance: DEFAULT_WEEK_WORKOUTS[idx].distance,
+          duration: '45 min',
+          completed: idx < todayIndex,
+          isToday: idx === todayIndex,
+        }],
+      }));
+
+  effectiveWeekData.forEach((day, dayIndex) => {
     const x = DAY_POSITIONS[dayIndex];
-    const workouts = day.workouts;
+    const workouts = day.workouts || [];
+
+    const yStart = 140;
+    const yEnd = 400;
+    const availableHeight = yEnd - yStart;
 
     if (workouts.length === 0) {
-      console.log(`[CosmicWeekView] Skipping day ${day.day} - no workouts`);
+      allWorkouts.push({
+        workout: {
+          id: `empty-${dayIndex}`,
+          type: 'rest',
+          title: 'Rest',
+          duration: '',
+          completed: false,
+          isToday: day.isToday,
+        },
+        day: day.day,
+        dayShort: day.dayShort,
+        dayIndex,
+        x,
+        y: yStart + availableHeight / 2,
+        size: day.isToday ? 100 : 50,
+      });
       return;
     }
-
-    console.log(`[CosmicWeekView] Rendering ${workouts.length} workouts for ${day.day}:`, workouts);
-
-    const yStart = 160;
-    const yEnd = 380;
-    const availableHeight = yEnd - yStart;
 
     workouts.forEach((workout, workoutIndex) => {
       let size: number;
       let y: number;
 
       if (workout.isToday) {
-        size = 180;
-        y = 300;
+        size = 100;
+        y = yStart + availableHeight / 2;
       } else {
-        size = 60;
+        size = 50;
 
         if (workouts.length === 1) {
           y = yStart + availableHeight / 2;
@@ -123,7 +165,7 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
       <div className="cosmic-grid-bg" />
 
       <div className="weekly-indicators">
-        {weekData.map((day, idx) => {
+        {effectiveWeekData.map((day, idx) => {
           const hasWorkouts = day.workouts.length > 0;
           const mainColor = hasWorkouts ? WORKOUT_COLORS[day.workouts[0].type] : 'rgba(139, 92, 246, 0.3)';
 
@@ -149,7 +191,7 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
         </defs>
 
         {DAY_POSITIONS.map((x, idx) => {
-          const isToday = weekData[idx]?.isToday;
+          const isToday = effectiveWeekData[idx]?.isToday;
           return (
             <line
               key={`day-line-${idx}`}
@@ -166,7 +208,7 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
       </svg>
 
       <div className="cosmic-content-layer">
-        {weekData.map((day, dayIndex) => (
+        {effectiveWeekData.map((day, dayIndex) => (
           <div
             key={dayIndex}
             className={`day-label ${day.isToday ? 'today' : ''}`}

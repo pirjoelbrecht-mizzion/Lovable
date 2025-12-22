@@ -861,51 +861,45 @@ export default function Quest() {
               <>
                 <CosmicWeekView
                   weekData={(() => {
-                    const hasUserPlan = weekPlan.some(day => day.sessions && day.sessions.length > 0);
-                    const defaultPlan = hasUserPlan ? null : loadWeekPlan();
-                    console.log('[Quest/Cosmic] hasUserPlan:', hasUserPlan, 'defaultPlan:', defaultPlan);
+                    const defaultPlan = loadWeekPlan();
 
-                    return weekPlan.map((day, idx) => {
-                      const fallback = defaultPlan ? defaultPlan[idx] : null;
-                      let daySessions = day.sessions && day.sessions.length > 0 ? day.sessions : [];
+                    return DAYS.map((dayName, idx) => {
+                      const dayData = weekPlan[idx];
+                      const userSessions = dayData?.sessions || [];
+                      const fallback = defaultPlan[idx];
 
-                      // If no user sessions and we have a fallback, create a session from fallback
-                      if (daySessions.length === 0 && fallback) {
-                        daySessions = [{
-                          title: fallback.title || 'Rest',
-                          km: fallback.km,
-                          notes: fallback.notes || '',
-                          type: fallback.type
-                        } as any];
-                      }
+                      let daySessions = userSessions.length > 0
+                        ? userSessions
+                        : [{
+                            title: fallback?.title || 'Rest',
+                            km: fallback?.km || 0,
+                            notes: fallback?.notes || '',
+                            type: fallback?.type || 'rest'
+                          }];
 
-                      if (idx === 1) console.log(`[Quest/Cosmic] Day ${idx} (${DAYS[idx]}): daySessions before map:`, daySessions);
-
-                      const allWorkouts = daySessions.map((session, sessionIdx) => {
-                        const sessionType = detectSessionType(session.title || '', session.notes, (session as any)?.type);
+                      const allWorkouts = daySessions.map((session: any, sessionIdx: number) => {
+                        const sessionType = detectSessionType(session.title || '', session.notes, session?.type);
                         return {
                           id: `${idx}-${sessionIdx}`,
                           type: sessionType as any,
                           title: session.title || 'Workout',
-                          duration: (session as any)?.durationMin
-                            ? `${Math.floor((session as any).durationMin / 60)}h ${Math.floor((session as any).durationMin % 60)}m`.replace(/0h /, '')
+                          duration: session?.durationMin
+                            ? `${Math.floor(session.durationMin / 60)}h ${Math.floor(session.durationMin % 60)}m`.replace(/0h /, '')
                             : session.km ? estimateDuration(session.km, sessionType) : '30 min',
                           distance: session.km ? `${session.km}K` : undefined,
                           completed: completionStatus[idx] || false,
                           isToday: idx === today,
-                          elevation: (session as any)?.elevationGain,
-                          zones: (session as any)?.zones,
+                          elevation: session?.elevationGain,
+                          zones: session?.zones,
                         };
                       });
 
-                      const result = {
-                        day: DAYS[idx],
+                      return {
+                        day: dayName,
                         dayShort: DAYS_SHORT[idx],
                         workouts: allWorkouts,
                         isToday: idx === today,
                       };
-                      if (idx === 1) console.log('[Quest/Cosmic] Day 1 result:', result);
-                      return result;
                     });
                   })()}
                   onWorkoutClick={(workout, day) => {
