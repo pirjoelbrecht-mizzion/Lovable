@@ -872,19 +872,16 @@ export default function Quest() {
                         ? userSessions
                         : [{ title: fallback?.title || 'Rest', km: fallback?.km || 0, notes: fallback?.notes || '', type: fallback?.type || 'rest' }];
 
-                      const expandedSessions: any[] = [];
-                      for (const session of daySessions) {
-                        const title = (session.title || '').toLowerCase();
-                        const hasRun = title.includes('run') || title.includes('easy');
-                        const hasStrength = title.includes('strength');
-                        if (hasRun && hasStrength) {
-                          expandedSessions.push({ ...session, title: 'Easy run', type: 'easy', notes: '' });
-                          expandedSessions.push({ title: 'Strength', km: 0, notes: 'ME session', type: 'strength' });
-                        } else {
-                          expandedSessions.push(session);
-                        }
+                      const fallbackTitle = (fallback?.title || '').toLowerCase();
+                      const fallbackHasRunAndStrength = (fallbackTitle.includes('run') || fallbackTitle.includes('easy')) &&
+                                                         (fallbackTitle.includes('strength') || fallbackTitle.includes('me session'));
+
+                      if (fallbackHasRunAndStrength) {
+                        daySessions = [
+                          { title: 'Easy run', km: fallback?.km || 6, type: 'easy', notes: '' },
+                          { title: 'Strength', km: 0, notes: 'ME session', type: 'strength' }
+                        ];
                       }
-                      daySessions = expandedSessions;
 
                       const allWorkouts = daySessions.map((session: any, sessionIdx: number) => {
                         const sessionType = detectSessionType(session.title || '', session.notes, session?.type);
