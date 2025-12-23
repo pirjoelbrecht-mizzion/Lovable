@@ -26,6 +26,8 @@ import { Calendar, Flag, Map, Thermometer, Users, Zap, ChevronRight, Activity, T
 import { useStrengthTraining } from "@/hooks/useStrengthTraining";
 import { MESessionInline } from "@/components/MESessionInline";
 import { CosmicWeekView } from "@/components/CosmicWeekView";
+import { LiveWorkoutTracker } from "@/components/strength/LiveWorkoutTracker";
+import { supabase } from "@/lib/supabase";
 import "./Quest.css";
 
 type SessionNode = {
@@ -126,6 +128,14 @@ export default function Quest() {
   const [races, setRaces] = useState<Race[]>([]);
   const [viewMode, setViewMode] = useState<"bubbles" | "list" | "mobile" | "cosmic">("cosmic");
   const [selectedSession, setSelectedSession] = useState<SessionNode | null>(null);
+  const [liveWorkoutMode, setLiveWorkoutMode] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) setUserId(data.user.id);
+    });
+  }, []);
 
   // Get strength training data
   const { meAssignment, loadRegulation, coachingMessage, templates: meTemplates } = useStrengthTraining(null, 'base');
@@ -1166,57 +1176,110 @@ export default function Quest() {
       </div>
 
       {selectedSession && (
-        <div className="quest-session-modal-backdrop" onClick={() => setSelectedSession(null)}>
+        <div className="quest-session-modal-backdrop" onClick={() => { setSelectedSession(null); setLiveWorkoutMode(false); }}>
           <div className="quest-session-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="quest-session-modal-close" onClick={() => setSelectedSession(null)}>
+            <button className="quest-session-modal-close" onClick={() => { setSelectedSession(null); setLiveWorkoutMode(false); }}>
               ✕
             </button>
 
-            {/* ME Session view with inline exercise list */}
+            {/* ME Session with Live Workout Tracker */}
             {selectedSession.isMESession && meAssignment && meTemplates.length > 0 ? (
-              <div style={{
-                maxWidth: '480px',
-                margin: '0 auto',
-                maxHeight: 'calc(100vh - 80px)',
-                overflowY: 'auto',
-                padding: '16px'
-              }}>
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 4 }}>{selectedSession.dayFull}</div>
-                  {selectedSession.isToday && (
-                    <span style={{
-                      padding: '2px 8px',
-                      background: 'var(--success)',
-                      color: 'white',
-                      borderRadius: 4,
-                      fontSize: 11,
-                      fontWeight: 600,
-                      marginLeft: 8
-                    }}>
-                      TODAY
-                    </span>
-                  )}
+              liveWorkoutMode && userId ? (
+                <div style={{
+                  width: '100%',
+                  maxWidth: '480px',
+                  margin: '0 auto',
+                  height: 'calc(100vh - 80px)',
+                }}>
+                  <LiveWorkoutTracker
+                    template={meTemplates[0]}
+                    userId={userId}
+                    onComplete={(sessionId) => {
+                      setLiveWorkoutMode(false);
+                      setSelectedSession(null);
+                      handleWorkoutComplete(selectedSession);
+                      toast('Strength session completed!', 'success');
+                    }}
+                    onClose={() => setLiveWorkoutMode(false)}
+                  />
                 </div>
-                <MESessionInline
-                  template={meTemplates[0]}
-                  targetedWeakness={coachingMessage}
-                  loadRegulation={loadRegulation}
-                />
-                {selectedSession.weather && (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '10px 12px',
-                    background: 'rgba(255,255,255,0.05)',
-                    borderRadius: 8,
-                    marginTop: 12
-                  }}>
-                    <span>{selectedSession.weather.icon}</span>
-                    <span style={{ fontSize: 13 }}>{selectedSession.weather.temp}° • {selectedSession.weather.condition}</span>
+              ) : (
+                <div style={{
+                  maxWidth: '480px',
+                  margin: '0 auto',
+                  maxHeight: 'calc(100vh - 80px)',
+                  overflowY: 'auto',
+                  padding: '16px'
+                }}>
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 4 }}>{selectedSession.dayFull}</div>
+                    {selectedSession.isToday && (
+                      <span style={{
+                        padding: '2px 8px',
+                        background: 'var(--success)',
+                        color: 'white',
+                        borderRadius: 4,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        marginLeft: 8
+                      }}>
+                        TODAY
+                      </span>
+                    )}
                   </div>
-                )}
-              </div>
+                  <MESessionInline
+                    template={meTemplates[0]}
+                    targetedWeakness={coachingMessage}
+                    loadRegulation={loadRegulation}
+                  />
+                  {selectedSession.weather && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '10px 12px',
+                      background: 'rgba(255,255,255,0.05)',
+                      borderRadius: 8,
+                      marginTop: 12
+                    }}>
+                      <span>{selectedSession.weather.icon}</span>
+                      <span style={{ fontSize: 13 }}>{selectedSession.weather.temp}° • {selectedSession.weather.condition}</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                    <button
+                      onClick={() => setLiveWorkoutMode(true)}
+                      style={{
+                        flex: 1,
+                        padding: '14px',
+                        background: '#fbbf24',
+                        border: 'none',
+                        borderRadius: 8,
+                        color: '#000',
+                        fontSize: 14,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Start Workout
+                    </button>
+                    <button
+                      onClick={() => { setSelectedSession(null); setLiveWorkoutMode(false); }}
+                      style={{
+                        padding: '14px 20px',
+                        background: 'rgba(255,255,255,0.1)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        borderRadius: 8,
+                        color: '#fff',
+                        fontSize: 14,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              )
             ) : selectedSession.isToday && todayData ? (
               <div style={{
                 maxWidth: '448px',
