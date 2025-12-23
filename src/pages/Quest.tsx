@@ -920,10 +920,22 @@ export default function Quest() {
                   })()}
                   onWorkoutClick={(workout, day) => {
                     const dayIndex = DAYS.indexOf(day);
-                    const sessionIndex = parseInt(workout.id.split('-')[1]);
-                    const session = sessions[dayIndex];
-                    if (session) {
-                      setSelectedSession(session);
+                    const baseSession = sessions[dayIndex];
+
+                    if (workout.type === 'strength' && meAssignment && meTemplates.length > 0) {
+                      const strengthSession: SessionNode = {
+                        ...baseSession,
+                        id: `strength-${dayIndex}`,
+                        type: 'Strength Training',
+                        emoji: String.fromCodePoint(0x1F4AA),
+                        description: 'ME session - terrain-based strength work',
+                        isMESession: true,
+                        distance: undefined,
+                        pace: undefined,
+                      };
+                      setSelectedSession(strengthSession);
+                    } else if (baseSession) {
+                      setSelectedSession(baseSession);
                     }
                   }}
                   onAddClick={() => {
