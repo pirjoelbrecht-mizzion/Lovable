@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import useSession from '@/lib/useSession';
 import { useStrengthTraining } from '@/hooks/useStrengthTraining';
+import { useCoreTraining } from '@/hooks/useCoreTraining';
 import {
   StrengthExerciseCard,
   StrengthSessionView,
@@ -8,15 +9,16 @@ import {
   TerrainAccessSettings,
   type SorenessSubmission,
 } from '@/components/strength';
+import { CoreSessionCard } from '@/components/CoreSessionCard';
 import {
   fetchStrengthExercises,
   fetchMESessionTemplates,
   detectTerrainFromActivities,
 } from '@/services/strengthTrainingService';
 import type { MESessionTemplate, StrengthExercise } from '@/types/strengthTraining';
-import { Dumbbell, Mountain, Settings, Activity, AlertCircle, CheckCircle, TrendingUp } from 'lucide-react';
+import { Dumbbell, Mountain, Settings, Activity, AlertCircle, CheckCircle, TrendingUp, Target, RefreshCw } from 'lucide-react';
 
-type TabType = 'overview' | 'terrain' | 'exercises' | 'session' | 'soreness';
+type TabType = 'overview' | 'terrain' | 'exercises' | 'session' | 'soreness' | 'core' | 'progression';
 
 export default function StrengthTraining() {
   const { user, loading: authLoading, isAuthed } = useSession();
@@ -50,6 +52,30 @@ export default function StrengthTraining() {
     refreshData,
     shouldPromptSoreness,
   } = useStrengthTraining(null, 'base');
+
+  const {
+    coreExercises,
+    coreEmphasis,
+    coreFrequency,
+    coreProgress,
+    selectedCoreSession,
+    meProgress,
+    meProgressionState,
+    meTemplates: coreTrainingMETemplates,
+    currentMETemplate,
+    upperBodyEligibility,
+    sorenessAdjustment,
+    completeMESession,
+    restartMEProgression,
+    reportCoreSoreness,
+    refreshData: refreshCoreData,
+  } = useCoreTraining({
+    raceType: 'trail',
+    period: 'base',
+    terrainAccess,
+    painReports: [],
+    isRecoveryWeek: false,
+  });
 
   useEffect(() => {
     loadExercises();
@@ -103,6 +129,8 @@ export default function StrengthTraining() {
 
   const tabs = [
     { id: 'overview' as TabType, label: 'Overview', icon: <TrendingUp size={18} /> },
+    { id: 'core' as TabType, label: 'Core Training', icon: <Target size={18} /> },
+    { id: 'progression' as TabType, label: 'ME Progression', icon: <RefreshCw size={18} /> },
     { id: 'terrain' as TabType, label: 'Terrain Setup', icon: <Mountain size={18} /> },
     { id: 'exercises' as TabType, label: 'Exercise Library', icon: <Dumbbell size={18} /> },
     { id: 'session' as TabType, label: 'Start Session', icon: <Activity size={18} /> },
@@ -611,6 +639,319 @@ export default function StrengthTraining() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'core' && (
+          <div>
+            <div style={{ marginBottom: 20 }}>
+              <h2 style={{ margin: '0 0 8px 0', fontSize: 20, fontWeight: 600 }}>
+                Core Training
+              </h2>
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--muted)' }}>
+                Targeted core work based on your race type and current needs
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20, marginBottom: 24 }}>
+              <div
+                style={{
+                  background: 'var(--card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 12,
+                  padding: 20,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 10,
+                      background: 'rgba(34, 197, 94, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Target size={20} color="#22c55e" />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Core Emphasis</h3>
+                    <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)' }}>
+                      {coreEmphasis ? coreEmphasis.primary.replace('_', ' ') : 'Not set'}
+                    </p>
+                  </div>
+                </div>
+                {coreEmphasis && (
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ padding: '4px 10px', background: 'rgba(34, 197, 94, 0.2)', borderRadius: 6, fontSize: 11, color: '#22c55e' }}>
+                      {coreEmphasis.primary.replace('_', ' ')}
+                    </span>
+                    <span style={{ padding: '4px 10px', background: 'rgba(20, 184, 166, 0.2)', borderRadius: 6, fontSize: 11, color: '#14b8a6' }}>
+                      {coreEmphasis.secondary.replace('_', ' ')}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div
+                style={{
+                  background: 'var(--card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 12,
+                  padding: 20,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 10,
+                      background: 'rgba(59, 130, 246, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Activity size={20} color="#3b82f6" />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Weekly Frequency</h3>
+                    <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)' }}>
+                      {coreFrequency.frequency}x per week, {coreFrequency.durationMinutes} min
+                    </p>
+                  </div>
+                </div>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)' }}>
+                  Intensity: {coreFrequency.intensity}
+                </p>
+              </div>
+            </div>
+
+            <CoreSessionCard
+              exercises={selectedCoreSession}
+              emphasis={coreEmphasis}
+              frequency={coreFrequency}
+              sessionsThisWeek={coreProgress?.sessionsThisWeek || 0}
+              sorenessAdjustment={sorenessAdjustment}
+              onComplete={async () => {
+                await reportCoreSoreness(3);
+                await refreshCoreData();
+              }}
+            />
+
+            {coreExercises.length > 0 && (
+              <div style={{ marginTop: 32 }}>
+                <h3 style={{ margin: '0 0 16px 0', fontSize: 18, fontWeight: 600 }}>
+                  All Core Exercises ({coreExercises.length})
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+                  {coreExercises.map((exercise) => (
+                    <div
+                      key={exercise.id}
+                      style={{
+                        background: 'var(--card)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 10,
+                        padding: 16,
+                      }}
+                    >
+                      <div style={{ fontWeight: 600, marginBottom: 4 }}>{exercise.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>
+                        {exercise.coreCategories.map(c => c.replace('_', ' ')).join(' + ')}
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{ padding: '2px 8px', background: 'rgba(255,255,255,0.1)', borderRadius: 4, fontSize: 11 }}>
+                          {exercise.difficulty}
+                        </span>
+                        <span style={{ padding: '2px 8px', background: 'rgba(255,255,255,0.1)', borderRadius: 4, fontSize: 11 }}>
+                          {exercise.eccentricLoad} eccentric
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'progression' && (
+          <div>
+            <div style={{ marginBottom: 20 }}>
+              <h2 style={{ margin: '0 0 8px 0', fontSize: 20, fontWeight: 600 }}>
+                ME Progression
+              </h2>
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--muted)' }}>
+                Track your 12-workout muscular endurance progression
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20, marginBottom: 24 }}>
+              <div
+                style={{
+                  background: 'var(--card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 12,
+                  padding: 20,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                  <div
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 12,
+                      background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#000',
+                      fontSize: 20,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {meProgressionState?.targetWorkoutNumber || 1}
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>Current Workout</h3>
+                    <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)' }}>
+                      of 12 in progression
+                    </p>
+                  </div>
+                </div>
+
+                {meProgressionState && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span style={{ fontSize: 13, color: 'var(--muted)' }}>Progress</span>
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>
+                        {Math.round((meProgressionState.targetWorkoutNumber / 12) * 100)}%
+                      </span>
+                    </div>
+                    <div style={{ height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          height: '100%',
+                          width: `${(meProgressionState.targetWorkoutNumber / 12) * 100}%`,
+                          background: 'linear-gradient(90deg, #fbbf24, #f59e0b)',
+                          borderRadius: 4,
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div
+                  style={{
+                    padding: '12px',
+                    background: meProgressionState?.progressionAction === 'advance' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(251, 191, 36, 0.1)',
+                    border: `1px solid ${meProgressionState?.progressionAction === 'advance' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(251, 191, 36, 0.3)'}`,
+                    borderRadius: 8,
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
+                    {meProgressionState?.progressionAction || 'Ready'}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+                    {meProgressionState?.reason || 'Start your first ME session'}
+                  </div>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: 'var(--card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 12,
+                  padding: 20,
+                }}
+              >
+                <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>Upper Body Eligibility</h3>
+                <div
+                  style={{
+                    padding: '12px',
+                    background: upperBodyEligibility.type === 'full' ? 'rgba(34, 197, 94, 0.1)' : upperBodyEligibility.type === 'maintenance' ? 'rgba(251, 191, 36, 0.1)' : 'rgba(255,255,255,0.05)',
+                    border: `1px solid ${upperBodyEligibility.type === 'full' ? 'rgba(34, 197, 94, 0.3)' : upperBodyEligibility.type === 'maintenance' ? 'rgba(251, 191, 36, 0.3)' : 'rgba(255,255,255,0.1)'}`,
+                    borderRadius: 8,
+                    marginBottom: 16,
+                  }}
+                >
+                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>
+                    {upperBodyEligibility.type === 'full' ? 'Full Upper Body ME' : upperBodyEligibility.type === 'maintenance' ? 'Maintenance Only' : 'Lower Body Focus'}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+                    {upperBodyEligibility.reason}
+                  </div>
+                </div>
+
+                <button
+                  onClick={async () => {
+                    if (confirm('Are you sure you want to restart your ME progression from workout 1?')) {
+                      await restartMEProgression();
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: 8,
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    color: '#ef4444',
+                    fontSize: 14,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Restart Progression
+                </button>
+              </div>
+            </div>
+
+            {currentMETemplate && (
+              <div
+                style={{
+                  background: 'var(--card)',
+                  border: '2px solid var(--primary)',
+                  borderRadius: 12,
+                  padding: 20,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div>
+                    <div style={{ padding: '4px 12px', background: 'var(--primary)', color: 'white', borderRadius: 6, fontSize: 12, fontWeight: 600, display: 'inline-block', marginBottom: 8 }}>
+                      NEXT WORKOUT
+                    </div>
+                    <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>{currentMETemplate.name}</h3>
+                    <p style={{ margin: '4px 0 0 0', fontSize: 13, color: 'var(--muted)' }}>
+                      {currentMETemplate.durationMinutes} min - {currentMETemplate.phase} phase
+                    </p>
+                  </div>
+                </div>
+                {currentMETemplate.description && (
+                  <p style={{ margin: '0 0 16px 0', fontSize: 14, color: 'var(--muted)', lineHeight: 1.6 }}>
+                    {currentMETemplate.description}
+                  </p>
+                )}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {currentMETemplate.exercises.slice(0, 5).map((ex, i) => (
+                    <span
+                      key={i}
+                      style={{ padding: '6px 12px', background: 'rgba(255,255,255,0.05)', borderRadius: 6, fontSize: 12 }}
+                    >
+                      {ex.name}
+                    </span>
+                  ))}
+                  {currentMETemplate.exercises.length > 5 && (
+                    <span style={{ padding: '6px 12px', background: 'rgba(255,255,255,0.05)', borderRadius: 6, fontSize: 12, color: 'var(--muted)' }}>
+                      +{currentMETemplate.exercises.length - 5} more
+                    </span>
+                  )}
                 </div>
               </div>
             )}
