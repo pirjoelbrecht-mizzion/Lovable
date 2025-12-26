@@ -15,6 +15,22 @@
  *
  * Provides a single function that returns a complete AdaptiveContext
  * ready for consumption by the Adaptive Decision Engine.
+ *
+ * ======================================================================
+ * 🚧 MULTI-SESSION MIGRATION IN PROGRESS 🚧
+ * ======================================================================
+ * DO NOT REINTRODUCE:
+ * - Single-workout assumptions (day.workout)
+ * - Title-based session detection
+ * - Session merging/collapsing logic
+ * - Accessing sessions[0] directly without checking length
+ *
+ * ALWAYS:
+ * - Use day.sessions[] array
+ * - Iterate over all sessions
+ * - Preserve all sessions during transformations
+ * - Treat sessions as atomic units
+ * ======================================================================
  */
 
 import type { AdaptiveContext, RaceInfo } from '@/engine';
@@ -34,6 +50,7 @@ import { getCurrentUserId } from '@/lib/supabase';
 
 /**
  * Convert localStorage WeekPlan format to Adaptive Coach WeeklyPlan format
+ * 🚧 MIGRATION: Currently only converts first session - will support multi-session
  */
 function convertToAdaptiveWeekPlan(localPlan: LocalStorageWeekPlan | AdaptiveWeeklyPlan): AdaptiveWeeklyPlan {
   // Check if it's already in the correct format (has days property as array)
@@ -45,6 +62,11 @@ function convertToAdaptiveWeekPlan(localPlan: LocalStorageWeekPlan | AdaptiveWee
   const planArray = localPlan as unknown as LocalStorageWeekPlan;
 
   console.log('[convertToAdaptiveWeekPlan] Converting plan with dates:', planArray.map(d => d.dateISO));
+
+  // 🚧 SAFETY LOGGING: Track sessions per day
+  console.log('🚧 [MULTI-SESSION SAFETY] Sessions per day:',
+    planArray.map((d, i) => `${d.label}: ${d.sessions?.length || 0} sessions`)
+  );
 
   const days: DailyPlan[] = planArray.map((day, index) => {
     const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -99,12 +121,17 @@ function convertToAdaptiveWeekPlan(localPlan: LocalStorageWeekPlan | AdaptiveWee
  * Convert Adaptive Coach WeeklyPlan back to localStorage format
  * Preserves any additional sessions from the original plan (e.g., strength sessions)
  * CRITICAL: Adds easy run before strength training on Wednesday (index 2)
+ * 🚧 MIGRATION: Will be updated to preserve all sessions
  */
 export function convertToLocalStoragePlan(
   adaptivePlan: AdaptiveWeeklyPlan,
   originalPlan?: LocalStorageWeekPlan
 ): LocalStorageWeekPlan {
-  return adaptivePlan.days.map((day, idx) => {
+  // 🚧 SAFETY LOGGING: Track conversion
+  console.log('🚧 [MULTI-SESSION SAFETY] Converting adaptive plan to localStorage');
+  console.log('🚧 [MULTI-SESSION SAFETY] Days in adaptive plan:', adaptivePlan.days.length);
+
+  const result = adaptivePlan.days.map((day, idx) => {
     const primarySession = {
       id: `s_${Math.random().toString(36).slice(2)}`,
       title: day.workout.title || day.workout.type,
@@ -154,6 +181,13 @@ export function convertToLocalStoragePlan(
       sessions,
     };
   });
+
+  // 🚧 SAFETY LOGGING: Verify output
+  console.log('🚧 [MULTI-SESSION SAFETY] Output sessions per day:',
+    result.map(d => `${d.label}: ${d.sessions.length} sessions`)
+  );
+
+  return result;
 }
 
 /**
