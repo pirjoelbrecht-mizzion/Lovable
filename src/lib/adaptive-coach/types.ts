@@ -237,7 +237,7 @@ export interface Workout {
 export interface DailyPlan {
   day: string;              // "Mon", "Tue", etc.
   date: string;             // ISO date (YYYY-MM-DD)
-  workout: Workout;         // ⚠️ MIGRATION: Will become sessions: Workout[]
+  sessions: Workout[];      // ✅ MIGRATION COMPLETE: Array of sessions (was `workout`)
   completed?: boolean;      // Has athlete completed this?
   actualPerformance?: {     // Logged performance
     distanceKm?: number;

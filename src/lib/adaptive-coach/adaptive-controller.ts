@@ -20,9 +20,56 @@ import type {
   WeeklyPlan,
   DailyPlan,
   DailyFeedback,
-  TrainingPhase
+  TrainingPhase,
+  Workout
 } from './types';
 import { checkWeeklyPlanSafety, calculateSafeVolumeRange } from './safety';
+
+/**
+ * STEP 2A MIGRATION HELPER
+ *
+ * Safely access primary session from day.sessions array.
+ * Logs warning if multiple sessions exist (which shouldn't happen yet).
+ *
+ * TODO: Remove this helper in STEP 3 when we properly iterate sessions.
+ */
+export function getPrimarySession(day: DailyPlan): Workout | undefined {
+  if (!day.sessions || day.sessions.length === 0) {
+    return undefined;
+  }
+
+  if (day.sessions.length > 1) {
+    console.warn(`[STEP 2A] Day ${day.date} has ${day.sessions.length} sessions - using first one`, {
+      date: day.date,
+      sessionCount: day.sessions.length,
+      types: day.sessions.map(s => s.type)
+    });
+  }
+
+  return day.sessions[0];
+}
+
+/**
+ * STEP 2A MIGRATION HELPER
+ *
+ * Replace primary session in day.sessions array.
+ * Preserves other sessions if they exist.
+ *
+ * TODO: Remove this helper in STEP 3 when we properly handle multi-session days.
+ */
+export function setPrimarySession(day: DailyPlan, workout: Workout): DailyPlan {
+  if (day.sessions.length > 1) {
+    console.warn(`[STEP 2A] Replacing primary session but ${day.sessions.length - 1} other sessions exist`, {
+      date: day.date,
+      sessionCount: day.sessions.length
+    });
+  }
+
+  return {
+    ...day,
+    sessions: [workout, ...day.sessions.slice(1)]
+  };
+}
 
 export interface AdaptationSignal {
   source: 'feedback' | 'performance' | 'injury' | 'external';
@@ -395,16 +442,14 @@ function reduceWeeklyVolume(
   const targetMileage = (plan.actualMileage || 0) * (1 + reductionPercent);
 
   const modifiedDays = plan.days.map(day => {
-    if (!day.workout || day.workout.type === 'rest') return day;
+    const workout = getPrimarySession(day);
+    if (!workout || workout.type === 'rest') return day;
 
-    return {
-      ...day,
-      workout: {
-        ...day.workout,
-        distanceKm: Math.round(day.workout.distanceKm * (1 + reductionPercent) * 10) / 10,
-        durationMinutes: Math.round(day.workout.durationMinutes * (1 + reductionPercent))
-      }
-    };
+    return setPrimarySession(day, {
+      ...workout,
+      distanceKm: Math.round(workout.distanceKm * (1 + reductionPercent) * 10) / 10,
+      durationMinutes: Math.round(workout.durationMinutes * (1 + reductionPercent))
+    });
   });
 
   return {
@@ -417,16 +462,16 @@ function reduceWeeklyVolume(
 
 function reduceIntensity(plan: WeeklyPlan): WeeklyPlan {
   const modifiedDays = plan.days.map(day => {
-    if (!day.workout) return day;
+    const workout = getPrimarySession(day);
+    if (!workout) return day;
 
-    if (day.workout.intensity === 'high') {
+    if (workout.intensity === 'high') {
       return {
-        ...day,
-        workout: {
-          ...day.workout,
+        ...setPrimarySession(day, {
+          ...workout,
           intensity: 'medium' as const,
-          description: `${day.workout.description} (intensity reduced)`
-        },
+          description: `${workout.description} (intensity reduced)`
+        }),
         rationale: 'Intensity reduced for recovery'
       };
     }
@@ -442,16 +487,17 @@ function reduceIntensity(plan: WeeklyPlan): WeeklyPlan {
 }
 
 function addRestDay(plan: WeeklyPlan): WeeklyPlan {
-  const easyDayIndex = plan.days.findIndex(d =>
-    d.workout && d.workout.intensity === 'low' && d.workout.type !== 'long'
-  );
+  const easyDayIndex = plan.days.findIndex(d => {
+    const workout = getPrimarySession(d);
+    return workout && workout.intensity === 'low' && workout.type !== 'long';
+  });
 
   if (easyDayIndex === -1) return plan;
 
   const modifiedDays = [...plan.days];
   modifiedDays[easyDayIndex] = {
     ...modifiedDays[easyDayIndex],
-    workout: undefined,
+    sessions: [],
     rationale: 'Converted to rest day based on recovery needs'
   };
 
@@ -466,28 +512,23 @@ function createDeloadWeek(plan: WeeklyPlan, athlete: AthleteProfile): WeeklyPlan
   const deloadVolume = (plan.actualMileage || 0) * 0.7;
 
   const modifiedDays = plan.days.map(day => {
-    if (!day.workout || day.workout.type === 'rest') return day;
+    const workout = getPrimarySession(day);
+    if (!workout || workout.type === 'rest') return day;
 
-    if (day.workout.intensity === 'high') {
-      return {
-        ...day,
-        workout: {
-          ...day.workout,
-          intensity: 'medium' as const,
-          distanceKm: day.workout.distanceKm * 0.7,
-          durationMinutes: Math.round(day.workout.durationMinutes * 0.7)
-        }
-      };
+    if (workout.intensity === 'high') {
+      return setPrimarySession(day, {
+        ...workout,
+        intensity: 'medium' as const,
+        distanceKm: workout.distanceKm * 0.7,
+        durationMinutes: Math.round(workout.durationMinutes * 0.7)
+      });
     }
 
-    return {
-      ...day,
-      workout: {
-        ...day.workout,
-        distanceKm: day.workout.distanceKm * 0.7,
-        durationMinutes: Math.round(day.workout.durationMinutes * 0.7)
-      }
-    };
+    return setPrimarySession(day, {
+      ...workout,
+      distanceKm: workout.distanceKm * 0.7,
+      durationMinutes: Math.round(workout.durationMinutes * 0.7)
+    });
   });
 
   return {
@@ -551,21 +592,22 @@ function createRecoveryWeek(plan: WeeklyPlan): WeeklyPlan {
     if (i % 2 === 0) {
       return {
         ...day,
-        workout: undefined,
+        sessions: [],
         rationale: 'Rest day for recovery'
       };
     }
 
+    const workout = getPrimarySession(day);
     return {
       ...day,
-      workout: day.workout ? {
+      sessions: workout ? [{
         type: 'easy' as const,
         intensity: 'low' as const,
-        distanceKm: Math.min(day.workout.distanceKm * 0.4, 8),
-        durationMinutes: Math.round(Math.min(day.workout.durationMinutes * 0.4, 60)),
+        distanceKm: Math.min(workout.distanceKm * 0.4, 8),
+        durationMinutes: Math.round(Math.min(workout.durationMinutes * 0.4, 60)),
         description: 'Very easy recovery run',
         purpose: 'Active recovery'
-      } : undefined,
+      }] : [],
       rationale: 'Recovery focus week'
     };
   });

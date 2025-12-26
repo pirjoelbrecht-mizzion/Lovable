@@ -15,6 +15,7 @@
  * or modifications that violate them.
  */
 
+import { getPrimarySession } from './adaptive-controller';
 import type {
   AthleteProfile,
   WeeklyPlan,
@@ -186,7 +187,8 @@ function checkRecoveryCompliance(
   let maxConsecutive = 0;
 
   for (const day of plan.days) {
-    if (day.workout && (day.workout.intensity === 'high' || day.workout.type === 'long')) {
+    const workout = getPrimarySession(day);
+    if (workout && (workout.intensity === 'high' || workout.type === 'long')) {
       consecutiveHardDays++;
       maxConsecutive = Math.max(maxConsecutive, consecutiveHardDays);
     } else {
@@ -253,8 +255,10 @@ function checkIntensityDistribution(
   for (let i = 0; i < plan.days.length - 1; i++) {
     const today = plan.days[i];
     const tomorrow = plan.days[i + 1];
+    const todayWorkout = getPrimarySession(today);
+    const tomorrowWorkout = getPrimarySession(tomorrow);
 
-    if (today.workout?.intensity === 'high' && tomorrow.workout?.intensity === 'high') {
+    if (todayWorkout?.intensity === 'high' && tomorrowWorkout?.intensity === 'high') {
       warnings.push({
         severity: 'warning',
         rule: 'BACK_TO_BACK_HARD',
