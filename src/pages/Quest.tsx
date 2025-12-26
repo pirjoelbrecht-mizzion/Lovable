@@ -899,19 +899,35 @@ export default function Quest() {
                       const userSessions = dayData?.sessions || [];
                       const fallback = defaultPlan[idx];
 
+                      // Start with user sessions or fallback
                       let daySessions: any[] = userSessions.length > 0
                         ? userSessions
                         : [{ title: fallback?.title || 'Rest', km: fallback?.km || 0, notes: fallback?.notes || '', type: fallback?.type || 'rest' }];
 
-                      const fallbackTitle = (fallback?.title || '').toLowerCase();
-                      const fallbackHasRunAndStrength = (fallbackTitle.includes('run') || fallbackTitle.includes('easy')) &&
-                                                         (fallbackTitle.includes('strength') || fallbackTitle.includes('me session'));
+                      // Check if we need to split combined "run + strength" sessions
+                      // This handles both user sessions and fallback sessions
+                      if (daySessions.length === 1) {
+                        const sessionTitle = (daySessions[0].title || '').toLowerCase();
+                        const hasRunAndStrength = (sessionTitle.includes('run') || sessionTitle.includes('easy')) &&
+                                                   (sessionTitle.includes('strength') || sessionTitle.includes('me session') || sessionTitle.includes('+'));
 
-                      if (fallbackHasRunAndStrength) {
-                        daySessions = [
-                          { title: 'Easy run', km: fallback?.km || 6, type: 'easy', notes: '' },
-                          { title: 'Strength', km: 0, notes: 'ME session', type: 'strength' }
-                        ];
+                        if (hasRunAndStrength) {
+                          console.log(`[Quest] Day ${idx} (${dayName}) Splitting combined session:`, daySessions[0].title);
+                          const baseKm = daySessions[0].km || (fallback?.km || 6);
+                          daySessions = [
+                            { title: 'Easy run', km: baseKm, type: 'easy', notes: '' },
+                            { title: 'Strength', km: 0, notes: 'ME session', type: 'strength' }
+                          ];
+                        }
+                      }
+
+                      // Debug: Log the processed sessions
+                      if (daySessions.length > 1) {
+                        console.log(`[Quest] Day ${idx} (${dayName}) After split:`, daySessions.map(s => ({
+                          title: s.title,
+                          km: s.km,
+                          type: s.type
+                        })));
                       }
 
                       const allWorkouts = daySessions.map((session: any, sessionIdx: number) => {
