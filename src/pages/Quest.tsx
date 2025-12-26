@@ -100,7 +100,14 @@ function getMonday() {
 }
 
 function detectSessionType(title: string, notes?: string, explicitType?: string): string {
-  if (explicitType === 'strength') return 'strength';
+  // If explicit type is provided, trust it
+  if (explicitType) {
+    const validTypes = ['strength', 'rest', 'recovery', 'easy', 'tempo', 'intervals', 'long', 'workout'];
+    if (validTypes.includes(explicitType)) {
+      return explicitType;
+    }
+  }
+
   const text = `${title} ${notes || ""}`.toLowerCase();
   // Check for strength training first (highest priority)
   if (/strength|gym|lift|weights|me session/i.test(text)) return "strength";
@@ -908,20 +915,45 @@ export default function Quest() {
                       }
 
                       const allWorkouts = daySessions.map((session: any, sessionIdx: number) => {
+                        // Debug: log the raw session data
+                        if (daySessions.length > 1) {
+                          console.log(`[Quest] Day ${idx} Session ${sessionIdx}:`, {
+                            title: session.title,
+                            km: session.km,
+                            type: session.type,
+                            notes: session.notes
+                          });
+                        }
+
                         const sessionType = detectSessionType(session.title || '', session.notes, session?.type);
-                        return {
+
+                        // For strength sessions, override display properties
+                        const isStrength = sessionType === 'strength';
+                        const displayTitle = isStrength && session.title?.toLowerCase().includes('strength')
+                          ? 'Strength Training'
+                          : session.title || 'Workout';
+
+                        const workout = {
                           id: `${idx}-${sessionIdx}`,
                           type: sessionType as any,
-                          title: session.title || 'Workout',
-                          duration: session?.durationMin
-                            ? `${Math.floor(session.durationMin / 60)}h ${Math.floor(session.durationMin % 60)}m`.replace(/0h /, '')
-                            : session.km ? estimateDuration(session.km, sessionType) : '30 min',
-                          distance: session.km ? `${session.km}K` : undefined,
+                          title: displayTitle,
+                          duration: isStrength
+                            ? '40 min'
+                            : session?.durationMin
+                              ? `${Math.floor(session.durationMin / 60)}h ${Math.floor(session.durationMin % 60)}m`.replace(/0h /, '')
+                              : session.km ? estimateDuration(session.km, sessionType) : '30 min',
+                          distance: isStrength ? undefined : (session.km ? `${session.km}K` : undefined),
                           completed: completionStatus[idx] || false,
                           isToday: idx === today,
                           elevation: session?.elevationGain,
                           zones: session?.zones,
                         };
+
+                        if (daySessions.length > 1) {
+                          console.log(`[Quest] -> Workout ${sessionIdx}:`, workout);
+                        }
+
+                        return workout;
                       });
 
                       return {
