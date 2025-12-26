@@ -24,7 +24,9 @@ import { getUserSettings } from "@/lib/userSettings";
 import { buildAthleteProfile, calculateReadiness, type AthleteProfile } from "@/lib/adaptive-coach";
 import { Calendar, Flag, Map, Thermometer, Users, Zap, ChevronRight, Activity, TrendingUp, Mountain } from "lucide-react";
 import { useStrengthTraining } from "@/hooks/useStrengthTraining";
+import { useCoreTraining } from "@/hooks/useCoreTraining";
 import { MESessionInline } from "@/components/MESessionInline";
+import { CoreSessionCard } from "@/components/CoreSessionCard";
 import { CosmicWeekView } from "@/components/CosmicWeekView";
 import { LiveWorkoutTracker } from "@/components/strength/LiveWorkoutTracker";
 import { supabase } from "@/lib/supabase";
@@ -139,6 +141,18 @@ export default function Quest() {
 
   // Get strength training data
   const { meAssignment, loadRegulation, coachingMessage, templates: meTemplates } = useStrengthTraining(null, 'base');
+
+  // Get core training data
+  const {
+    selectedCoreSession,
+    coreEmphasis,
+    coreFrequency,
+    sorenessAdjustment,
+  } = useCoreTraining({
+    raceType: 'trail',
+    period: 'base',
+  });
+
   const [weekPlan, setWeekPlan] = useState<WeekPlan>(() => {
     const plan = getWeekPlan();
     console.log('[Quest] Initial weekPlan loaded:', plan?.length, 'days');
@@ -947,36 +961,54 @@ export default function Quest() {
               <>
                 {/* NEW: Mobile Training View */}
                 {todayData ? (
-                  <TodayTrainingMobile
-                    data={{
-                      type: todayData.summary.title,
-                      duration: todayData.summary.duration,
-                      distance: todayData.summary.distance,
-                      pace: todayData.summary.pace,
-                      isToday: true,
-                      isAdapted: false
-                    }}
-                    onComplete={() => {
-                      const todaySession = sessions.find(s => s.isToday);
-                      if (todaySession) {
-                        const monday = getMonday();
-                        const workoutDate = new Date(monday);
-                        workoutDate.setDate(workoutDate.getDate() + sessions.indexOf(todaySession));
-                        setSelectedWorkoutForFeedback({
-                          date: workoutDate.toISOString().slice(0, 10),
-                          title: todaySession.type,
-                          type: detectSessionType(todaySession.type),
-                          distanceKm: parseFloat(todaySession.distance?.replace('K', '') || '0'),
-                          durationMinutes: parseInt(todaySession.duration.match(/\d+/)?.[0] || '0', 10)
-                        });
-                        setFeedbackModalOpen(true);
-                      }
-                    }}
-                    onEdit={() => {
-                      const todaySession = sessions.find(s => s.isToday);
-                      if (todaySession) setSelectedSession(todaySession);
-                    }}
-                  />
+                  <div style={{ padding: '16px' }}>
+                    <TodayTrainingMobile
+                      data={{
+                        type: todayData.summary.title,
+                        duration: todayData.summary.duration,
+                        distance: todayData.summary.distance,
+                        pace: todayData.summary.pace,
+                        isToday: true,
+                        isAdapted: false
+                      }}
+                      onComplete={() => {
+                        const todaySession = sessions.find(s => s.isToday);
+                        if (todaySession) {
+                          const monday = getMonday();
+                          const workoutDate = new Date(monday);
+                          workoutDate.setDate(workoutDate.getDate() + sessions.indexOf(todaySession));
+                          setSelectedWorkoutForFeedback({
+                            date: workoutDate.toISOString().slice(0, 10),
+                            title: todaySession.type,
+                            type: detectSessionType(todaySession.type),
+                            distanceKm: parseFloat(todaySession.distance?.replace('K', '') || '0'),
+                            durationMinutes: parseInt(todaySession.duration.match(/\d+/)?.[0] || '0', 10)
+                          });
+                          setFeedbackModalOpen(true);
+                        }
+                      }}
+                      onEdit={() => {
+                        const todaySession = sessions.find(s => s.isToday);
+                        if (todaySession) setSelectedSession(todaySession);
+                      }}
+                    />
+
+                    {/* Core Training Session (if scheduled for today) */}
+                    {selectedCoreSession.length > 0 && coreEmphasis && coreFrequency.frequency > 0 && (
+                      <div style={{ marginTop: 16 }}>
+                        <CoreSessionCard
+                          exercises={selectedCoreSession}
+                          emphasis={coreEmphasis}
+                          frequency={coreFrequency}
+                          sessionsThisWeek={0}
+                          sorenessAdjustment={sorenessAdjustment}
+                          onComplete={() => {
+                            toast('Core session completed!', 'success');
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div style={{ padding: '32px', textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>
                     No training session scheduled for today
@@ -1316,7 +1348,8 @@ export default function Quest() {
                 maxWidth: '448px',
                 margin: '0 auto',
                 maxHeight: 'calc(100vh - 80px)',
-                overflowY: 'auto'
+                overflowY: 'auto',
+                padding: '16px'
               }}>
                 <TodayTrainingMobile
                   data={{
@@ -1332,6 +1365,22 @@ export default function Quest() {
                     setSelectedSession(null);
                   }}
                 />
+
+                {/* Core Training Session (if scheduled for today) */}
+                {selectedCoreSession.length > 0 && coreEmphasis && coreFrequency.frequency > 0 && (
+                  <div style={{ marginTop: 16 }}>
+                    <CoreSessionCard
+                      exercises={selectedCoreSession}
+                      emphasis={coreEmphasis}
+                      frequency={coreFrequency}
+                      sessionsThisWeek={0}
+                      sorenessAdjustment={sorenessAdjustment}
+                      onComplete={() => {
+                        toast('Core session completed!', 'success');
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             ) : (
               /* Original modal for non-today sessions */
