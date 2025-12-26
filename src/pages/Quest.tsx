@@ -899,6 +899,14 @@ export default function Quest() {
                       const userSessions = dayData?.sessions || [];
                       const fallback = defaultPlan[idx];
 
+                      if (idx === 2) {
+                        console.log(`[Quest] 🔍 ${dayName} INPUT DATA:`, {
+                          hasUserSessions: userSessions.length > 0,
+                          userSessions: userSessions.map(s => ({ title: s.title, km: s.km, type: (s as any).type })),
+                          fallback: { title: fallback?.title, km: fallback?.km, type: (fallback as any)?.type }
+                        });
+                      }
+
                       // Start with user sessions or fallback
                       let daySessions: any[] = userSessions.length > 0
                         ? userSessions
@@ -912,22 +920,14 @@ export default function Quest() {
                                                    (sessionTitle.includes('strength') || sessionTitle.includes('me session') || sessionTitle.includes('+'));
 
                         if (hasRunAndStrength) {
-                          console.log(`[Quest] Day ${idx} (${dayName}) Splitting combined session:`, daySessions[0].title);
                           const baseKm = daySessions[0].km || (fallback?.km || 6);
+                          console.log(`[Quest] ⚡ ${dayName} BEFORE SPLIT:`, daySessions[0]);
                           daySessions = [
                             { title: 'Easy run', km: baseKm, type: 'easy', notes: '' },
                             { title: 'Strength', km: 0, notes: 'ME session', type: 'strength' }
                           ];
+                          console.log(`[Quest] ⚡ ${dayName} AFTER SPLIT (${daySessions.length} sessions):`, daySessions);
                         }
-                      }
-
-                      // Debug: Log the processed sessions
-                      if (daySessions.length > 1) {
-                        console.log(`[Quest] Day ${idx} (${dayName}) After split:`, daySessions.map(s => ({
-                          title: s.title,
-                          km: s.km,
-                          type: s.type
-                        })));
                       }
 
                       const allWorkouts = daySessions.map((session: any, sessionIdx: number) => {
@@ -972,12 +972,21 @@ export default function Quest() {
                         return workout;
                       });
 
-                      return {
+                      const dayResult = {
                         day: dayName,
                         dayShort: DAYS_SHORT[idx],
                         workouts: allWorkouts,
                         isToday: idx === today,
                       };
+
+                      // Debug: Log final result for days with multiple workouts
+                      if (allWorkouts.length > 1) {
+                        console.log(`[Quest] Final day ${idx} (${dayName}):`, {
+                          workouts: allWorkouts.map(w => ({ id: w.id, type: w.type, title: w.title, distance: w.distance }))
+                        });
+                      }
+
+                      return dayResult;
                     });
                   })()}
                   onWorkoutClick={(workout, day) => {
