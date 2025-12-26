@@ -426,9 +426,14 @@ export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | Adaptiv
   }
 
   // Convert plan to adaptive format (handles both formats)
-  // If no plan exists, create a default base plan
+  // If no plan exists or all days are empty, create a default base plan
   let adaptivePlan: AdaptiveWeeklyPlan;
-  if (!plan || (Array.isArray(plan) && plan.length === 0)) {
+  const isEmptyPlan = !plan ||
+                      (Array.isArray(plan) && plan.length === 0) ||
+                      (Array.isArray(plan) && plan.every(day => !day.sessions || day.sessions.length === 0));
+
+  if (isEmptyPlan) {
+    console.log('[buildAdaptiveContext] Generating default base plan (empty/missing plan detected)');
     // Generate a default 7-day base plan
     const monday = getMondayOfWeek();
     const defaultPlan: LocalStorageWeekPlan = Array.from({ length: 7 }, (_, i) => {
