@@ -98,6 +98,7 @@ function convertToAdaptiveWeekPlan(localPlan: LocalStorageWeekPlan | AdaptiveWee
 /**
  * Convert Adaptive Coach WeeklyPlan back to localStorage format
  * Preserves any additional sessions from the original plan (e.g., strength sessions)
+ * CRITICAL: Adds easy run before strength training on Wednesday (index 2)
  */
 export function convertToLocalStoragePlan(
   adaptivePlan: AdaptiveWeeklyPlan,
@@ -120,10 +121,37 @@ export function convertToLocalStoragePlan(
     const originalDay = originalPlan?.[idx];
     const additionalSessions = originalDay?.sessions?.slice(1) || [];
 
+    // CRITICAL: Wednesday (index 2) should have BOTH easy run AND strength training
+    // The adaptive coach only generates one workout per day (strength on Wednesday)
+    // So we need to ADD the easy run when converting back to localStorage format
+    const isWednesday = idx === 2;
+    const isStrengthSession = primarySession.type === 'strength';
+
+    let sessions: any[] = [];
+
+    if (isWednesday && isStrengthSession) {
+      // Add easy run BEFORE strength session
+      const easyRunSession = {
+        id: `s_${Math.random().toString(36).slice(2)}`,
+        title: 'Easy run',
+        type: 'easy',
+        notes: 'Recovery run before strength work',
+        km: 6,
+        distanceKm: 6,
+        durationMin: 36,
+        zones: ['Z2'],
+        elevationGain: 0,
+        source: 'coach' as const,
+      };
+      sessions = [easyRunSession, primarySession, ...additionalSessions];
+    } else {
+      sessions = [primarySession, ...additionalSessions];
+    }
+
     return {
       label: day.day.slice(0, 3), // Mon, Tue, etc.
       dateISO: day.date,
-      sessions: [primarySession, ...additionalSessions],
+      sessions,
     };
   });
 }
