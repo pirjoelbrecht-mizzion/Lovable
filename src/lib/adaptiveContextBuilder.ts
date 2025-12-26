@@ -436,23 +436,37 @@ export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | Adaptiv
       date.setDate(date.getDate() + i);
       const dayLabel = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i];
 
-      // Wednesday is strength training day
+      // Wednesday is easy run + strength training day
       if (i === 2) {
         return {
           label: dayLabel,
           dateISO: date.toISOString().slice(0, 10),
-          sessions: [{
-            id: `default_${i}`,
-            title: 'Strength Training',
-            type: 'strength',
-            notes: 'ME session - terrain-based strength work',
-            km: 0,
-            distanceKm: 0,
-            durationMin: 40,
-            zones: [],
-            elevationGain: 0,
-            source: 'coach' as const
-          }]
+          sessions: [
+            {
+              id: `default_${i}_run`,
+              title: 'Easy run',
+              type: 'easy',
+              notes: 'Recovery run',
+              km: 6,
+              distanceKm: 6,
+              durationMin: 36,
+              zones: ['Z2'],
+              elevationGain: 0,
+              source: 'coach' as const
+            },
+            {
+              id: `default_${i}_strength`,
+              title: 'Strength Training',
+              type: 'strength',
+              notes: 'ME session - terrain-based strength work',
+              km: 0,
+              distanceKm: 0,
+              durationMin: 40,
+              zones: [],
+              elevationGain: 0,
+              source: 'coach' as const
+            }
+          ]
         };
       }
 
