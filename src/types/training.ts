@@ -44,6 +44,18 @@ export type SessionPriority =
   | 'support';     // Optional workout - can skip if fatigued
 
 /**
+ * Session origin - who created this session?
+ * CRITICAL: The adaptive engine may MODIFY but NOT DELETE sessions it didn't create
+ */
+export type SessionOrigin =
+  | 'BASE_PLAN'     // From plan template (e.g., microcycle distributor)
+  | 'USER'          // User-created session
+  | 'ADAPTIVE'      // Created by adaptive engine (e.g., recovery session)
+  | 'STRENGTH'      // From strength training module
+  | 'HEAT'          // From heat acclimatization module
+  | 'ALTITUDE';     // From altitude training module
+
+/**
  * Multi-dimensional load profile
  * Each session contributes load across different systems
  */
@@ -86,22 +98,41 @@ export interface TrainingSession {
   prescription: Record<string, any>;
 
   /**
-   * Metadata
+   * Ownership & Metadata
+   * CRITICAL: Prevents adaptive engine from deleting sessions it didn't create
+   */
+  origin: SessionOrigin;
+  locked: boolean;  // If true, cannot be removed by adaptation (only modified)
+
+  /**
+   * Display metadata
    */
   title?: string;
   description?: string;
   notes?: string;
   completed?: boolean;
-  source?: 'coach' | 'user' | 'template';
+  source?: 'coach' | 'user' | 'template';  // Legacy field, will migrate to origin
 }
 
 /**
  * Training day - container for sessions
  *
+ * ======================================================================
+ * 🔑 CRITICAL: Sessions are first-class citizens. Days are containers only.
+ * ======================================================================
+ *
  * RULES:
- * - Days hold multiple sessions
- * - Days have no type - only their sessions have types
- * - Days are NOT analyzed as a unit - sessions are
+ * - Days hold multiple sessions (0, 1, 2, or more)
+ * - Days have NO TYPE - only their sessions have types
+ * - Days are NOT analyzed as a unit - sessions are analyzed individually
+ * - DO NOT assume sessions.length === 1
+ * - DO NOT access sessions[0] without checking length
+ * - DO NOT infer session type from day properties
+ *
+ * WRONG: day.workout or day.type
+ * RIGHT: day.sessions.forEach(session => ...)
+ *
+ * ======================================================================
  */
 export interface TrainingDay {
   date: string;  // YYYY-MM-DD
@@ -109,6 +140,7 @@ export interface TrainingDay {
 
   /**
    * Aggregated metrics (computed from sessions)
+   * These are READ-ONLY derived values
    */
   totalLoad?: LoadProfile;
   totalDuration?: number;
@@ -150,5 +182,42 @@ export interface DayAdaptation {
   date: string;
   sessionAdaptations: SessionAdaptation[];
   conflictsResolved: string[];  // List of conflicts that were resolved
-  sessionsRemoved: string[];    // Should be EMPTY for primary sessions
+  sessionsRemoved: string[];    // Should be EMPTY for primary/locked sessions
 }
+
+/**
+ * ======================================================================
+ * ADAPTATION OWNERSHIP RULES (NON-NEGOTIABLE)
+ * ======================================================================
+ *
+ * The adaptive engine has LIMITED AUTHORITY over sessions:
+ *
+ * ✅ CAN DO:
+ * - Modify prescription (distance, duration, intensity)
+ * - Reduce load when fatigued
+ * - Add recovery sessions (origin: ADAPTIVE)
+ *
+ * ❌ CANNOT DO:
+ * - Delete sessions with origin !== ADAPTIVE
+ * - Delete locked sessions
+ * - Delete primary priority sessions
+ * - Replace sessions wholesale
+ * - Merge multiple sessions into one
+ * - Create sessions that duplicate existing types
+ *
+ * CONFLICT RESOLUTION ORDER:
+ * 1. Reduce support sessions first
+ * 2. Reduce secondary sessions second
+ * 3. Modify (but never remove) primary sessions
+ * 4. Never touch locked sessions
+ *
+ * SESSION CREATION AUTHORITY:
+ * - BASE_PLAN: microcycle distributor, plan templates
+ * - USER: manual additions by user
+ * - STRENGTH/HEAT/ALTITUDE: respective feature modules
+ * - ADAPTIVE: only for recovery/compensation sessions
+ *
+ * If a session was not created by ADAPTIVE, it cannot be deleted by ADAPTIVE.
+ *
+ * ======================================================================
+ */

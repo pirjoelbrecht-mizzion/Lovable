@@ -212,11 +212,32 @@ export interface Workout {
 //   DAILY & WEEKLY PLAN STRUCTURES
 // ─────────────────────────────────────────────────────────────
 //
+// 🚧 MIGRATION NOTE:
+// DailyPlan is being migrated from single-workout to multi-session model
+// See /src/types/training.ts for the canonical multi-session types
+// DO NOT assume one workout per day in new code
+//
 
+/**
+ * Daily Plan - ONE DAY in the weekly plan
+ *
+ * ⚠️ MIGRATION IN PROGRESS:
+ * This currently uses `workout: Workout` (singular) which causes data loss
+ * when a day has multiple sessions (run + strength, run + core, etc.)
+ *
+ * Target structure: `sessions: Workout[]`
+ *
+ * Until migration is complete:
+ * - This field represents the PRIMARY session only
+ * - Additional sessions may exist in localStorage but are lost during adaptation
+ * - DO NOT write code that assumes this is the only session
+ *
+ * See /src/types/training.ts for the canonical TrainingDay interface
+ */
 export interface DailyPlan {
   day: string;              // "Mon", "Tue", etc.
   date: string;             // ISO date (YYYY-MM-DD)
-  workout: Workout;
+  workout: Workout;         // ⚠️ MIGRATION: Will become sessions: Workout[]
   completed?: boolean;      // Has athlete completed this?
   actualPerformance?: {     // Logged performance
     distanceKm?: number;
