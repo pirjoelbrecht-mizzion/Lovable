@@ -606,7 +606,10 @@ function createRecoveryWeek(plan: WeeklyPlan): WeeklyPlan {
         distanceKm: Math.min(workout.distanceKm * 0.4, 8),
         durationMinutes: Math.round(Math.min(workout.durationMinutes * 0.4, 60)),
         description: 'Very easy recovery run',
-        purpose: 'Active recovery'
+        purpose: 'Active recovery',
+        origin: 'ADAPTIVE',  // Created by adaptive engine for recovery
+        locked: false,
+        lockReason: undefined
       }] : [],
       rationale: 'Recovery focus week'
     };

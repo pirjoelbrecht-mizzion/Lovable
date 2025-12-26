@@ -575,12 +575,15 @@ function distributeWorkouts(
         durationMin,
         verticalGain: race.verticalGain || 0,
         intensityZones: ['Z4', 'Z5'], // Race effort
+        origin: 'BASE_PLAN',  // Race is part of base plan
+        locked: false,
+        lockReason: undefined
       };
 
       days.push({
         day: dayName,
         date: dateStr,
-        workout: raceWorkout,
+        sessions: [raceWorkout],
       });
 
       // Mark race day index to handle post-race recovery
@@ -603,12 +606,15 @@ function distributeWorkouts(
             distanceKm: 0,
             durationMin: 0,
             verticalGain: 0,
+            origin: 'BASE_PLAN',  // Post-race recovery is part of base plan
+            locked: false,
+            lockReason: undefined
           };
 
           days.push({
             day: restDayName,
             date: restDateStr,
-            workout: restWorkout,
+            sessions: [restWorkout],
           });
         }
         // All remaining days added, break the loop
@@ -625,18 +631,33 @@ function distributeWorkouts(
 
     if (!workout) {
       // Fallback to any remaining workout
-      workout = workouts.find(w => !days.some(d => d.workout.id === w.id));
+      workout = workouts.find(w => !days.some(d => d.sessions[0]?.id === w.id));
     }
 
     if (!workout) {
       // Default to rest
-      workout = { type: 'rest', title: 'Rest', description: 'Recovery day' };
+      workout = {
+        type: 'rest',
+        title: 'Rest',
+        description: 'Recovery day',
+        origin: 'BASE_PLAN',  // Rest days are part of base plan
+        locked: false,
+        lockReason: undefined
+      };
+    } else {
+      // Add ownership metadata to workouts from library
+      workout = {
+        ...workout,
+        origin: 'BASE_PLAN',  // All microcycle workouts are from base plan
+        locked: false,
+        lockReason: undefined
+      };
     }
 
     days.push({
       day: dayName,
       date: dateStr,
-      workout,
+      sessions: [workout],
     });
   }
 

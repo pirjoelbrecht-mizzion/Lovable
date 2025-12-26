@@ -205,7 +205,46 @@ export interface Workout {
   /** Workout substitutions */
   crossTrainAlternative?: string; // e.g., "60 min bike ride"
   notes?: string;                 // Coach notes
+
+  /**
+   * ======================================================================
+   * STEP 2B: OWNERSHIP & PROTECTION METADATA
+   * ======================================================================
+   *
+   * These fields control adaptive engine behavior:
+   * - origin: Who created this workout? (BASE_PLAN, USER, ADAPTIVE, etc.)
+   * - locked: Can adaptive engine delete this? (false = can modify/delete)
+   * - lockReason: Why is this locked? (undefined if not locked)
+   *
+   * CRITICAL RULES:
+   * - ALWAYS set origin explicitly (never infer from context)
+   * - Initial state: locked = false, lockReason = undefined
+   * - Origin determines delete authority (adaptive can't delete BASE_PLAN)
+   * - Lock mechanism is separate from origin (allows ADAPTIVE to lock later)
+   */
+  origin?: SessionOrigin;      // Who created this workout
+  locked?: boolean;            // Protected from deletion (default: false)
+  lockReason?: LockReason;     // Why locked (undefined = not locked)
 }
+
+/**
+ * Session origin types (from canonical types)
+ */
+export type SessionOrigin =
+  | 'BASE_PLAN'     // From plan template
+  | 'USER'          // User-created
+  | 'ADAPTIVE'      // Created by adaptive engine
+  | 'STRENGTH'      // From strength module
+  | 'HEAT'          // From heat module
+  | 'ALTITUDE';     // From altitude module
+
+/**
+ * Lock reason types (from canonical types)
+ */
+export type LockReason =
+  | 'PHYSIOLOGY'     // Critical for recovery/adaptation
+  | 'SAFETY'         // Injury prevention, mandatory rest
+  | 'USER_OVERRIDE'; // User explicitly locked
 
 //
 // ─────────────────────────────────────────────────────────────
