@@ -56,6 +56,25 @@ export type SessionOrigin =
   | 'ALTITUDE';     // From altitude training module
 
 /**
+ * Lock reason - why is this session protected from deletion?
+ *
+ * CRITICAL: This allows ADAPTIVE sessions to become locked later
+ *
+ * Use cases:
+ * - ADAPTIVE session that becomes critical for recovery (e.g., taper rest day)
+ * - Safety-critical sessions (e.g., mandatory rest before race)
+ * - User explicitly protects a session
+ *
+ * Prevents boolean logic explosion in adaptation:
+ * Instead of: (locked && origin !== 'ADAPTIVE') || (origin === 'ADAPTIVE' && taperActive)
+ * You get: locked && lockReason === 'PHYSIOLOGY'
+ */
+export type LockReason =
+  | 'PHYSIOLOGY'     // Critical for recovery/adaptation (e.g., taper logic)
+  | 'SAFETY'         // Injury prevention, mandatory rest
+  | 'USER_OVERRIDE'; // User explicitly locked this session
+
+/**
  * Multi-dimensional load profile
  * Each session contributes load across different systems
  */
@@ -102,7 +121,8 @@ export interface TrainingSession {
    * CRITICAL: Prevents adaptive engine from deleting sessions it didn't create
    */
   origin: SessionOrigin;
-  locked: boolean;  // If true, cannot be removed by adaptation (only modified)
+  locked: boolean;     // If true, cannot be removed by adaptation (only modified)
+  lockReason?: LockReason;  // Why is this locked? (critical for debugging & logic)
 
   /**
    * Display metadata
