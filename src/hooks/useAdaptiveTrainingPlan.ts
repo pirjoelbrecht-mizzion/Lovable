@@ -158,8 +158,9 @@ export function useAdaptiveTrainingPlan(
       }
 
       // Extract adjusted plan from decision and convert to localStorage format
+      // Pass the original plan to preserve additional sessions (e.g., strength)
       const modifiedPlan = newDecision.modifiedPlan;
-      const localStoragePlan = convertToLocalStoragePlan(modifiedPlan);
+      const localStoragePlan = convertToLocalStoragePlan(modifiedPlan, plan);
 
       // Validate plan before saving - CRITICAL to prevent clearing valid plans
       if (!localStoragePlan || localStoragePlan.length !== 7) {

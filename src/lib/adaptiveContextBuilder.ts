@@ -97,12 +97,14 @@ function convertToAdaptiveWeekPlan(localPlan: LocalStorageWeekPlan | AdaptiveWee
 
 /**
  * Convert Adaptive Coach WeeklyPlan back to localStorage format
+ * Preserves any additional sessions from the original plan (e.g., strength sessions)
  */
-export function convertToLocalStoragePlan(adaptivePlan: AdaptiveWeeklyPlan): LocalStorageWeekPlan {
-  return adaptivePlan.days.map((day) => ({
-    label: day.day.slice(0, 3), // Mon, Tue, etc.
-    dateISO: day.date,
-    sessions: [{
+export function convertToLocalStoragePlan(
+  adaptivePlan: AdaptiveWeeklyPlan,
+  originalPlan?: LocalStorageWeekPlan
+): LocalStorageWeekPlan {
+  return adaptivePlan.days.map((day, idx) => {
+    const primarySession = {
       id: `s_${Math.random().toString(36).slice(2)}`,
       title: day.workout.title || day.workout.type,
       type: day.workout.type,
@@ -113,8 +115,17 @@ export function convertToLocalStoragePlan(adaptivePlan: AdaptiveWeeklyPlan): Loc
       zones: day.workout.intensityZones || [],
       elevationGain: day.workout.verticalGain,
       source: 'coach' as const,
-    }],
-  }));
+    };
+
+    const originalDay = originalPlan?.[idx];
+    const additionalSessions = originalDay?.sessions?.slice(1) || [];
+
+    return {
+      label: day.day.slice(0, 3), // Mon, Tue, etc.
+      dateISO: day.date,
+      sessions: [primarySession, ...additionalSessions],
+    };
+  });
 }
 
 /**
