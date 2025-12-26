@@ -900,11 +900,11 @@ export default function Quest() {
                       const fallback = defaultPlan[idx];
 
                       if (idx === 2) {
-                        console.log(`[Quest] 🔍 ${dayName} INPUT DATA:`, {
-                          hasUserSessions: userSessions.length > 0,
-                          userSessions: userSessions.map(s => ({ title: s.title, km: s.km, type: (s as any).type })),
-                          fallback: { title: fallback?.title, km: fallback?.km, type: (fallback as any)?.type }
+                        console.log(`[Quest] 🔍 ${dayName} - User sessions count:`, userSessions.length);
+                        userSessions.forEach((s, i) => {
+                          console.log(`[Quest]   Session ${i}:`, s.title, 'km:', s.km, 'type:', (s as any).type, 'notes:', s.notes);
                         });
+                        console.log(`[Quest] 🔍 ${dayName} - Fallback:`, fallback?.title, 'km:', fallback?.km, 'type:', (fallback as any)?.type);
                       }
 
                       // Start with user sessions or fallback
@@ -980,9 +980,10 @@ export default function Quest() {
                       };
 
                       // Debug: Log final result for days with multiple workouts
-                      if (allWorkouts.length > 1) {
-                        console.log(`[Quest] Final day ${idx} (${dayName}):`, {
-                          workouts: allWorkouts.map(w => ({ id: w.id, type: w.type, title: w.title, distance: w.distance }))
+                      if (idx === 2) {
+                        console.log(`[Quest] ✅ Final ${dayName} has ${allWorkouts.length} workouts:`);
+                        allWorkouts.forEach((w, i) => {
+                          console.log(`[Quest]   Workout ${i}:`, w.type, '|', w.title, '|', w.distance || 'no distance');
                         });
                       }
 
