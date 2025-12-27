@@ -36,43 +36,17 @@ export type SessionRole =
   | 'RECOVERY_SUPPORT';      // Active recovery, mobility
 
 /**
- * Session priority - determines adaptation behavior
+ * ======================================================================
+ * SESSION OWNERSHIP TYPES
+ * ======================================================================
+ * Imported from canonical source: /src/types/session-ownership.ts
+ * DO NOT redefine these types here - import only
  */
-export type SessionPriority =
-  | 'primary'      // Main workout - never remove, can reduce distance
-  | 'secondary'    // Support workout - can reduce or remove if overloaded
-  | 'support';     // Optional workout - can skip if fatigued
-
-/**
- * Session origin - who created this session?
- * CRITICAL: The adaptive engine may MODIFY but NOT DELETE sessions it didn't create
- */
-export type SessionOrigin =
-  | 'BASE_PLAN'     // From plan template (e.g., microcycle distributor)
-  | 'USER'          // User-created session
-  | 'ADAPTIVE'      // Created by adaptive engine (e.g., recovery session)
-  | 'STRENGTH'      // From strength training module
-  | 'HEAT'          // From heat acclimatization module
-  | 'ALTITUDE';     // From altitude training module
-
-/**
- * Lock reason - why is this session protected from deletion?
- *
- * CRITICAL: This allows ADAPTIVE sessions to become locked later
- *
- * Use cases:
- * - ADAPTIVE session that becomes critical for recovery (e.g., taper rest day)
- * - Safety-critical sessions (e.g., mandatory rest before race)
- * - User explicitly protects a session
- *
- * Prevents boolean logic explosion in adaptation:
- * Instead of: (locked && origin !== 'ADAPTIVE') || (origin === 'ADAPTIVE' && taperActive)
- * You get: locked && lockReason === 'PHYSIOLOGY'
- */
-export type LockReason =
-  | 'PHYSIOLOGY'     // Critical for recovery/adaptation (e.g., taper logic)
-  | 'SAFETY'         // Injury prevention, mandatory rest
-  | 'USER_OVERRIDE'; // User explicitly locked this session
+export type {
+  SessionOrigin,
+  SessionPriority,
+  LockReason
+} from './session-ownership';
 
 /**
  * Multi-dimensional load profile

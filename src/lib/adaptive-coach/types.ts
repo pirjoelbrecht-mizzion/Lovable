@@ -3,14 +3,16 @@
  *  ADAPTIVE ULTRA TRAINING ENGINE — GLOBAL TYPES & INTERFACES
  *  Module 1 — Foundation
  * ======================================================================
- * 
+ *
  * This module provides all TypeScript types and foundational interfaces
  * used across the Adaptive Ultra Training Engine.
- * 
+ *
  * Design Note: These types are namespaced to avoid conflicts with existing
  * Mizzion types (e.g., UserProfile from onboarding). Where integration is
  * needed, adapter functions will bridge the two systems.
  */
+
+import type { SessionOrigin, LockReason } from '../../types/session-ownership';
 
 //
 // ─────────────────────────────────────────────────────────────
@@ -221,30 +223,13 @@ export interface Workout {
    * - Initial state: locked = false, lockReason = undefined
    * - Origin determines delete authority (adaptive can't delete BASE_PLAN)
    * - Lock mechanism is separate from origin (allows ADAPTIVE to lock later)
+   *
+   * Types imported from: /src/types/session-ownership.ts (canonical source)
    */
   origin?: SessionOrigin;      // Who created this workout
   locked?: boolean;            // Protected from deletion (default: false)
   lockReason?: LockReason;     // Why locked (undefined = not locked)
 }
-
-/**
- * Session origin types (from canonical types)
- */
-export type SessionOrigin =
-  | 'BASE_PLAN'     // From plan template
-  | 'USER'          // User-created
-  | 'ADAPTIVE'      // Created by adaptive engine
-  | 'STRENGTH'      // From strength module
-  | 'HEAT'          // From heat module
-  | 'ALTITUDE';     // From altitude module
-
-/**
- * Lock reason types (from canonical types)
- */
-export type LockReason =
-  | 'PHYSIOLOGY'     // Critical for recovery/adaptation
-  | 'SAFETY'         // Injury prevention, mandatory rest
-  | 'USER_OVERRIDE'; // User explicitly locked
 
 //
 // ─────────────────────────────────────────────────────────────
