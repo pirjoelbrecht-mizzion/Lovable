@@ -15,12 +15,12 @@
  * or modifications that violate them.
  */
 
-import { getPrimarySession } from './adaptive-controller';
 import type {
   AthleteProfile,
   WeeklyPlan,
   Workout,
-  TrainingPhase
+  TrainingPhase,
+  DailyPlan
 } from './types';
 
 export const SAFETY_LIMITS = {
@@ -170,7 +170,7 @@ function checkRecoveryCompliance(
   violations: SafetyViolation[],
   warnings: SafetyViolation[]
 ): void {
-  const restDays = plan.days.filter(d => !d.workout || d.workout.type === 'rest').length;
+  const restDays = plan.days.filter(d => d.sessions.length === 0 || d.sessions.every(s => s.type === 'rest')).length;
 
   if (restDays < SAFETY_LIMITS.RECOVERY.MIN_REST_DAYS_PER_WEEK) {
     violations.push({
@@ -187,8 +187,8 @@ function checkRecoveryCompliance(
   let maxConsecutive = 0;
 
   for (const day of plan.days) {
-    const workout = getPrimarySession(day);
-    if (workout && (workout.intensity === 'high' || workout.type === 'long')) {
+    const hasHardSession = day.sessions.some(s => s.intensity === 'high' || s.type === 'long');
+    if (hasHardSession) {
       consecutiveHardDays++;
       maxConsecutive = Math.max(maxConsecutive, consecutiveHardDays);
     } else {
@@ -211,7 +211,7 @@ function checkRecoveryCompliance(
   const [hard, easy] = recoveryRatio.split(':').map(Number);
   const expectedHardDays = Math.floor(7 / (hard + easy)) * hard;
   const actualHardDays = plan.days.filter(d =>
-    d.workout && (d.workout.intensity === 'high' || d.workout.type === 'long')
+    d.sessions.some(s => s.intensity === 'high' || s.type === 'long')
   ).length;
 
   if (actualHardDays > expectedHardDays * 1.2) {
@@ -238,7 +238,7 @@ function checkIntensityDistribution(
     : SAFETY_LIMITS.INTENSITY.MAX_HARD_SESSIONS_PER_WEEK_CAT2;
 
   const hardSessions = plan.days.filter(d =>
-    d.workout && d.workout.intensity === 'high'
+    d.sessions.some(s => s.intensity === 'high')
   ).length;
 
   if (hardSessions > maxHardSessions) {
@@ -255,10 +255,10 @@ function checkIntensityDistribution(
   for (let i = 0; i < plan.days.length - 1; i++) {
     const today = plan.days[i];
     const tomorrow = plan.days[i + 1];
-    const todayWorkout = getPrimarySession(today);
-    const tomorrowWorkout = getPrimarySession(tomorrow);
+    const todayHasHard = today.sessions.some(s => s.intensity === 'high');
+    const tomorrowHasHard = tomorrow.sessions.some(s => s.intensity === 'high');
 
-    if (todayWorkout?.intensity === 'high' && tomorrowWorkout?.intensity === 'high') {
+    if (todayHasHard && tomorrowHasHard) {
       warnings.push({
         severity: 'warning',
         rule: 'BACK_TO_BACK_HARD',
@@ -347,7 +347,7 @@ function checkAgeAppropriate(
     });
   }
 
-  const restDays = plan.days.filter(d => !d.workout || d.workout.type === 'rest').length;
+  const restDays = plan.days.filter(d => d.sessions.length === 0 || d.sessions.every(s => s.type === 'rest')).length;
   let minRestDays = 1;
   if (athlete.age >= SAFETY_LIMITS.AGE_MODIFIERS.VETERAN_AGE) {
     minRestDays = 2;
@@ -419,7 +419,7 @@ export function enforceMinimumRecovery(
   athlete: AthleteProfile
 ): WeeklyPlan {
   const modifiedPlan = { ...plan };
-  const restDays = plan.days.filter(d => !d.workout || d.workout.type === 'rest').length;
+  const restDays = plan.days.filter(d => d.sessions.length === 0 || d.sessions.every(s => s.type === 'rest')).length;
 
   let requiredRestDays = SAFETY_LIMITS.RECOVERY.MIN_REST_DAYS_PER_WEEK;
   if (athlete.age && athlete.age >= SAFETY_LIMITS.AGE_MODIFIERS.VETERAN_AGE) {
@@ -431,7 +431,7 @@ export function enforceMinimumRecovery(
   if (restDays < requiredRestDays) {
     const daysToConvert = requiredRestDays - restDays;
     const easyDays = modifiedPlan.days.filter(d =>
-      d.workout && d.workout.intensity === 'low' && d.workout.type !== 'long'
+      d.sessions.some(s => s.intensity === 'low' && s.type !== 'long')
     );
 
     for (let i = 0; i < Math.min(daysToConvert, easyDays.length); i++) {

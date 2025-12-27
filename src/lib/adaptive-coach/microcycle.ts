@@ -630,8 +630,8 @@ function distributeWorkouts(
     let workout = workouts.find(w => expectedIds.some(id => w.id?.includes(id)));
 
     if (!workout) {
-      // Fallback to any remaining workout
-      workout = workouts.find(w => !days.some(d => d.sessions[0]?.id === w.id));
+      // Fallback to any remaining workout (check all sessions, not just first)
+      workout = workouts.find(w => !days.some(d => d.sessions.some(s => s.id === w.id)));
     }
 
     if (!workout) {

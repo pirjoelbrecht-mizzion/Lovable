@@ -380,9 +380,11 @@ export function generateWeeklySummary(
   athlete: AthleteProfile,
   race: RaceEvent
 ): string {
-  const daysWithWorkouts = plan.days.filter(d => d.workout && d.workout.type !== 'rest').length;
+  const daysWithWorkouts = plan.days.filter(d =>
+    d.sessions.length > 0 && d.sessions.some(s => s.type !== 'rest')
+  ).length;
   const hardDays = plan.days.filter(d =>
-    d.workout && (d.workout.intensity === 'high' || d.workout.type === 'long')
+    d.sessions.some(s => s.intensity === 'high' || s.type === 'long')
   ).length;
 
   let summary = `Week ${plan.weekNumber} (${plan.phase} phase): ${plan.targetMileage}km across ${daysWithWorkouts} training days. `;
@@ -391,8 +393,8 @@ export function generateWeeklySummary(
     summary += `${hardDays} key workout${hardDays > 1 ? 's' : ''} focus on `;
 
     const keyWorkouts = plan.days
-      .filter(d => d.workout && (d.workout.intensity === 'high' || d.workout.type === 'long'))
-      .map(d => d.workout!.type)
+      .filter(d => d.sessions.some(s => s.intensity === 'high' || s.type === 'long'))
+      .flatMap(d => d.sessions.filter(s => s.intensity === 'high' || s.type === 'long').map(s => s.type))
       .slice(0, 2);
 
     summary += keyWorkouts.join(' and ') + '. ';

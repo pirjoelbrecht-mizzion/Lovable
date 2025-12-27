@@ -26,49 +26,24 @@ import type {
 import { checkWeeklyPlanSafety, calculateSafeVolumeRange } from './safety';
 
 /**
- * STEP 2A MIGRATION HELPER
- *
- * Safely access primary session from day.sessions array.
- * Logs warning if multiple sessions exist (which shouldn't happen yet).
- *
- * TODO: Remove this helper in STEP 3 when we properly iterate sessions.
+ * ======================================================================
+ * STEP 3: SESSION LOGGING HELPER
+ * ======================================================================
+ * Log session counts to make multi-session behavior visible during refactor
  */
-export function getPrimarySession(day: DailyPlan): Workout | undefined {
-  if (!day.sessions || day.sessions.length === 0) {
-    return undefined;
-  }
-
-  if (day.sessions.length > 1) {
-    console.warn(`[STEP 2A] Day ${day.date} has ${day.sessions.length} sessions - using first one`, {
-      date: day.date,
-      sessionCount: day.sessions.length,
-      types: day.sessions.map(s => s.type)
+function logSessionCounts(context: string, days: DailyPlan[]): void {
+  const multiSessionDays = days.filter(d => d.sessions.length > 1);
+  if (multiSessionDays.length > 0) {
+    console.log(`[STEP 3] ${context} - Multi-session days detected:`, {
+      total: days.length,
+      multiSession: multiSessionDays.length,
+      details: multiSessionDays.map(d => ({
+        date: d.date,
+        sessionCount: d.sessions.length,
+        types: d.sessions.map(s => s.type)
+      }))
     });
   }
-
-  return day.sessions[0];
-}
-
-/**
- * STEP 2A MIGRATION HELPER
- *
- * Replace primary session in day.sessions array.
- * Preserves other sessions if they exist.
- *
- * TODO: Remove this helper in STEP 3 when we properly handle multi-session days.
- */
-export function setPrimarySession(day: DailyPlan, workout: Workout): DailyPlan {
-  if (day.sessions.length > 1) {
-    console.warn(`[STEP 2A] Replacing primary session but ${day.sessions.length - 1} other sessions exist`, {
-      date: day.date,
-      sessionCount: day.sessions.length
-    });
-  }
-
-  return {
-    ...day,
-    sessions: [workout, ...day.sessions.slice(1)]
-  };
 }
 
 export interface AdaptationSignal {
@@ -441,15 +416,23 @@ function reduceWeeklyVolume(
 ): WeeklyPlan {
   const targetMileage = (plan.actualMileage || 0) * (1 + reductionPercent);
 
-  const modifiedDays = plan.days.map(day => {
-    const workout = getPrimarySession(day);
-    if (!workout || workout.type === 'rest') return day;
+  logSessionCounts('reduceWeeklyVolume', plan.days);
 
-    return setPrimarySession(day, {
-      ...workout,
-      distanceKm: Math.round(workout.distanceKm * (1 + reductionPercent) * 10) / 10,
-      durationMinutes: Math.round(workout.durationMinutes * (1 + reductionPercent))
+  const modifiedDays = plan.days.map(day => {
+    const modifiedSessions = day.sessions.map(session => {
+      if (session.type === 'rest') return session;
+
+      return {
+        ...session,
+        distanceKm: Math.round(session.distanceKm * (1 + reductionPercent) * 10) / 10,
+        durationMinutes: Math.round(session.durationMinutes * (1 + reductionPercent))
+      };
     });
+
+    return {
+      ...day,
+      sessions: modifiedSessions
+    };
   });
 
   return {
@@ -461,22 +444,27 @@ function reduceWeeklyVolume(
 }
 
 function reduceIntensity(plan: WeeklyPlan): WeeklyPlan {
+  logSessionCounts('reduceIntensity', plan.days);
+
   const modifiedDays = plan.days.map(day => {
-    const workout = getPrimarySession(day);
-    if (!workout) return day;
-
-    if (workout.intensity === 'high') {
-      return {
-        ...setPrimarySession(day, {
-          ...workout,
+    let hadHighIntensity = false;
+    const modifiedSessions = day.sessions.map(session => {
+      if (session.intensity === 'high') {
+        hadHighIntensity = true;
+        return {
+          ...session,
           intensity: 'medium' as const,
-          description: `${workout.description} (intensity reduced)`
-        }),
-        rationale: 'Intensity reduced for recovery'
-      };
-    }
+          description: `${session.description} (intensity reduced)`
+        };
+      }
+      return session;
+    });
 
-    return day;
+    return {
+      ...day,
+      sessions: modifiedSessions,
+      rationale: hadHighIntensity ? 'Intensity reduced for recovery' : day.rationale
+    };
   });
 
   return {
@@ -487,9 +475,10 @@ function reduceIntensity(plan: WeeklyPlan): WeeklyPlan {
 }
 
 function addRestDay(plan: WeeklyPlan): WeeklyPlan {
+  logSessionCounts('addRestDay', plan.days);
+
   const easyDayIndex = plan.days.findIndex(d => {
-    const workout = getPrimarySession(d);
-    return workout && workout.intensity === 'low' && workout.type !== 'long';
+    return d.sessions.some(s => s.intensity === 'low' && s.type !== 'long');
   });
 
   if (easyDayIndex === -1) return plan;
@@ -511,24 +500,24 @@ function addRestDay(plan: WeeklyPlan): WeeklyPlan {
 function createDeloadWeek(plan: WeeklyPlan, athlete: AthleteProfile): WeeklyPlan {
   const deloadVolume = (plan.actualMileage || 0) * 0.7;
 
+  logSessionCounts('createDeloadWeek', plan.days);
+
   const modifiedDays = plan.days.map(day => {
-    const workout = getPrimarySession(day);
-    if (!workout || workout.type === 'rest') return day;
+    const modifiedSessions = day.sessions.map(session => {
+      if (session.type === 'rest') return session;
 
-    if (workout.intensity === 'high') {
-      return setPrimarySession(day, {
-        ...workout,
-        intensity: 'medium' as const,
-        distanceKm: workout.distanceKm * 0.7,
-        durationMinutes: Math.round(workout.durationMinutes * 0.7)
-      });
-    }
-
-    return setPrimarySession(day, {
-      ...workout,
-      distanceKm: workout.distanceKm * 0.7,
-      durationMinutes: Math.round(workout.durationMinutes * 0.7)
+      return {
+        ...session,
+        intensity: session.intensity === 'high' ? ('medium' as const) : session.intensity,
+        distanceKm: session.distanceKm * 0.7,
+        durationMinutes: Math.round(session.durationMinutes * 0.7)
+      };
     });
+
+    return {
+      ...day,
+      sessions: modifiedSessions
+    };
   });
 
   return {
@@ -540,23 +529,35 @@ function createDeloadWeek(plan: WeeklyPlan, athlete: AthleteProfile): WeeklyPlan
 }
 
 function skipNextHardWorkout(plan: WeeklyPlan): WeeklyPlan {
+  logSessionCounts('skipNextHardWorkout', plan.days);
+
   const hardDayIndex = plan.days.findIndex(d =>
-    d.workout && d.workout.intensity === 'high'
+    d.sessions.some(s => s.intensity === 'high')
   );
 
   if (hardDayIndex === -1) return plan;
 
   const modifiedDays = [...plan.days];
+  const targetDay = modifiedDays[hardDayIndex];
+
+  const modifiedSessions = targetDay.sessions.map(session => {
+    if (session.intensity === 'high') {
+      return {
+        ...session,
+        type: 'easy' as const,
+        intensity: 'low' as const,
+        distanceKm: session.distanceKm * 0.5,
+        durationMinutes: Math.round(session.durationMinutes * 0.5),
+        description: 'Easy recovery run (hard workout skipped)',
+        purpose: 'Recovery and adaptation'
+      };
+    }
+    return session;
+  });
+
   modifiedDays[hardDayIndex] = {
-    ...modifiedDays[hardDayIndex],
-    workout: {
-      type: 'easy' as const,
-      intensity: 'low' as const,
-      distanceKm: modifiedDays[hardDayIndex].workout!.distanceKm * 0.5,
-      durationMinutes: Math.round(modifiedDays[hardDayIndex].workout!.durationMinutes * 0.5),
-      description: 'Easy recovery run (hard workout skipped)',
-      purpose: 'Recovery and adaptation'
-    },
+    ...targetDay,
+    sessions: modifiedSessions,
     rationale: 'Hard workout replaced with easy recovery run'
   };
 
@@ -568,8 +569,10 @@ function skipNextHardWorkout(plan: WeeklyPlan): WeeklyPlan {
 }
 
 function shiftLongRun(plan: WeeklyPlan): WeeklyPlan {
+  logSessionCounts('shiftLongRun', plan.days);
+
   const longRunIndex = plan.days.findIndex(d =>
-    d.workout && d.workout.type === 'long'
+    d.sessions.some(s => s.type === 'long')
   );
 
   if (longRunIndex === -1 || longRunIndex === plan.days.length - 1) return plan;
@@ -588,6 +591,8 @@ function shiftLongRun(plan: WeeklyPlan): WeeklyPlan {
 }
 
 function createRecoveryWeek(plan: WeeklyPlan): WeeklyPlan {
+  logSessionCounts('createRecoveryWeek', plan.days);
+
   const modifiedDays = plan.days.map((day, i) => {
     if (i % 2 === 0) {
       return {
@@ -597,17 +602,17 @@ function createRecoveryWeek(plan: WeeklyPlan): WeeklyPlan {
       };
     }
 
-    const workout = getPrimarySession(day);
+    const firstSession = day.sessions[0];
     return {
       ...day,
-      sessions: workout ? [{
+      sessions: firstSession ? [{
         type: 'easy' as const,
         intensity: 'low' as const,
-        distanceKm: Math.min(workout.distanceKm * 0.4, 8),
-        durationMinutes: Math.round(Math.min(workout.durationMinutes * 0.4, 60)),
+        distanceKm: Math.min(firstSession.distanceKm * 0.4, 8),
+        durationMinutes: Math.round(Math.min(firstSession.durationMinutes * 0.4, 60)),
         description: 'Very easy recovery run',
         purpose: 'Active recovery',
-        origin: 'ADAPTIVE',  // Created by adaptive engine for recovery
+        origin: 'ADAPTIVE',
         locked: false,
         lockReason: undefined
       }] : [],
