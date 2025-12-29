@@ -447,7 +447,14 @@ export default function Planner() {
 
   // Persist + normalize once
   useEffect(() => {
-    save("planner:week", week);
+    if (week && week.length === 7) {
+      const weekWithMetadata = week.map((day, idx) => ({
+        ...day,
+        planSource: 'user' as const,
+        planAppliedAt: Date.now(),
+      }));
+      save("planner:week", weekWithMetadata);
+    }
   }, [week]);
   useEffect(() => {
     setWeek((w) => normalizeWeek(w));

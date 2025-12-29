@@ -65,8 +65,25 @@ export function loadWeek(): PlanWeek {
   return normalizeWeek(load<any>("planner:week", makeEmptyWeek()));
 }
 export function saveWeek(week: PlanWeek) {
-  save("planner:week", week);
-  // let anyone interested know
+  const weekWithMetadata = week.map((day, idx) => ({
+    ...day,
+    planSource: 'user' as const,
+    planAppliedAt: Date.now(),
+  }));
+
+  const currentPlan = load<any>("planner:week", null);
+  const currentSource = currentPlan?.[0]?.planSource;
+  const currentTime = currentPlan?.[0]?.planAppliedAt || 0;
+
+  if (currentSource === 'adaptive' && weekWithMetadata[0]?.planAppliedAt! <= currentTime) {
+    console.debug('[Plan Guard] Blocking user edit: adaptive plan is more recent', {
+      currentTime,
+      incomingTime: weekWithMetadata[0]?.planAppliedAt,
+    });
+    return;
+  }
+
+  save("planner:week", weekWithMetadata);
   try {
     window.dispatchEvent(new CustomEvent("planner:updated"));
   } catch {}

@@ -109,6 +109,24 @@ export function adaptAfterLog(entries: LogEntry[]): { changed: boolean; percent:
     if (touchedThisDay) affected++;
   });
 
-  if (affected > 0) save("planner:week", week);
+  if (affected > 0) {
+    const currentPlan = load<any>("planner:week", null);
+    const currentSource = currentPlan?.[0]?.planSource;
+
+    if (currentSource === 'adaptive') {
+      console.debug('[Plan Guard] Blocking auto-adaptation: adaptive plan is locked', {
+        reason: 'Post-workout auto-adjustment cannot overwrite adaptive plan',
+      });
+      return { changed: false, percent, affectedDays: affected };
+    }
+
+    const weekWithMetadata = week.map((day, idx) => ({
+      ...day,
+      planSource: 'auto-adjusted' as const,
+      planAppliedAt: Date.now(),
+    }));
+
+    save("planner:week", weekWithMetadata);
+  }
   return { changed: affected > 0, percent, affectedDays: affected };
 }

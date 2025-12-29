@@ -61,7 +61,13 @@ function isoOfOffset(offset: number) {
 }
 
 export function defaultWeek(): WeekPlan {
-  return DOW.map((d, i) => ({ label: d, dateISO: isoOfOffset(i), sessions: [] }));
+  return DOW.map((d, i) => ({
+    label: d,
+    dateISO: isoOfOffset(i),
+    sessions: [],
+    planSource: 'default' as const,
+    planAppliedAt: Date.now(),
+  }));
 }
 
 function migrateOldFormat() {
@@ -96,8 +102,8 @@ export function getWeekPlan(): WeekPlan {
     label: DOW[i],
     dateISO: d.dateISO || isoOfOffset(i),
     sessions: Array.isArray(d.sessions) ? d.sessions : [],
-    planSource: d.planSource,
-    planAppliedAt: d.planAppliedAt,
+    planSource: d.planSource || 'hydrated' as const,
+    planAppliedAt: d.planAppliedAt || 0,
   }));
 }
 
@@ -147,6 +153,30 @@ export function saveWeekPlan(plan: WeekPlan, options: { skipGuard?: boolean } = 
   save(KEY, plan);
   window.dispatchEvent(new CustomEvent("plan:updated"));
   window.dispatchEvent(new CustomEvent("planner:updated"));
+}
+
+export function applyUserEditedPlan(plan: WeekPlan) {
+  const planWithMetadata = plan.map((day, idx) => ({
+    ...day,
+    planSource: 'user' as const,
+    planAppliedAt: Date.now(),
+  }));
+
+  console.debug('[WeekPlan User Edit] Applying plan with user source');
+  saveWeekPlan(planWithMetadata);
+}
+
+export function applyFallbackPlan() {
+  const fallback = defaultWeek();
+  console.debug('[WeekPlan Fallback] Applying fallback plan');
+  const currentPlan = getWeekPlan();
+
+  if (currentPlan[0]?.planSource === 'adaptive') {
+    console.debug('[WeekPlan Fallback] Blocked - adaptive plan already applied');
+    return;
+  }
+
+  saveWeekPlan(fallback, { skipGuard: true });
 }
 
 export function addCoachAdviceToDay(dayIndex: number, adviceText: string) {
