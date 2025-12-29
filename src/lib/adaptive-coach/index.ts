@@ -29,6 +29,9 @@ export * from './safety';
 // Module 7: Adaptive Controller
 export * from './adaptive-controller';
 
+// Module 7.5: Conflict Resolution
+export * from './conflict-resolution';
+
 // Module 8: Race-Specific Logic
 export * from './race-specificity';
 

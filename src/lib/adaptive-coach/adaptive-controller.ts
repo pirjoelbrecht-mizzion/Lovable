@@ -26,6 +26,7 @@ import type {
   SessionPriority
 } from './types';
 import { checkWeeklyPlanSafety, calculateSafeVolumeRange } from './safety';
+import { resolveWeeklyConflicts, getConflictSummary } from './conflict-resolution';
 
 /**
  * ======================================================================
@@ -575,6 +576,19 @@ export function applyAdaptation(
       ...(adaptedPlan.notes || []),
       'Safety check warnings: ' + safetyCheck.violations.map(v => v.message).join('; ')
     ];
+  }
+
+  const conflictsBefore = getConflictSummary(adaptedPlan);
+  if (conflictsBefore.high > 0) {
+    console.log('[STEP 5] Resolving conflicts after adaptation:', conflictsBefore);
+    adaptedPlan = resolveWeeklyConflicts(adaptedPlan);
+
+    const conflictsAfter = getConflictSummary(adaptedPlan);
+    console.log('[STEP 5] Conflict resolution complete:', {
+      before: conflictsBefore,
+      after: conflictsAfter,
+      resolved: conflictsBefore.high - conflictsAfter.high
+    });
   }
 
   return adaptedPlan;
