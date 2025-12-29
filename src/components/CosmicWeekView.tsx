@@ -6,6 +6,7 @@ type WorkoutType = 'rest' | 'recovery' | 'easy' | 'tempo' | 'intervals' | 'long'
 
 interface Workout {
   id: string;
+  sessionId?: string;
   type: WorkoutType;
   title: string;
   duration?: string;

@@ -457,8 +457,32 @@ export default function Quest() {
   const loadCompletionStatus = async () => {
     try {
       const monday = getMonday();
-      const status = await getCompletionStatusForWeek(monday);
-      setCompletionStatus(status);
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.user) {
+        setCompletionStatus({});
+        return;
+      }
+
+      const startDate = new Date(monday);
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 6);
+      const weekEnd = endDate.toISOString().slice(0, 10);
+
+      const { data } = await supabase
+        .from('workout_completions')
+        .select('planned_workout_id')
+        .eq('user_id', session.session.user.id)
+        .gte('workout_date', monday)
+        .lte('workout_date', weekEnd);
+
+      const statusMap: Record<string, boolean> = {};
+      data?.forEach(completion => {
+        if (completion.planned_workout_id) {
+          statusMap[completion.planned_workout_id] = true;
+        }
+      });
+
+      setCompletionStatus(statusMap);
     } catch (error) {
       console.error('Failed to load completion status:', error);
     }
@@ -607,17 +631,35 @@ export default function Quest() {
   // Generate today's training data for mobile view
   const todayData = useTodayTrainingData(sessions, profile);
 
-  // GUARD: Multi-session day detection
+  // GUARD: Multi-session day detection + Session ID validation
   useEffect(() => {
     weekPlan.forEach((day, dayIdx) => {
       if (day.sessions.length > 1) {
         console.debug(
           '[WeekView] Multi-session day:',
           DAYS[dayIdx],
-          day.sessions.map(s => ({ title: s.title, type: (s as any).type }))
+          day.sessions.map(s => ({ title: s.title, type: (s as any).type, id: s.id }))
         );
       }
+      // Validate all sessions have IDs
+      day.sessions.forEach((session, sIdx) => {
+        if (!session.id) {
+          console.warn(`[WeekView] Session ${sIdx} on ${DAYS[dayIdx]} missing ID`, session);
+        }
+      });
     });
+  }, [weekPlan]);
+
+  // Sanity check: No duplicate sessionIds in a day
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production') {
+      weekPlan.forEach((day, dayIdx) => {
+        const ids = day.sessions.map(s => s.id).filter(Boolean);
+        if (ids.length !== new Set(ids).size) {
+          console.error(`[WeekView] CRITICAL: Duplicate session IDs on ${DAYS[dayIdx]}`, ids);
+        }
+      });
+    }
   }, [weekPlan]);
 
   async function addRace() {
@@ -957,7 +999,8 @@ export default function Quest() {
                             title: session.title,
                             km: session.km,
                             type: session.type,
-                            notes: session.notes
+                            notes: session.notes,
+                            id: session.id
                           });
                         }
 
@@ -969,8 +1012,12 @@ export default function Quest() {
                           ? 'Strength Training'
                           : session.title || 'Workout';
 
+                        // CRITICAL: Use session.id as root identity (not day-based)
+                        const sessionId = session.id || `s_${idx}_${sessionIdx}_${Date.now()}`;
+
                         const workout = {
                           id: `${idx}-${sessionIdx}`,
+                          sessionId,
                           type: sessionType as any,
                           title: displayTitle,
                           duration: isStrength
@@ -979,7 +1026,7 @@ export default function Quest() {
                               ? `${Math.floor(session.durationMin / 60)}h ${Math.floor(session.durationMin % 60)}m`.replace(/0h /, '')
                               : session.km ? estimateDuration(session.km, sessionType) : '30 min',
                           distance: isStrength ? undefined : (session.km ? `${session.km}K` : undefined),
-                          completed: completionStatus[dateStr] || false,
+                          completed: completionStatus[sessionId] || false,
                           isToday: idx === today,
                           elevation: session?.elevationGain,
                           zones: session?.zones,
@@ -1012,27 +1059,42 @@ export default function Quest() {
                   })()}
                   onWorkoutClick={(workout, day) => {
                     const dayIndex = DAYS.indexOf(day);
-                    const daySessionsForThisDay = sessions.filter(s => s.day === DAYS_SHORT[dayIndex]);
-                    const matchedSession = daySessionsForThisDay.find(s => {
-                      const sType = (s.isMESession || s.type?.includes('Strength')) ? 'strength' :
-                                    s.type?.toLowerCase().includes('rest') ? 'rest' : 'easy';
-                      return sType === workout.type;
-                    }) || daySessionsForThisDay[0];
+                    const dayData = weekPlan[dayIndex];
 
-                    if (workout.type === 'strength' && meAssignment && meTemplates.length > 0 && matchedSession) {
+                    if (!workout.sessionId) {
+                      console.error('[Quest] Workout missing sessionId:', workout);
+                      return;
+                    }
+
+                    const matchedSession = dayData?.sessions.find(s => s.id === workout.sessionId);
+                    if (!matchedSession) {
+                      console.warn('[Quest] No session found for sessionId:', workout.sessionId);
+                      return;
+                    }
+
+                    if (workout.type === 'strength' && meAssignment && meTemplates.length > 0) {
                       const strengthSession: SessionNode = {
-                        ...matchedSession,
-                        id: `strength-${dayIndex}`,
+                        id: matchedSession.id || `strength-${dayIndex}`,
+                        day: DAYS_SHORT[dayIndex],
+                        dayFull: DAYS[dayIndex],
                         type: 'Strength Training',
                         emoji: String.fromCodePoint(0x1F4AA),
+                        duration: '40 min',
                         description: 'ME session - terrain-based strength work',
+                        completed: completionStatus[matchedSession.id || ''] || false,
+                        isToday: dayIndex === today,
+                        isAdapted: matchedSession.source === 'coach',
                         isMESession: true,
-                        distance: undefined,
-                        pace: undefined,
+                        x: 0,
+                        y: 0,
+                        size: 80,
                       };
                       setSelectedSession(strengthSession);
                     } else if (matchedSession) {
-                      setSelectedSession(matchedSession);
+                      const existingSession = sessions.find(s => s.id === matchedSession.id);
+                      if (existingSession) {
+                        setSelectedSession(existingSession);
+                      }
                     }
                   }}
                   onAddClick={() => {
