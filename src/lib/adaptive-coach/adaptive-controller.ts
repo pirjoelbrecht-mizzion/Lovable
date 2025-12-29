@@ -21,7 +21,9 @@ import type {
   DailyPlan,
   DailyFeedback,
   TrainingPhase,
-  Workout
+  Workout,
+  SessionOrigin,
+  SessionPriority
 } from './types';
 import { checkWeeklyPlanSafety, calculateSafeVolumeRange } from './safety';
 
@@ -43,6 +45,155 @@ function logSessionCounts(context: string, days: DailyPlan[]): void {
         types: d.sessions.map(s => s.type)
       }))
     });
+  }
+
+  const daysWithMultiSessions = days.filter(d => d.sessions.length > 1);
+  for (const day of daysWithMultiSessions) {
+    console.debug('[Adaptive] Multi-session day:', day.date, day.sessions.map(s => s.type));
+  }
+}
+
+/**
+ * ======================================================================
+ * STEP 4A: SESSION CLASSIFICATION
+ * ======================================================================
+ * Classify sessions to determine adaptation scope
+ */
+
+type AdaptationScope = 'FULL' | 'LOAD_ONLY' | 'TIMING_ONLY' | 'MINIMAL';
+
+interface SessionClassification {
+  type: string;
+  origin: SessionOrigin;
+  priority: SessionPriority;
+  adaptationScope: AdaptationScope;
+}
+
+function classifySession(session: Workout): SessionClassification {
+  const origin = session.origin || 'BASE_PLAN';
+  const priority = session.priority || 'PRIMARY';
+
+  let adaptationScope: AdaptationScope;
+
+  if (origin === 'USER') {
+    adaptationScope = 'MINIMAL';
+  } else if (origin === 'STRENGTH') {
+    adaptationScope = 'LOAD_ONLY';
+  } else if (origin === 'HEAT') {
+    adaptationScope = 'TIMING_ONLY';
+  } else if (origin === 'ADAPTIVE' || origin === 'BASE_PLAN') {
+    adaptationScope = 'FULL';
+  } else {
+    adaptationScope = 'MINIMAL';
+  }
+
+  return {
+    type: session.type,
+    origin,
+    priority,
+    adaptationScope
+  };
+}
+
+/**
+ * ======================================================================
+ * STEP 4B: ADAPTATION ROUTING
+ * ======================================================================
+ * Route sessions to appropriate adaptation strategies based on scope
+ */
+
+interface AdaptationContext {
+  volumeAdjustment: number;
+  intensityReduction: boolean;
+}
+
+function adaptSession(
+  session: Workout,
+  context: AdaptationContext
+): Workout {
+  const classification = classifySession(session);
+
+  switch (classification.adaptationScope) {
+    case 'FULL':
+      return adaptFully(session, context);
+    case 'LOAD_ONLY':
+      return scaleLoad(session, context);
+    case 'TIMING_ONLY':
+      return shiftTiming(session, context);
+    case 'MINIMAL':
+      return passthrough(session, context);
+    default:
+      return session;
+  }
+}
+
+function adaptFully(session: Workout, context: AdaptationContext): Workout {
+  if (session.type === 'rest') return session;
+
+  let adapted = { ...session };
+
+  adapted.distanceKm = Math.round(session.distanceKm * (1 + context.volumeAdjustment) * 10) / 10;
+  adapted.durationMinutes = Math.round(session.durationMinutes * (1 + context.volumeAdjustment));
+
+  if (context.intensityReduction && session.intensity === 'high') {
+    adapted.intensity = 'medium';
+    adapted.description = `${session.description} (intensity reduced)`;
+  }
+
+  return adapted;
+}
+
+function scaleLoad(session: Workout, context: AdaptationContext): Workout {
+  const loadReduction = Math.abs(context.volumeAdjustment);
+
+  return {
+    ...session,
+    distanceKm: Math.round(session.distanceKm * (1 - loadReduction * 0.5) * 10) / 10,
+    durationMinutes: Math.round(session.durationMinutes * (1 - loadReduction * 0.5))
+  };
+}
+
+function shiftTiming(session: Workout, context: AdaptationContext): Workout {
+  return {
+    ...session,
+    durationMinutes: Math.round(session.durationMinutes * 0.85)
+  };
+}
+
+function passthrough(session: Workout, context: AdaptationContext): Workout {
+  return session;
+}
+
+/**
+ * ======================================================================
+ * STEP 4D: INVARIANT CHECKING
+ * ======================================================================
+ * Ensure session count and origins remain unchanged after adaptation
+ */
+
+function assertPlanInvariants(original: WeeklyPlan, adapted: WeeklyPlan, context: string): void {
+  const originalSessionCounts = original.days.map(d => d.sessions.length);
+  const adaptedSessionCounts = adapted.days.map(d => d.sessions.length);
+
+  const countsMatch = originalSessionCounts.every((count, i) => count === adaptedSessionCounts[i]);
+  if (!countsMatch) {
+    console.warn(`[STEP 4 INVARIANT] ${context}: Session count mismatch`, {
+      original: originalSessionCounts,
+      adapted: adaptedSessionCounts
+    });
+  }
+
+  for (let i = 0; i < original.days.length; i++) {
+    const originalOrigins = original.days[i].sessions.map(s => s.origin || 'BASE_PLAN');
+    const adaptedOrigins = adapted.days[i].sessions.map(s => s.origin || 'BASE_PLAN');
+
+    const originsMatch = originalOrigins.every((origin, j) => origin === adaptedOrigins[j]);
+    if (!originsMatch) {
+      console.warn(`[STEP 4 INVARIANT] ${context}: Origin mismatch on day ${i}`, {
+        original: originalOrigins,
+        adapted: adaptedOrigins
+      });
+    }
   }
 }
 
@@ -418,16 +569,13 @@ function reduceWeeklyVolume(
 
   logSessionCounts('reduceWeeklyVolume', plan.days);
 
-  const modifiedDays = plan.days.map(day => {
-    const modifiedSessions = day.sessions.map(session => {
-      if (session.type === 'rest') return session;
+  const context: AdaptationContext = {
+    volumeAdjustment: reductionPercent,
+    intensityReduction: false
+  };
 
-      return {
-        ...session,
-        distanceKm: Math.round(session.distanceKm * (1 + reductionPercent) * 10) / 10,
-        durationMinutes: Math.round(session.durationMinutes * (1 + reductionPercent))
-      };
-    });
+  const modifiedDays = plan.days.map(day => {
+    const modifiedSessions = day.sessions.map(session => adaptSession(session, context));
 
     return {
       ...day,
@@ -435,29 +583,33 @@ function reduceWeeklyVolume(
     };
   });
 
-  return {
+  const adapted = {
     ...plan,
     days: modifiedDays,
     actualMileage: targetMileage,
     adaptationNote: `Volume reduced by ${Math.abs(reductionPercent * 100).toFixed(0)}%`
   };
+
+  assertPlanInvariants(plan, adapted, 'reduceWeeklyVolume');
+
+  return adapted;
 }
 
 function reduceIntensity(plan: WeeklyPlan): WeeklyPlan {
   logSessionCounts('reduceIntensity', plan.days);
+
+  const context: AdaptationContext = {
+    volumeAdjustment: 0,
+    intensityReduction: true
+  };
 
   const modifiedDays = plan.days.map(day => {
     let hadHighIntensity = false;
     const modifiedSessions = day.sessions.map(session => {
       if (session.intensity === 'high') {
         hadHighIntensity = true;
-        return {
-          ...session,
-          intensity: 'medium' as const,
-          description: `${session.description} (intensity reduced)`
-        };
       }
-      return session;
+      return adaptSession(session, context);
     });
 
     return {
@@ -467,11 +619,15 @@ function reduceIntensity(plan: WeeklyPlan): WeeklyPlan {
     };
   });
 
-  return {
+  const adapted = {
     ...plan,
     days: modifiedDays,
     adaptationNote: 'High-intensity workouts converted to moderate intensity'
   };
+
+  assertPlanInvariants(plan, adapted, 'reduceIntensity');
+
+  return adapted;
 }
 
 function addRestDay(plan: WeeklyPlan): WeeklyPlan {
@@ -502,17 +658,13 @@ function createDeloadWeek(plan: WeeklyPlan, athlete: AthleteProfile): WeeklyPlan
 
   logSessionCounts('createDeloadWeek', plan.days);
 
-  const modifiedDays = plan.days.map(day => {
-    const modifiedSessions = day.sessions.map(session => {
-      if (session.type === 'rest') return session;
+  const context: AdaptationContext = {
+    volumeAdjustment: -0.3,
+    intensityReduction: true
+  };
 
-      return {
-        ...session,
-        intensity: session.intensity === 'high' ? ('medium' as const) : session.intensity,
-        distanceKm: session.distanceKm * 0.7,
-        durationMinutes: Math.round(session.durationMinutes * 0.7)
-      };
-    });
+  const modifiedDays = plan.days.map(day => {
+    const modifiedSessions = day.sessions.map(session => adaptSession(session, context));
 
     return {
       ...day,
@@ -520,19 +672,26 @@ function createDeloadWeek(plan: WeeklyPlan, athlete: AthleteProfile): WeeklyPlan
     };
   });
 
-  return {
+  const adapted = {
     ...plan,
     days: modifiedDays,
     actualMileage: deloadVolume,
     adaptationNote: 'Deload week: 30% volume reduction, intensity moderated'
   };
+
+  assertPlanInvariants(plan, adapted, 'createDeloadWeek');
+
+  return adapted;
 }
 
 function skipNextHardWorkout(plan: WeeklyPlan): WeeklyPlan {
   logSessionCounts('skipNextHardWorkout', plan.days);
 
   const hardDayIndex = plan.days.findIndex(d =>
-    d.sessions.some(s => s.intensity === 'high')
+    d.sessions.some(s => {
+      const classification = classifySession(s);
+      return s.intensity === 'high' && classification.adaptationScope === 'FULL';
+    })
   );
 
   if (hardDayIndex === -1) return plan;
@@ -541,7 +700,8 @@ function skipNextHardWorkout(plan: WeeklyPlan): WeeklyPlan {
   const targetDay = modifiedDays[hardDayIndex];
 
   const modifiedSessions = targetDay.sessions.map(session => {
-    if (session.intensity === 'high') {
+    const classification = classifySession(session);
+    if (session.intensity === 'high' && classification.adaptationScope === 'FULL') {
       return {
         ...session,
         type: 'easy' as const,
@@ -561,11 +721,15 @@ function skipNextHardWorkout(plan: WeeklyPlan): WeeklyPlan {
     rationale: 'Hard workout replaced with easy recovery run'
   };
 
-  return {
+  const adapted = {
     ...plan,
     days: modifiedDays,
     adaptationNote: 'Next hard workout converted to easy run'
   };
+
+  assertPlanInvariants(plan, adapted, 'skipNextHardWorkout');
+
+  return adapted;
 }
 
 function shiftLongRun(plan: WeeklyPlan): WeeklyPlan {
