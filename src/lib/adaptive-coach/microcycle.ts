@@ -695,6 +695,26 @@ function distributeWorkouts(
     });
   }
 
+  // CRITICAL VALIDATION: Verify rest days were respected and training days match constraints
+  const restDaysCreated = days.filter(d => d.sessions[0]?.type === 'rest').map(d => d.day);
+  const trainingDaysCreated = days.filter(d => d.sessions[0]?.type !== 'rest').map(d => d.day);
+
+  console.log('[DistributeWorkouts] Validation:', {
+    expectedRestDays: Array.from(blockedDays),
+    actualRestDays: restDaysCreated,
+    trainingDaysCount: trainingDaysCreated.length,
+    expectedTrainingDays: constraints?.daysPerWeek || 'not specified'
+  });
+
+  if (constraints && trainingDaysCreated.length !== constraints.daysPerWeek) {
+    console.warn('[DistributeWorkouts] Training day count mismatch!', {
+      expected: constraints.daysPerWeek,
+      actual: trainingDaysCreated.length,
+      trainingDays: trainingDaysCreated,
+      blockedRestDays: Array.from(blockedDays)
+    });
+  }
+
   return days;
 }
 
