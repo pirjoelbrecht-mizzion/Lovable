@@ -202,17 +202,18 @@ export default function RouteExplorer() {
     const weekPlan = getWeekPlan();
     const today = todayDayIndex();
     const todaySession = weekPlan[today];
-    const mainSession = todaySession?.sessions[0];
+    // Find first run session (not strength)
+    const runSession = todaySession?.sessions?.find(s => s.type !== 'strength' && (s.km || 0) > 0);
 
-    if (!mainSession || !mainSession.km || mainSession.km === 0) {
+    if (!runSession || !runSession.km || runSession.km === 0) {
       return null;
     }
 
     return {
-      distance_km: mainSession.km,
-      elevation_gain_m: mainSession.notes?.match(/(\d+)m/)?.[1] ? parseInt(mainSession.notes.match(/(\d+)m/)![1]) : undefined,
-      terrain: (mainSession.notes?.toLowerCase().includes('trail') ? 'trail' :
-                mainSession.notes?.toLowerCase().includes('road') ? 'road' :
+      distance_km: runSession.km,
+      elevation_gain_m: runSession.notes?.match(/(\d+)m/)?.[1] ? parseInt(runSession.notes.match(/(\d+)m/)![1]) : undefined,
+      terrain: (runSession.notes?.toLowerCase().includes('trail') ? 'trail' :
+                runSession.notes?.toLowerCase().includes('road') ? 'road' :
                 undefined) as 'road' | 'trail' | 'mixed' | undefined,
       weatherAware: true,
       userLat: userLocation?.[1],
@@ -932,7 +933,11 @@ export default function RouteExplorer() {
                   const today = todayDayIndex();
                   const todayDay = weekPlan[today];
 
-                  const existingSession = todayDay.sessions[0];
+                  // Find first run session (not strength) to update
+                  const runSessionIndex = todayDay.sessions?.findIndex(s => s.type !== 'strength' && (s.km || 0) > 0) ?? -1;
+                  if (runSessionIndex === -1) return;
+
+                  const existingSession = todayDay.sessions[runSessionIndex];
                   const updatedSession = {
                     ...existingSession,
                     title: existingSession?.title || 'Easy Run',
@@ -940,7 +945,7 @@ export default function RouteExplorer() {
                     notes: `${existingSession?.notes || ''} • Route: ${selectedRoute.name}${selectedRoute.elevation_gain_m ? ` (${selectedRoute.elevation_gain_m}m elevation)` : ''} • ${selectedRoute.surface_type || 'mixed'} surface`.trim(),
                   };
 
-                  weekPlan[today].sessions[0] = updatedSession;
+                  weekPlan[today].sessions[runSessionIndex] = updatedSession;
                   setWeekPlan(weekPlan);
 
                   toast(`Route "${selectedRoute.name}" added to today's training!`, 'success');

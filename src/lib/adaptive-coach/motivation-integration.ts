@@ -625,17 +625,23 @@ export function integrateMotivationProfile(
 ): WeeklyPlan {
   const { archetype, confidence, athlete, phase, recentCompletionRate, fatigueLevel } = context;
 
-  // Apply to all daily workouts
+  // Apply to all daily sessions
   const enhancedDays: DailyPlan[] = plan.days.map(day => {
-    if (!day.workout || day.workout.type === 'rest') {
+    if (!day.sessions || day.sessions.length === 0) {
       return day;
     }
 
-    const adjustedWorkout = adjustWorkoutForArchetype(day.workout, archetype, phase);
+    // Apply archetype adjustments to all non-rest sessions
+    const adjustedSessions = day.sessions
+      .filter(s => s.type !== 'rest')
+      .map(session => adjustWorkoutForArchetype(session, archetype, phase));
+
+    // Include rest sessions unchanged
+    const restSessions = day.sessions.filter(s => s.type === 'rest');
 
     return {
       ...day,
-      workout: adjustedWorkout
+      sessions: [...adjustedSessions, ...restSessions]
     };
   });
 

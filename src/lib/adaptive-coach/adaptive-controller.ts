@@ -800,21 +800,24 @@ function createRecoveryWeek(plan: WeeklyPlan): WeeklyPlan {
       };
     }
 
-    const firstSession = day.sessions[0];
+    // Convert all run sessions to very easy recovery runs
+    const runSessions = day.sessions?.filter(s => s.type !== 'strength' && s.type !== 'rest') || [];
+    const recoverySessions = runSessions.map(session => ({
+      type: 'easy' as const,
+      intensity: 'low' as const,
+      title: 'Very easy recovery run',
+      distanceKm: session.distanceKm ? Math.min(session.distanceKm * 0.4, 8) : undefined,
+      durationMin: session.durationMin ? Math.round(Math.min(session.durationMin * 0.4, 60)) : undefined,
+      description: 'Very easy recovery run',
+      purpose: 'Active recovery',
+      origin: 'ADAPTIVE' as const,
+      locked: false,
+      lockReason: undefined
+    }));
+
     return {
       ...day,
-      sessions: firstSession ? [{
-        type: 'easy' as const,
-        intensity: 'low' as const,
-        title: 'Very easy recovery run',
-        distanceKm: firstSession.distanceKm ? Math.min(firstSession.distanceKm * 0.4, 8) : undefined,
-        durationMin: firstSession.durationMin ? Math.round(Math.min(firstSession.durationMin * 0.4, 60)) : undefined,
-        description: 'Very easy recovery run',
-        purpose: 'Active recovery',
-        origin: 'ADAPTIVE',
-        locked: false,
-        lockReason: undefined
-      }] : [],
+      sessions: recoverySessions.length > 0 ? recoverySessions : [],
       rationale: 'Recovery focus week'
     };
   });

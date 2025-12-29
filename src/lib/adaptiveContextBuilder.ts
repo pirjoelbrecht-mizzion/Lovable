@@ -50,7 +50,7 @@ import { getCurrentUserId } from '@/lib/supabase';
 
 /**
  * Convert localStorage WeekPlan format to Adaptive Coach WeeklyPlan format
- * 🚧 MIGRATION: Currently only converts first session - will support multi-session
+ * ✅ MIGRATION COMPLETE: Preserves all multi-session structure
  */
 function convertToAdaptiveWeekPlan(localPlan: LocalStorageWeekPlan | AdaptiveWeeklyPlan): AdaptiveWeeklyPlan {
   // Check if it's already in the correct format (has days property as array)
@@ -63,48 +63,42 @@ function convertToAdaptiveWeekPlan(localPlan: LocalStorageWeekPlan | AdaptiveWee
 
   console.log('[convertToAdaptiveWeekPlan] Converting plan with dates:', planArray.map(d => d.dateISO));
 
-  // 🚧 SAFETY LOGGING: Track sessions per day
-  console.log('🚧 [MULTI-SESSION SAFETY] Sessions per day:',
+  // Safety logging: Track sessions per day
+  console.log('[MULTI-SESSION] Sessions per day:',
     planArray.map((d, i) => `${d.label}: ${d.sessions?.length || 0} sessions`)
   );
 
   const days: DailyPlan[] = planArray.map((day, index) => {
     const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-    // Convert first session to workout, or create rest day
-    const firstSession = day.sessions?.[0];
-    let workout: Workout;
-
-    if (firstSession) {
-      workout = {
-        type: (firstSession.type as any) || 'easy',
-        title: firstSession.title || 'Training',
-        description: firstSession.notes || firstSession.description,
-        distanceKm: firstSession.km || firstSession.distanceKm,
-        durationMin: firstSession.durationMin,
-        intensityZones: firstSession.zones || [],
-        verticalGain: firstSession.elevationGain,
-      };
-    } else {
-      workout = {
-        type: 'rest',
-        title: 'Rest Day',
-        description: 'Recovery',
-      };
-    }
+    // Convert all sessions, or create rest day if no sessions
+    const sessions = day.sessions && day.sessions.length > 0
+      ? day.sessions.map((session) => ({
+          type: (session.type as any) || 'easy',
+          title: session.title || 'Training',
+          description: session.notes || session.description,
+          distanceKm: session.km || session.distanceKm,
+          durationMin: session.durationMin,
+          intensityZones: session.zones || [],
+          verticalGain: session.elevationGain,
+        }))
+      : [{
+          type: 'rest',
+          title: 'Rest Day',
+          description: 'Recovery',
+        }];
 
     return {
       day: dayNames[index],
       date: day.dateISO,
-      workout,
+      sessions,
       completed: false,
-      feedback: null,
     };
   });
 
-  // Calculate totals
-  const totalMileage = days.reduce((sum, d) => sum + (d.workout.distanceKm || 0), 0);
-  const totalVert = days.reduce((sum, d) => sum + (d.workout.verticalGain || 0), 0);
+  // Calculate totals (sum across all sessions)
+  const totalMileage = days.reduce((sum, d) => sum + d.sessions.reduce((s, w) => s + (w.distanceKm || 0), 0), 0);
+  const totalVert = days.reduce((sum, d) => sum + d.sessions.reduce((s, w) => s + (w.verticalGain || 0), 0), 0);
 
   return {
     weekNumber: 1,
@@ -119,61 +113,33 @@ function convertToAdaptiveWeekPlan(localPlan: LocalStorageWeekPlan | AdaptiveWee
 
 /**
  * Convert Adaptive Coach WeeklyPlan back to localStorage format
- * Preserves any additional sessions from the original plan (e.g., strength sessions)
- * CRITICAL: Adds easy run before strength training on Wednesday (index 2)
- * 🚧 MIGRATION: Will be updated to preserve all sessions
+ * ✅ MIGRATION COMPLETE: Preserves all multi-session structure
+ * CRITICAL: Preserves all original sessions from adaptive plan
  */
 export function convertToLocalStoragePlan(
   adaptivePlan: AdaptiveWeeklyPlan,
   originalPlan?: LocalStorageWeekPlan
 ): LocalStorageWeekPlan {
-  // 🚧 SAFETY LOGGING: Track conversion
-  console.log('🚧 [MULTI-SESSION SAFETY] Converting adaptive plan to localStorage');
-  console.log('🚧 [MULTI-SESSION SAFETY] Days in adaptive plan:', adaptivePlan.days.length);
+  // Safety logging: Track conversion
+  console.log('[MULTI-SESSION] Converting adaptive plan to localStorage');
+  console.log('[MULTI-SESSION] Days in adaptive plan:', adaptivePlan.days.length);
 
   const result = adaptivePlan.days.map((day, idx) => {
-    const primarySession = {
+    // Convert all sessions from adaptive format to localStorage format
+    const adaptiveSessions = day.sessions || [];
+
+    const sessions = adaptiveSessions.map((session) => ({
       id: `s_${Math.random().toString(36).slice(2)}`,
-      title: day.workout.title || day.workout.type,
-      type: day.workout.type,
-      notes: day.workout.description,
-      km: day.workout.distanceKm,
-      distanceKm: day.workout.distanceKm,
-      durationMin: day.workout.durationMin,
-      zones: day.workout.intensityZones || [],
-      elevationGain: day.workout.verticalGain,
+      title: session.title || session.type,
+      type: session.type,
+      notes: session.description,
+      km: session.distanceKm,
+      distanceKm: session.distanceKm,
+      durationMin: session.durationMin,
+      zones: session.intensityZones || [],
+      elevationGain: session.verticalGain || 0,
       source: 'coach' as const,
-    };
-
-    const originalDay = originalPlan?.[idx];
-    const additionalSessions = originalDay?.sessions?.slice(1) || [];
-
-    // CRITICAL: Wednesday (index 2) should have BOTH easy run AND strength training
-    // The adaptive coach only generates one workout per day (strength on Wednesday)
-    // So we need to ADD the easy run when converting back to localStorage format
-    const isWednesday = idx === 2;
-    const isStrengthSession = primarySession.type === 'strength';
-
-    let sessions: any[] = [];
-
-    if (isWednesday && isStrengthSession) {
-      // Add easy run BEFORE strength session
-      const easyRunSession = {
-        id: `s_${Math.random().toString(36).slice(2)}`,
-        title: 'Easy run',
-        type: 'easy',
-        notes: 'Recovery run before strength work',
-        km: 6,
-        distanceKm: 6,
-        durationMin: 36,
-        zones: ['Z2'],
-        elevationGain: 0,
-        source: 'coach' as const,
-      };
-      sessions = [easyRunSession, primarySession, ...additionalSessions];
-    } else {
-      sessions = [primarySession, ...additionalSessions];
-    }
+    }));
 
     return {
       label: day.day.slice(0, 3), // Mon, Tue, etc.
@@ -182,8 +148,8 @@ export function convertToLocalStoragePlan(
     };
   });
 
-  // 🚧 SAFETY LOGGING: Verify output
-  console.log('🚧 [MULTI-SESSION SAFETY] Output sessions per day:',
+  // Safety logging: Verify output
+  console.log('[MULTI-SESSION] Output sessions per day:',
     result.map(d => `${d.label}: ${d.sessions.length} sessions`)
   );
 

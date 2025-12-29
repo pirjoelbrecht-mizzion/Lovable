@@ -236,17 +236,18 @@ export default function Quest() {
 
   const todayTarget = useMemo(() => {
     const todaySession = weekPlan[today];
-    const mainSession = todaySession?.sessions[0];
+    // Find first run session (not strength)
+    const runSession = todaySession?.sessions?.find(s => s.type !== 'strength' && (s.km || 0) > 0);
 
-    if (!mainSession || !mainSession.km || mainSession.km === 0) {
+    if (!runSession || !runSession.km || runSession.km === 0) {
       return null;
     }
 
     return {
-      distance: mainSession.km,
-      elevation: (mainSession as any)?.elevationGain || (mainSession.notes?.match(/(\d+)m/)?.[1] ? parseInt(mainSession.notes.match(/(\d+)m/)![1]) : undefined),
-      terrain: (mainSession.notes?.toLowerCase().includes('trail') ? 'trail' :
-                mainSession.notes?.toLowerCase().includes('road') ? 'road' :
+      distance: runSession.km,
+      elevation: (runSession as any)?.elevationGain || (runSession.notes?.match(/(\d+)m/)?.[1] ? parseInt(runSession.notes.match(/(\d+)m/)![1]) : undefined),
+      terrain: (runSession.notes?.toLowerCase().includes('trail') ? 'trail' :
+                runSession.notes?.toLowerCase().includes('road') ? 'road' :
                 undefined) as 'road' | 'trail' | 'mixed' | undefined,
     };
   }, [weekPlan, today]);
@@ -1076,7 +1077,7 @@ export default function Quest() {
 
                         // For strength sessions, override display properties
                         const isStrength = sessionType === 'strength';
-                        const displayTitle = isStrength && session.title?.toLowerCase().includes('strength')
+                        const displayTitle = isStrength
                           ? 'Strength Training'
                           : session.title || 'Workout';
 

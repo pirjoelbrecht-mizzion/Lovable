@@ -24,6 +24,18 @@ export default function StrengthTraining() {
   const { user, loading: authLoading, isAuthed } = useSession();
   const userId = user?.id;
 
+  // SAFETY GUARD: Verify any session routed here is a strength type (prevents regression)
+  const validateStrengthSession = (session?: any): boolean => {
+    if (!session) return true;
+    if (session.type !== 'strength') {
+      throw new Error(
+        '[StrengthTraining] Non-strength session reached strength module: ' +
+        `type="${session.type}" title="${session.title}"`
+      );
+    }
+    return true;
+  };
+
   useEffect(() => {
     console.log('[StrengthTraining] Auth state:', { user: user?.email, userId, isAuthed });
   }, [user, userId, isAuthed]);

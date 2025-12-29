@@ -211,6 +211,10 @@ export function computeTrainingAdjustment(context: AdaptiveContext): AdaptiveDec
 // ─────────────────────────────────────────────────────────────
 //
 
+/**
+ * 🚧 MIGRATION: Race Priority function needs update to work with multi-session (day.sessions[])
+ * Currently a no-op until refactored to iterate over day.sessions
+ */
 function applyRacePriority(
   plan: WeeklyPlan,
   races: AdaptiveContext['races'],
@@ -238,6 +242,18 @@ function applyRacePriority(
 
   // CRITICAL: Debug log for race priority detection
   console.log('🏁 [RacePriority] Days to race:', daysToRace, '| Priority:', racePriority, '| Distance:', raceDistance + 'km');
+
+  // 🚧 MIGRATION GUARD: Race priority logic uses legacy day.workout pattern
+  // This function will be refactored to use day.sessions[] in next iteration
+  // For now, returning no adjustments to prevent breaking multi-session structure
+  return {
+    name: 'Race Priority',
+    applied: false,
+    changes: [],
+    reasoning: '[MIGRATION] Race priority logic temporarily disabled - requires day.sessions[] refactoring',
+    priority: 3,
+    safetyOverride: false
+  };
 
   // POST-RACE RECOVERY: Handle races that just happened (negative daysToRace means race is in past)
   if (daysToRace < 0 && daysToRace >= -7) {
