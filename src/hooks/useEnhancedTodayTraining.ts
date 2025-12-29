@@ -94,6 +94,10 @@ export function useEnhancedTodayTraining(
       setLoading(true);
       setError(null);
 
+      const isStrengthSession = todaySession.type === 'strength' ||
+        todaySession.type.includes('ME ') ||
+        todaySession.type.includes('STRENGTH');
+
       const userLocation = await getUserLocation();
       setLocation(userLocation);
 
@@ -128,118 +132,120 @@ export function useEnhancedTodayTraining(
       const temp = weather?.current.temp || 20;
       const humidity = weather?.current.humidity || 60;
 
-      const hydration = calculateHydrationNeeds({
-        temp,
-        humidity,
-        duration: durationMin,
-        elevationGain: matchingRoute?.elevation_gain_m || 100,
-        shadeFactor: 0.5,
-        intensity: 0.7,
-      });
+      let hydration = null;
+      let fueling = null;
+      let targetMin = '';
+      let targetMax = '';
+      let adjustedFor: string[] = [];
+      let recentPaces: Array<{ date: string; pace: string }> = [];
 
-      const fueling = durationMin > 60 ? calculateFuelingNeeds({
-        duration: durationMin,
-        intensity: 0.7,
-        heatIndex: temp > 25 ? 0.7 : 0.3,
-        athleteGutTraining: 0.5,
-        bodyMass: 60,
-      }) : null;
-
-      // Calculate base pace from recent run history (last 30 days, moderate effort)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const recentRuns = logEntries
-        .filter(e => {
-          const entryDate = new Date(e.dateISO);
-          return e.km && e.durationMin && e.km > 0 && entryDate >= thirtyDaysAgo;
+      if (!isStrengthSession) {
+        hydration = calculateHydrationNeeds({
+          temp,
+          humidity,
+          duration: durationMin,
+          elevationGain: matchingRoute?.elevation_gain_m || 100,
+          shadeFactor: 0.5,
+          intensity: 0.7,
         });
 
-      let basePace = 5.5; // fallback default
-      if (recentRuns.length >= 3) {
-        // Calculate average pace from recent runs
-        const totalPace = recentRuns.reduce((sum, e) => sum + (e.durationMin! / e.km!), 0);
-        basePace = totalPace / recentRuns.length;
-      } else {
-        // Try to load from stored profile
-        const paceProfile = load('paceProfile', { base: 5.5 });
-        basePace = paceProfile.base || 5.5;
+        fueling = durationMin > 60 ? calculateFuelingNeeds({
+          duration: durationMin,
+          intensity: 0.7,
+          heatIndex: temp > 25 ? 0.7 : 0.3,
+          athleteGutTraining: 0.5,
+          bodyMass: 60,
+        }) : null;
+
+        // Calculate base pace from recent run history (last 30 days, moderate effort)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const recentRuns = logEntries
+          .filter(e => {
+            const entryDate = new Date(e.dateISO);
+            return e.km && e.durationMin && e.km > 0 && entryDate >= thirtyDaysAgo;
+          });
+
+        let basePace = 5.5;
+        if (recentRuns.length >= 3) {
+          const totalPace = recentRuns.reduce((sum, e) => sum + (e.durationMin! / e.km!), 0);
+          basePace = totalPace / recentRuns.length;
+        } else {
+          const paceProfile = load('paceProfile', { base: 5.5 });
+          basePace = paceProfile.base || 5.5;
+        }
+
+        let paceAdjustment = 0;
+
+        if (readiness && readiness.category === 'low') {
+          paceAdjustment += 0.3;
+          adjustedFor.push('Low readiness');
+        }
+
+        if (temp > 25) {
+          paceAdjustment += 0.2;
+          adjustedFor.push('Heat');
+        } else if (temp < 10) {
+          paceAdjustment += 0.1;
+          adjustedFor.push('Cold');
+        }
+
+        if (matchingRoute && matchingRoute.elevation_gain_m > 200) {
+          paceAdjustment += 0.3;
+          adjustedFor.push('Elevation');
+        }
+
+        targetMin = (basePace + paceAdjustment).toFixed(1);
+        targetMax = (basePace + paceAdjustment + 0.5).toFixed(1);
+
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const twoWeeksAgo = new Date(now);
+        twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+
+        const runsWithPace = logEntries
+          .filter(entry => {
+            if (!entry.km || !entry.durationMin || entry.km <= 0) return false;
+            const entryDate = new Date(entry.dateISO);
+            entryDate.setHours(0, 0, 0, 0);
+            return entryDate >= twoWeeksAgo && entryDate <= now;
+          })
+          .map(entry => {
+            const paceMinPerKm = entry.durationMin! / entry.km!;
+            const entryDate = new Date(entry.dateISO);
+            entryDate.setHours(0, 0, 0, 0);
+            const daysAgo = Math.floor((now.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
+            return {
+              date: daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1 day ago' : `${daysAgo} days ago`,
+              pace: `${paceMinPerKm.toFixed(1)} min/km`,
+              daysAgo,
+              dateISO: entry.dateISO
+            };
+          })
+          .sort((a, b) => a.daysAgo - b.daysAgo)
+          .slice(0, 3);
+
+        recentPaces = runsWithPace.length > 0 ? runsWithPace : [];
       }
 
-      let paceAdjustment = 0;
-      const adjustedFor: string[] = [];
+      let hrZones = null;
 
-      if (readiness && readiness.category === 'low') {
-        paceAdjustment += 0.3;
-        adjustedFor.push('Low readiness');
+      if (!isStrengthSession) {
+        let maxHR = 165;
+
+        const localProfile = loadUserProfile();
+        if (localProfile.hrMax) {
+          maxHR = localProfile.hrMax;
+        } else if (userProfile?.deviceData?.hrMax) {
+          maxHR = userProfile.deviceData.hrMax;
+        } else if (localProfile.age) {
+          maxHR = 220 - localProfile.age;
+        } else if (userProfile?.deviceData?.hrAvg) {
+          maxHR = Math.round(userProfile.deviceData.hrAvg * 1.15);
+        }
+
+        hrZones = calculateHRZones(maxHR);
       }
-
-      if (temp > 25) {
-        paceAdjustment += 0.2;
-        adjustedFor.push('Heat');
-      } else if (temp < 10) {
-        paceAdjustment += 0.1;
-        adjustedFor.push('Cold');
-      }
-
-      if (matchingRoute && matchingRoute.elevation_gain_m > 200) {
-        paceAdjustment += 0.3;
-        adjustedFor.push('Elevation');
-      }
-
-      const targetMin = (basePace + paceAdjustment).toFixed(1);
-      const targetMax = (basePace + paceAdjustment + 0.5).toFixed(1);
-
-      // Get recent paces from actual log entries (last 14 days)
-      const now = new Date();
-      now.setHours(0, 0, 0, 0);
-      const twoWeeksAgo = new Date(now);
-      twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-
-      const runsWithPace = logEntries
-        .filter(entry => {
-          if (!entry.km || !entry.durationMin || entry.km <= 0) return false;
-          const entryDate = new Date(entry.dateISO);
-          entryDate.setHours(0, 0, 0, 0);
-          return entryDate >= twoWeeksAgo && entryDate <= now;
-        })
-        .map(entry => {
-          const paceMinPerKm = entry.durationMin! / entry.km!;
-          const entryDate = new Date(entry.dateISO);
-          entryDate.setHours(0, 0, 0, 0);
-          const daysAgo = Math.floor((now.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
-          return {
-            date: daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1 day ago' : `${daysAgo} days ago`,
-            pace: `${paceMinPerKm.toFixed(1)} min/km`,
-            daysAgo,
-            dateISO: entry.dateISO
-          };
-        })
-        .sort((a, b) => a.daysAgo - b.daysAgo) // Sort ascending: most recent (0) first
-        .slice(0, 3);
-
-      const recentPaces = runsWithPace.length > 0 ? runsWithPace : [];
-
-      // Get max HR from multiple sources (priority order):
-      // 1. User settings (localStorage) - manually set by user
-      // 2. Supabase profile device data - from connected devices
-      // 3. Calculate from age if available
-      // 4. Fallback default
-      let maxHR = 165; // fallback default
-
-      const localProfile = loadUserProfile();
-      if (localProfile.hrMax) {
-        maxHR = localProfile.hrMax;
-      } else if (userProfile?.deviceData?.hrMax) {
-        maxHR = userProfile.deviceData.hrMax;
-      } else if (localProfile.age) {
-        // Use age-based formula: 220 - age
-        maxHR = 220 - localProfile.age;
-      } else if (userProfile?.deviceData?.hrAvg) {
-        // Last resort: estimate from average HR
-        maxHR = Math.round(userProfile.deviceData.hrAvg * 1.15);
-      }
-
-      const hrZones = calculateHRZones(maxHR);
 
       const streak = load('streak', 3);
       const xpToEarn = Math.round(durationMin * 1.5);
@@ -262,8 +268,8 @@ export function useEnhancedTodayTraining(
         workout: {
           title: todaySession.type,
           duration: todaySession.duration,
-          distance: todaySession.distance || `${distanceKm}K`,
-          pace: todaySession.pace || `${targetMin} - ${targetMax} min/km`,
+          distance: isStrengthSession ? '' : (todaySession.distance || `${distanceKm}K`),
+          pace: isStrengthSession ? '' : (todaySession.pace || `${targetMin} - ${targetMax} min/km`),
           type: todaySession.type,
           isAdapted: todaySession.isAdapted || false,
           durationMin,
@@ -274,7 +280,7 @@ export function useEnhancedTodayTraining(
           category: readiness.category,
         } : null,
         weather,
-        paceData: {
+        paceData: isStrengthSession ? null : {
           targetMin,
           targetMax,
           explanation: `Adjusted for ${adjustedFor.join(', ').toLowerCase() || 'current conditions'}. This pace will help you maintain aerobic efficiency while building endurance.`,
