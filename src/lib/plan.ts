@@ -14,11 +14,45 @@ export type Day = PlanDay & {
   sessions: Session[];
 };
 
-export type WeekPlan = Day[];
+export interface WeekPlanMetadata {
+  planSource?: 'adaptive' | 'user' | 'imported' | 'default';
+  planAppliedAt?: number;
+}
+
+export type WeekPlan = (Day & WeekPlanMetadata)[];
 
 const KEY = "planner:week";
 
 const DOW = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+export function canOverwritePlan(currentPlan: WeekPlan | null, incomingPlan: WeekPlan): boolean {
+  if (!currentPlan || currentPlan.length === 0) {
+    return true;
+  }
+
+  const currentSource = currentPlan[0]?.planSource;
+  const incomingSource = incomingPlan[0]?.planSource;
+  const currentTime = currentPlan[0]?.planAppliedAt || 0;
+  const incomingTime = incomingPlan[0]?.planAppliedAt || 0;
+
+  if (currentSource === 'adaptive' && incomingSource !== 'adaptive') {
+    console.debug('[WeekPlan Guard] Blocking overwrite: adaptive plan cannot be overwritten by non-adaptive', {
+      currentSource,
+      incomingSource,
+    });
+    return false;
+  }
+
+  if (currentSource === 'adaptive' && incomingSource === 'adaptive' && incomingTime <= currentTime) {
+    console.debug('[WeekPlan Guard] Blocking overwrite: newer adaptive plan required', {
+      currentTime,
+      incomingTime,
+    });
+    return false;
+  }
+
+  return true;
+}
 
 function isoOfOffset(offset: number) {
   const now = new Date();
@@ -62,16 +96,54 @@ export function getWeekPlan(): WeekPlan {
     label: DOW[i],
     dateISO: d.dateISO || isoOfOffset(i),
     sessions: Array.isArray(d.sessions) ? d.sessions : [],
+    planSource: d.planSource,
+    planAppliedAt: d.planAppliedAt,
   }));
 }
 
-export function setWeekPlan(plan: WeekPlan) {
+export function setWeekPlan(plan: WeekPlan, options: { skipGuard?: boolean } = {}) {
+  const currentPlan = getWeekPlan();
+
+  if (!options.skipGuard && !canOverwritePlan(currentPlan, plan)) {
+    console.debug('[WeekPlan] Overwrite blocked by guard', {
+      source: plan[0]?.planSource,
+      timestamp: plan[0]?.planAppliedAt,
+      hasRestDays: plan.some(d => !d.sessions || d.sessions.length === 0),
+    });
+    return;
+  }
+
+  console.debug('[WeekPlan Apply]', {
+    source: plan[0]?.planSource || 'unknown',
+    timestamp: plan[0]?.planAppliedAt,
+    dayCount: plan.length,
+    hasRestDays: plan.some(d => !d.sessions || d.sessions.length === 0),
+  });
+
   save(KEY, plan);
   window.dispatchEvent(new CustomEvent("plan:updated"));
   window.dispatchEvent(new CustomEvent("planner:updated"));
 }
 
-export function saveWeekPlan(plan: WeekPlan) {
+export function saveWeekPlan(plan: WeekPlan, options: { skipGuard?: boolean } = {}) {
+  const currentPlan = getWeekPlan();
+
+  if (!options.skipGuard && !canOverwritePlan(currentPlan, plan)) {
+    console.debug('[WeekPlan] Overwrite blocked by guard', {
+      source: plan[0]?.planSource,
+      timestamp: plan[0]?.planAppliedAt,
+      hasRestDays: plan.some(d => !d.sessions || d.sessions.length === 0),
+    });
+    return;
+  }
+
+  console.debug('[WeekPlan Apply]', {
+    source: plan[0]?.planSource || 'unknown',
+    timestamp: plan[0]?.planAppliedAt,
+    dayCount: plan.length,
+    hasRestDays: plan.some(d => !d.sessions || d.sessions.length === 0),
+  });
+
   save(KEY, plan);
   window.dispatchEvent(new CustomEvent("plan:updated"));
   window.dispatchEvent(new CustomEvent("planner:updated"));

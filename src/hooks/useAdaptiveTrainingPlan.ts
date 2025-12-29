@@ -162,14 +162,21 @@ export function useAdaptiveTrainingPlan(
       const modifiedPlan = newDecision.modifiedPlan;
       const localStoragePlan = convertToLocalStoragePlan(modifiedPlan, plan);
 
+      // Mark plan with adaptive source and timestamp to prevent overwrites
+      const adaptivePlan = localStoragePlan.map((day, idx) => ({
+        ...day,
+        planSource: 'adaptive' as const,
+        planAppliedAt: Date.now(),
+      }));
+
       // Validate plan before saving - CRITICAL to prevent clearing valid plans
-      if (!localStoragePlan || localStoragePlan.length !== 7) {
-        console.error('[Module 4] Generated invalid plan, refusing to save:', localStoragePlan?.length, 'days');
-        throw new Error(`Invalid plan generated: ${localStoragePlan?.length || 0} days instead of 7`);
+      if (!adaptivePlan || adaptivePlan.length !== 7) {
+        console.error('[Module 4] Generated invalid plan, refusing to save:', adaptivePlan?.length, 'days');
+        throw new Error(`Invalid plan generated: ${adaptivePlan?.length || 0} days instead of 7`);
       }
 
       // Validate each day has at least one session
-      const invalidDays = localStoragePlan.filter(day => !day.sessions || day.sessions.length === 0);
+      const invalidDays = adaptivePlan.filter(day => !day.sessions || day.sessions.length === 0);
       if (invalidDays.length > 0) {
         console.error('[Module 4] Plan has days without sessions:', invalidDays);
         throw new Error(`Invalid plan: ${invalidDays.length} days without sessions`);
@@ -177,11 +184,11 @@ export function useAdaptiveTrainingPlan(
 
       // Sync to localStorage for backward compatibility
       console.log('[Module 4] Syncing adjusted plan to localStorage...');
-      saveWeekPlan(localStoragePlan);
+      saveWeekPlan(adaptivePlan);
 
       // Update state
       setDecision(newDecision);
-      setAdjustedPlan(localStoragePlan);
+      setAdjustedPlan(adaptivePlan);
       const now = new Date();
       setLastExecuted(now);
       save('module4LastExecution', now.getTime());
@@ -190,14 +197,14 @@ export function useAdaptiveTrainingPlan(
 
       console.log('[Module 4] Execution completed successfully');
 
-      // Trigger callback with localStorage format
+      // Trigger callback with adaptive plan (including source metadata)
       if (onPlanAdjusted) {
-        onPlanAdjusted(newDecision, localStoragePlan);
+        onPlanAdjusted(newDecision, adaptivePlan);
       }
 
       // Dispatch event for other components
       window.dispatchEvent(new CustomEvent('module4:executed', {
-        detail: { decision: newDecision, plan: localStoragePlan }
+        detail: { decision: newDecision, plan: adaptivePlan }
       }));
 
       return newDecision;

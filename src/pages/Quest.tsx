@@ -242,16 +242,6 @@ export default function Quest() {
     },
   });
 
-  // Use adjusted plan if available, otherwise fall back to base plan
-  // IMPORTANT: Only update if we have a valid plan to prevent content disappearing
-  useEffect(() => {
-    if (adjustedPlan && adjustedPlan.length === 7 && adjustedPlan.every(day => day.sessions && day.sessions.length > 0)) {
-      console.log('[Quest] Applying adjusted plan from useEffect');
-      setWeekPlan(adjustedPlan);
-    } else if (adjustedPlan) {
-      console.error('[Quest] Adjusted plan is invalid, keeping current plan:', adjustedPlan.length, 'days');
-    }
-  }, [adjustedPlan]);
 
   const todayTarget = useMemo(() => {
     const todaySession = weekPlan[today];
@@ -404,7 +394,7 @@ export default function Quest() {
       const updatedPlan = getWeekPlan();
       // Only update if we get a valid 7-day plan to prevent content disappearing
       if (updatedPlan && updatedPlan.length === 7) {
-        console.log('[Quest] Plan updated via event');
+        console.log('[Quest] Plan updated via event', { source: updatedPlan[0]?.planSource });
         setWeekPlan(updatedPlan);
       } else {
         console.warn('[Quest] Received invalid plan update, ignoring');
@@ -418,7 +408,7 @@ export default function Quest() {
       const updatedPlan = getWeekPlan();
       // Only update if we get a valid 7-day plan
       if (updatedPlan && updatedPlan.length === 7) {
-        console.log('[Quest] Plan adapted via event');
+        console.log('[Quest] Plan adapted via event', { source: updatedPlan[0]?.planSource });
         setWeekPlan(updatedPlan);
         loadCompletionStatus();
         loadLogEntries(); // Refresh log entries when plan adapts
