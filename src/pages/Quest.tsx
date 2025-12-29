@@ -607,6 +607,19 @@ export default function Quest() {
   // Generate today's training data for mobile view
   const todayData = useTodayTrainingData(sessions, profile);
 
+  // GUARD: Multi-session day detection
+  useEffect(() => {
+    weekPlan.forEach((day, dayIdx) => {
+      if (day.sessions.length > 1) {
+        console.debug(
+          '[WeekView] Multi-session day:',
+          DAYS[dayIdx],
+          day.sessions.map(s => ({ title: s.title, type: (s as any).type }))
+        );
+      }
+    });
+  }, [weekPlan]);
+
   async function addRace() {
     const racesList = await listRaces();
     setRaces(racesList);
@@ -932,6 +945,11 @@ export default function Quest() {
                         }
                       }
 
+                      const monday = getMonday();
+                      const workoutDate = new Date(monday);
+                      workoutDate.setDate(workoutDate.getDate() + idx);
+                      const dateStr = workoutDate.toISOString().slice(0, 10);
+
                       const allWorkouts = daySessions.map((session: any, sessionIdx: number) => {
                         // Debug: log the raw session data
                         if (daySessions.length > 1) {
@@ -961,7 +979,7 @@ export default function Quest() {
                               ? `${Math.floor(session.durationMin / 60)}h ${Math.floor(session.durationMin % 60)}m`.replace(/0h /, '')
                               : session.km ? estimateDuration(session.km, sessionType) : '30 min',
                           distance: isStrength ? undefined : (session.km ? `${session.km}K` : undefined),
-                          completed: completionStatus[idx] || false,
+                          completed: completionStatus[dateStr] || false,
                           isToday: idx === today,
                           elevation: session?.elevationGain,
                           zones: session?.zones,
@@ -994,11 +1012,16 @@ export default function Quest() {
                   })()}
                   onWorkoutClick={(workout, day) => {
                     const dayIndex = DAYS.indexOf(day);
-                    const baseSession = sessions[dayIndex];
+                    const daySessionsForThisDay = sessions.filter(s => s.day === DAYS_SHORT[dayIndex]);
+                    const matchedSession = daySessionsForThisDay.find(s => {
+                      const sType = (s.isMESession || s.type?.includes('Strength')) ? 'strength' :
+                                    s.type?.toLowerCase().includes('rest') ? 'rest' : 'easy';
+                      return sType === workout.type;
+                    }) || daySessionsForThisDay[0];
 
-                    if (workout.type === 'strength' && meAssignment && meTemplates.length > 0) {
+                    if (workout.type === 'strength' && meAssignment && meTemplates.length > 0 && matchedSession) {
                       const strengthSession: SessionNode = {
-                        ...baseSession,
+                        ...matchedSession,
                         id: `strength-${dayIndex}`,
                         type: 'Strength Training',
                         emoji: String.fromCodePoint(0x1F4AA),
@@ -1008,8 +1031,8 @@ export default function Quest() {
                         pace: undefined,
                       };
                       setSelectedSession(strengthSession);
-                    } else if (baseSession) {
-                      setSelectedSession(baseSession);
+                    } else if (matchedSession) {
+                      setSelectedSession(matchedSession);
                     }
                   }}
                   onAddClick={() => {
