@@ -191,6 +191,7 @@ export default function Quest() {
 
     return plan;
   });
+  const weekPlanRef = useRef(weekPlan);
   const [weatherData, setWeatherData] = useState<DailyWeather[]>([]);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -265,6 +266,11 @@ export default function Quest() {
     toast(`Selected route: ${route.name}`, 'success');
     setSelectedSessionId(null);
   };
+
+  // Keep ref in sync with weekPlan state
+  useEffect(() => {
+    weekPlanRef.current = weekPlan;
+  }, [weekPlan]);
 
   useEffect(() => {
     async function loadRaces() {
@@ -394,6 +400,28 @@ export default function Quest() {
       const updatedPlan = getWeekPlan();
       // Only update if we get a valid 7-day plan to prevent content disappearing
       if (updatedPlan && updatedPlan.length === 7) {
+        // Guard: Do NOT overwrite adaptive plans with non-adaptive plans
+        const currentSource = weekPlanRef.current[0]?.planSource;
+        const incomingSource = updatedPlan[0]?.planSource;
+        const currentTime = weekPlanRef.current[0]?.planAppliedAt || 0;
+        const incomingTime = updatedPlan[0]?.planAppliedAt || 0;
+
+        if (currentSource === 'adaptive' && incomingSource !== 'adaptive') {
+          console.debug('[Quest] Blocking plan update: adaptive plan protected from non-adaptive overwrite', {
+            currentSource,
+            incomingSource,
+          });
+          return;
+        }
+
+        if (currentSource === 'adaptive' && incomingSource === 'adaptive' && incomingTime <= currentTime) {
+          console.debug('[Quest] Blocking plan update: need newer adaptive plan', {
+            currentTime,
+            incomingTime,
+          });
+          return;
+        }
+
         console.log('[Quest] Plan updated via event', { source: updatedPlan[0]?.planSource });
         setWeekPlan(updatedPlan);
       } else {
@@ -408,6 +436,28 @@ export default function Quest() {
       const updatedPlan = getWeekPlan();
       // Only update if we get a valid 7-day plan
       if (updatedPlan && updatedPlan.length === 7) {
+        // Guard: Do NOT overwrite adaptive plans with non-adaptive plans
+        const currentSource = weekPlanRef.current[0]?.planSource;
+        const incomingSource = updatedPlan[0]?.planSource;
+        const currentTime = weekPlanRef.current[0]?.planAppliedAt || 0;
+        const incomingTime = updatedPlan[0]?.planAppliedAt || 0;
+
+        if (currentSource === 'adaptive' && incomingSource !== 'adaptive') {
+          console.debug('[Quest] Blocking plan adaptation: adaptive plan protected from non-adaptive overwrite', {
+            currentSource,
+            incomingSource,
+          });
+          return;
+        }
+
+        if (currentSource === 'adaptive' && incomingSource === 'adaptive' && incomingTime <= currentTime) {
+          console.debug('[Quest] Blocking plan adaptation: need newer adaptive plan', {
+            currentTime,
+            incomingTime,
+          });
+          return;
+        }
+
         console.log('[Quest] Plan adapted via event', { source: updatedPlan[0]?.planSource });
         setWeekPlan(updatedPlan);
         loadCompletionStatus();

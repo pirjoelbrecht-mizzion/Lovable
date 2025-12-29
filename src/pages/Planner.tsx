@@ -1,5 +1,5 @@
 // src/pages/Planner.tsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useT } from "@/i18n";
 import { load, save } from "@/utils/storage";
 import {
@@ -388,6 +388,7 @@ export default function Planner() {
   const [week, setWeek] = useState<PlanWeek>(() =>
     normalizeWeek(load<any>("planner:week", makeEmptyWeek()))
   );
+  const weekRef = useRef(week);
   const [pending, setPending] = useState<PlanWeek | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [coachText, setCoachText] = useState("");
@@ -460,9 +461,37 @@ export default function Planner() {
     setWeek((w) => normalizeWeek(w));
   }, []);
 
+  // Keep ref in sync with week state
+  useEffect(() => {
+    weekRef.current = week;
+  }, [week]);
+
   useEffect(() => {
     const handlePlanUpdate = () => {
       const updated = normalizeWeek(load<any>("planner:week", makeEmptyWeek()));
+
+      // Guard: Do NOT overwrite adaptive plans with non-adaptive plans
+      const currentSource = weekRef.current[0]?.planSource as string;
+      const incomingSource = updated[0]?.planSource as string;
+      const currentTime = (weekRef.current[0]?.planAppliedAt as number) || 0;
+      const incomingTime = (updated[0]?.planAppliedAt as number) || 0;
+
+      if (currentSource === 'adaptive' && incomingSource !== 'adaptive') {
+        console.debug('[Planner] Blocking plan update: adaptive plan protected from non-adaptive overwrite', {
+          currentSource,
+          incomingSource,
+        });
+        return;
+      }
+
+      if (currentSource === 'adaptive' && incomingSource === 'adaptive' && incomingTime <= currentTime) {
+        console.debug('[Planner] Blocking plan update: need newer adaptive plan', {
+          currentTime,
+          incomingTime,
+        });
+        return;
+      }
+
       setWeek(updated);
     };
     window.addEventListener("plan:updated", handlePlanUpdate);
