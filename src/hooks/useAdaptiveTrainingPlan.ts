@@ -20,6 +20,7 @@ import { getCurrentUserId } from '@/lib/supabase';
 import { load, save } from '@/utils/storage';
 import type { WeeklyPlan as AdaptiveWeeklyPlan } from '@/lib/adaptive-coach/types';
 import { getWeekPlan, saveWeekPlan, type WeekPlan as LocalStorageWeekPlan } from '@/lib/plan';
+import { hasRunAdaptiveForWeek, lockAdaptiveExecutionForWeek } from '@/lib/adaptiveExecutionLock';
 
 export interface UseAdaptiveTrainingPlanOptions {
   /**
@@ -28,7 +29,7 @@ export interface UseAdaptiveTrainingPlanOptions {
   autoExecute?: boolean;
 
   /**
-   * Enable daily execution check
+   * Enable daily execution check (deprecated - no longer used)
    */
   dailyExecution?: boolean;
 
@@ -72,7 +73,7 @@ export interface UseAdaptiveTrainingPlanResult {
   /**
    * Manually trigger Module 4 execution
    */
-  execute: (basePlan?: LocalStorageWeekPlan | AdaptiveWeeklyPlan) => Promise<AdaptiveDecision | null>;
+  execute: (basePlan?: LocalStorageWeekPlan | AdaptiveWeeklyPlan, bypassLock?: boolean) => Promise<AdaptiveDecision | null>;
 
   /**
    * Refresh the adaptive context and re-execute
@@ -112,8 +113,10 @@ export function useAdaptiveTrainingPlan(
 
   /**
    * Main execution function - runs Module 4
+   * @param basePlan Optional base plan to work with
+   * @param bypassLock If true, skip the per-week lock check (for user refresh)
    */
-  const execute = useCallback(async (basePlan?: LocalStorageWeekPlan | AdaptiveWeeklyPlan): Promise<AdaptiveDecision | null> => {
+  const execute = useCallback(async (basePlan?: LocalStorageWeekPlan | AdaptiveWeeklyPlan, bypassLock?: boolean): Promise<AdaptiveDecision | null> => {
     // Prevent concurrent executions
     if (executionRef.current) {
       console.log('[Module 4] Execution already in progress, skipping');
@@ -125,7 +128,22 @@ export function useAdaptiveTrainingPlan(
       setIsExecuting(true);
       setError(null);
 
-      console.log('[Module 4] Starting execution...');
+      console.log('[Module 4] Starting execution...', { bypassLock });
+
+      // Get user ID for checks
+      let userId = await getCurrentUserId();
+
+      // Check per-week execution lock (unless bypassed by user refresh)
+      if (!bypassLock) {
+        if (hasRunAdaptiveForWeek(userId)) {
+          console.log('[Module 4] Already executed for this week, skipping');
+          setIsExecuting(false);
+          executionRef.current = false;
+          return null;
+        }
+      } else {
+        console.log('[Module 4] Bypassing weekly lock for user-initiated refresh');
+      }
 
       // Get base plan
       const plan = basePlan || getWeekPlan();
@@ -144,8 +162,7 @@ export function useAdaptiveTrainingPlan(
       console.log('[Module 4] Computing training adjustment...');
       const newDecision = computeTrainingAdjustment(context);
 
-      // Get user ID (skip Supabase logging if not authenticated)
-      const userId = await getCurrentUserId();
+      // Log to Supabase if authenticated
       if (userId) {
         // Log decision to Supabase
         console.log('[Module 4] Logging decision to database...');
@@ -185,6 +202,9 @@ export function useAdaptiveTrainingPlan(
       // Sync to localStorage for backward compatibility
       console.log('[Module 4] Syncing adjusted plan to localStorage...');
       saveWeekPlan(adaptivePlan);
+
+      // Lock execution for this week to prevent duplicate runs
+      lockAdaptiveExecutionForWeek(userId);
 
       // Update state
       setDecision(newDecision);
@@ -226,10 +246,12 @@ export function useAdaptiveTrainingPlan(
 
   /**
    * Refresh context and re-execute
+   * Allows user to manually trigger a new adaptive run even if it already ran this week
    */
   const refresh = useCallback(async () => {
-    console.log('[Module 4] Refresh requested');
-    await execute();
+    console.log('[Module 4] Refresh requested by user');
+    // User-initiated refresh bypasses the weekly lock
+    await execute(undefined, true);
   }, [execute]);
 
   /**
@@ -290,105 +312,48 @@ export function useAdaptiveTrainingPlan(
   }, []); // Only run once on mount
 
   /**
-   * Effect: Listen for data change events
+   * Effect: Listen for explicit user triggers only
+   *
+   * IMPORTANT: Do NOT automatically re-run on data changes (profile, settings, planner).
+   * This prevents the duplicate execution problem.
+   *
+   * Only explicit triggers should cause re-execution:
+   * - User manually triggers refresh
+   * - User changes daysPerWeek
+   * - Week boundary changes (handled by execution lock)
    */
   useEffect(() => {
     if (!autoExecute) return;
 
-    const handleACWRUpdate = () => {
-      console.log('[Module 4] ACWR updated, triggering execution');
+    // Only listen for user-explicit triggers
+    const handleExplicitRefresh = () => {
+      console.log('[Module 4] User triggered explicit refresh');
       setNeedsExecution(true);
       execute();
     };
 
-    const handleWeatherUpdate = () => {
-      console.log('[Module 4] Weather updated, triggering execution');
+    const handleDaysPerWeekChanged = () => {
+      console.log('[Module 4] User changed daysPerWeek, re-running adaptive');
       setNeedsExecution(true);
       execute();
     };
 
-    const handleRacesUpdate = () => {
-      console.log('[Module 4] Races updated, triggering execution');
-      setNeedsExecution(true);
-      execute();
-    };
-
-    const handleReadinessUpdate = () => {
-      console.log('[Module 4] Readiness updated, triggering execution');
-      setNeedsExecution(true);
-      execute();
-    };
-
-    const handleLocationUpdate = () => {
-      console.log('[Module 4] Location updated, triggering execution');
-      setNeedsExecution(true);
-      execute();
-    };
-
-    const handleWorkoutCompleted = () => {
-      console.log('[Module 4] Workout completed, triggering execution');
-      setNeedsExecution(true);
-      execute();
-    };
-
-    const handlePlanAdapted = () => {
-      console.log('[Module 4] Plan adapted from feedback, triggering execution');
-      setNeedsExecution(true);
-      execute();
-    };
-
-    const handleUserSignedIn = () => {
-      console.log('[Module 4] User signed in, triggering execution');
-      setNeedsExecution(true);
-      execute();
-    };
-
-    const handleLogImportComplete = () => {
-      console.log('[Module 4] Log import complete, triggering execution');
-      setNeedsExecution(true);
-      execute();
-    };
-
-    // Listen for data change events
-    window.addEventListener('acwr:updated', handleACWRUpdate);
-    window.addEventListener('weather:updated', handleWeatherUpdate);
-    window.addEventListener('races:updated', handleRacesUpdate);
-    window.addEventListener('readiness:updated', handleReadinessUpdate);
-    window.addEventListener('location:updated', handleLocationUpdate);
-    window.addEventListener('workout:completed', handleWorkoutCompleted);
-    window.addEventListener('plan:adapted', handlePlanAdapted);
-    window.addEventListener('user:signed-in', handleUserSignedIn);
-    window.addEventListener('log:import-complete', handleLogImportComplete);
+    window.addEventListener('adaptive:refreshRequested', handleExplicitRefresh);
+    window.addEventListener('settings:daysPerWeekChanged', handleDaysPerWeekChanged);
 
     return () => {
-      window.removeEventListener('acwr:updated', handleACWRUpdate);
-      window.removeEventListener('weather:updated', handleWeatherUpdate);
-      window.removeEventListener('races:updated', handleRacesUpdate);
-      window.removeEventListener('readiness:updated', handleReadinessUpdate);
-      window.removeEventListener('location:updated', handleLocationUpdate);
-      window.removeEventListener('workout:completed', handleWorkoutCompleted);
-      window.removeEventListener('plan:adapted', handlePlanAdapted);
-      window.removeEventListener('user:signed-in', handleUserSignedIn);
-      window.removeEventListener('log:import-complete', handleLogImportComplete);
+      window.removeEventListener('adaptive:refreshRequested', handleExplicitRefresh);
+      window.removeEventListener('settings:daysPerWeekChanged', handleDaysPerWeekChanged);
     };
   }, [autoExecute, execute]);
 
   /**
-   * Effect: Daily execution check
+   * REMOVED: Daily execution check
+   *
+   * The per-week execution lock handles new days automatically.
+   * Daily checking was causing duplicate executions.
+   * If execution is needed on a new day, the mount effect will handle it.
    */
-  useEffect(() => {
-    if (!dailyExecution) return;
-
-    const interval = setInterval(() => {
-      if (checkDailyExecution()) {
-        console.log('[Module 4] Daily execution timer triggered');
-        setNeedsExecution(true);
-        execute();
-      }
-    }, 60 * 60 * 1000); // Check every hour
-
-    return () => clearInterval(interval);
-  }, [dailyExecution, checkDailyExecution, execute]);
 
   return {
     adjustedPlan,

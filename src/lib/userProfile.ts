@@ -90,7 +90,19 @@ export async function updateUserProfile(
 
     if (error) throw error;
 
-    return transformDbToProfile(data);
+    const result = transformDbToProfile(data);
+
+    // Emit event if daysPerWeek changed
+    if (updates.daysPerWeek !== undefined && typeof window !== 'undefined') {
+      console.debug('[UserProfile] daysPerWeek changed, emitting event', {
+        newValue: updates.daysPerWeek,
+      });
+      window.dispatchEvent(new CustomEvent('settings:daysPerWeekChanged', {
+        detail: { daysPerWeek: updates.daysPerWeek }
+      }));
+    }
+
+    return result;
   } catch (error) {
     console.error('Error updating user profile:', error);
     return null;
