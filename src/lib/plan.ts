@@ -96,6 +96,29 @@ export function removeSession(dayIndex: number, sessionId: string) {
   setWeekPlan(plan);
 }
 
+export function addUserSession(dayIndex: number, sessionData: Partial<Session>) {
+  console.log('[STEP 7] Adding user session:', { dayIndex, sessionData });
+  const plan = getWeekPlan();
+  const idx = Math.max(0, Math.min(6, dayIndex));
+
+  const newSession: Session = {
+    id: "s_" + Math.random().toString(36).slice(2),
+    title: sessionData.title || "New Session",
+    notes: sessionData.notes || "",
+    km: sessionData.km,
+    source: "user",
+    origin: "user",
+    locked: false,
+    ...sessionData,
+  };
+
+  console.log('[STEP 7] Created session with origin:', newSession.origin);
+  plan[idx].sessions.push(newSession);
+  setWeekPlan(plan);
+
+  return newSession.id;
+}
+
 // helpers
 
 function summarizeToTitle(text: string): string {

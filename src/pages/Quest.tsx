@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { useT } from "@/i18n";
 import QuickAddRace from "@/components/QuickAddRace";
 import WeatherAlertBanner from "@/components/WeatherAlertBanner";
-import { getWeekPlan, defaultWeek, type WeekPlan, todayDayIndex } from "@/lib/plan";
+import { AddSessionModal } from "@/components/AddSessionModal";
+import { getWeekPlan, defaultWeek, type WeekPlan, todayDayIndex, addUserSession } from "@/lib/plan";
 import { fetchDailyWeather, type DailyWeather, getWeatherForLocation, type CurrentWeather } from "@/utils/weather";
 import { loadUserProfile } from "@/state/userData";
 import { loadWeekPlan } from "@/utils/weekPlan";
@@ -139,6 +140,7 @@ export default function Quest() {
   const [selectedSession, setSelectedSession] = useState<SessionNode | null>(null);
   const [liveWorkoutMode, setLiveWorkoutMode] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [addSessionDay, setAddSessionDay] = useState<{ label: string; index: number } | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -698,6 +700,13 @@ export default function Quest() {
     setDragOverListItem(null);
   };
 
+  const handleAddSession = (dayIndex: number, sessionData: any) => {
+    console.log('[STEP 7] handleAddSession called:', { dayIndex, sessionData });
+    addUserSession(dayIndex, sessionData);
+    setRefresh((r) => r + 1);
+    toast('Session added successfully', 'success');
+  };
+
   // Handle workout completion and trigger feedback modal
   const handleWorkoutComplete = async (session: SessionNode) => {
     // Find log entries for this day
@@ -1083,11 +1092,40 @@ export default function Quest() {
                   {Array.from(new Set(sessions.map(s => s.day))).map(day => {
                     const firstSessionForDay = sessions.find(s => s.day === day);
                     if (!firstSessionForDay) return null;
+                    const dayIndex = DAYS_SHORT.indexOf(day);
+                    const dayLabel = DAYS[dayIndex];
                     return (
                       <div key={`label-${day}`} style={{ position: "absolute", left: `${firstSessionForDay.x}%`, top: `${firstSessionForDay.y}%` }}>
                         <div className={`quest-day-label ${firstSessionForDay.x > 50 ? "quest-day-right" : "quest-day-left"}`}>
                           {day}
                         </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            console.log('[STEP 7] Opening add session modal for day:', dayLabel, dayIndex);
+                            setAddSessionDay({ label: dayLabel, index: dayIndex });
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            marginTop: '4px',
+                            padding: '4px 8px',
+                            fontSize: '10px',
+                            background: 'rgba(59, 130, 246, 0.9)',
+                            border: 'none',
+                            borderRadius: '4px',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            whiteSpace: 'nowrap',
+                            zIndex: 10,
+                          }}
+                          title={`Add session to ${dayLabel}`}
+                        >
+                          + Add
+                        </button>
                       </div>
                     );
                   })}
@@ -1550,6 +1588,16 @@ export default function Quest() {
         actualDuration={selectedWorkoutForFeedback?.logEntry.durationMin}
         onSubmit={handleFeedbackSubmit}
       />
+
+      {/* Add Session Modal */}
+      {addSessionDay && (
+        <AddSessionModal
+          dayLabel={addSessionDay.label}
+          dayIndex={addSessionDay.index}
+          onAdd={(sessionData) => handleAddSession(addSessionDay.index, sessionData)}
+          onClose={() => setAddSessionDay(null)}
+        />
+      )}
     </div>
   );
 }
