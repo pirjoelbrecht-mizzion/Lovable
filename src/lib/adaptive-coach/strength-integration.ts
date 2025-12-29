@@ -355,7 +355,7 @@ function getPreferredMEDays(weeklyPlan: WeeklyPlan, count: number): number[] {
     idx,
     load: day.sessions.reduce((sum, s) => {
       if (s.type === 'rest' || s.type === 'recovery') return sum;
-      return sum + (s.durationMinutes || 30);
+      return sum + (s.durationMin || 30);
     }, 0),
     isKeyDay: day.sessions.some(s =>
       ['intervals', 'tempo', 'long', 'race'].includes(s.type || '')
@@ -407,7 +407,7 @@ function createMESession(
   return {
     title: adjustedTitle,
     type: 'strength',
-    durationMinutes: 35,
+    durationMin: 35,
     notes: `${meAssignment.reason}${loadRegulation.shouldAdjust ? `\n\nLoad Adjustment: ${loadRegulation.reason}` : ''}`,
     source: 'coach',
     meData: {

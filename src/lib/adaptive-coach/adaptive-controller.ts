@@ -132,8 +132,13 @@ function adaptFully(session: Workout, context: AdaptationContext): Workout {
 
   let adapted = { ...session };
 
-  adapted.distanceKm = Math.round(session.distanceKm * (1 + context.volumeAdjustment) * 10) / 10;
-  adapted.durationMinutes = Math.round(session.durationMinutes * (1 + context.volumeAdjustment));
+  if (session.distanceKm) {
+    adapted.distanceKm = Math.round(session.distanceKm * (1 + context.volumeAdjustment) * 10) / 10;
+  }
+
+  if (session.durationMin) {
+    adapted.durationMin = Math.round(session.durationMin * (1 + context.volumeAdjustment));
+  }
 
   if (context.intensityReduction && session.intensity === 'high') {
     adapted.intensity = 'medium';
@@ -146,17 +151,32 @@ function adaptFully(session: Workout, context: AdaptationContext): Workout {
 function scaleLoad(session: Workout, context: AdaptationContext): Workout {
   const loadReduction = Math.abs(context.volumeAdjustment);
 
+  if (!session.structure?.intervals || loadReduction === 0) {
+    return session;
+  }
+
+  const scaledIntervals = session.structure.intervals.map(interval => ({
+    ...interval,
+    reps: Math.max(1, Math.round(interval.reps * (1 - loadReduction * 0.5)))
+  }));
+
   return {
     ...session,
-    distanceKm: Math.round(session.distanceKm * (1 - loadReduction * 0.5) * 10) / 10,
-    durationMinutes: Math.round(session.durationMinutes * (1 - loadReduction * 0.5))
+    structure: {
+      ...session.structure,
+      intervals: scaledIntervals
+    }
   };
 }
 
 function shiftTiming(session: Workout, context: AdaptationContext): Workout {
+  if (!session.durationMin) {
+    return session;
+  }
+
   return {
     ...session,
-    durationMinutes: Math.round(session.durationMinutes * 0.85)
+    durationMin: Math.round(session.durationMin * 0.85)
   };
 }
 
@@ -706,8 +726,8 @@ function skipNextHardWorkout(plan: WeeklyPlan): WeeklyPlan {
         ...session,
         type: 'easy' as const,
         intensity: 'low' as const,
-        distanceKm: session.distanceKm * 0.5,
-        durationMinutes: Math.round(session.durationMinutes * 0.5),
+        distanceKm: session.distanceKm ? session.distanceKm * 0.5 : undefined,
+        durationMin: session.durationMin ? Math.round(session.durationMin * 0.5) : undefined,
         description: 'Easy recovery run (hard workout skipped)',
         purpose: 'Recovery and adaptation'
       };
@@ -772,8 +792,9 @@ function createRecoveryWeek(plan: WeeklyPlan): WeeklyPlan {
       sessions: firstSession ? [{
         type: 'easy' as const,
         intensity: 'low' as const,
-        distanceKm: Math.min(firstSession.distanceKm * 0.4, 8),
-        durationMinutes: Math.round(Math.min(firstSession.durationMinutes * 0.4, 60)),
+        title: 'Very easy recovery run',
+        distanceKm: firstSession.distanceKm ? Math.min(firstSession.distanceKm * 0.4, 8) : undefined,
+        durationMin: firstSession.durationMin ? Math.round(Math.min(firstSession.durationMin * 0.4, 60)) : undefined,
         description: 'Very easy recovery run',
         purpose: 'Active recovery',
         origin: 'ADAPTIVE',
