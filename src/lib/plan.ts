@@ -96,6 +96,8 @@ export function removeSession(dayIndex: number, sessionId: string) {
   setWeekPlan(plan);
 }
 
+// User sessions are NEVER deleted by adaptive logic.
+// Only minimal load/timing adaptations are allowed. Please proceed to step 8
 export function addUserSession(dayIndex: number, sessionData: Partial<Session>) {
   console.log('[STEP 7] Adding user session:', { dayIndex, sessionData });
   const plan = getWeekPlan();
