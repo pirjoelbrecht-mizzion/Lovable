@@ -272,3 +272,13 @@ export interface DayAdaptation {
  *
  * ======================================================================
  */
+
+/**
+ * ======================================================================
+ * OPERATIONAL SAFETY CONSTANTS (STEP 11C)
+ * ======================================================================
+ *
+ * Soft caps for operational safety - not restrictions, just limits
+ * to warn about unusual configurations
+ */
+export const MAX_SESSIONS_PER_DAY = 6;

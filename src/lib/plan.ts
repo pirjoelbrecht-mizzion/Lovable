@@ -1,6 +1,8 @@
 // src/lib/plan.ts
 import { load, save } from "@/utils/storage";
 import { loadWeek, saveWeek, normalizeWeek, makeEmptyWeek, type PlanWeek, type PlanDay, type Session as PlanSession } from "@/utils/plan";
+import { logSessionCountWarning } from "@/lib/telemetry/trainingTelemetry";
+import { MAX_SESSIONS_PER_DAY } from "@/types/training";
 
 export type Session = PlanSession & {
   id?: string;
@@ -116,6 +118,13 @@ export function addUserSession(dayIndex: number, sessionData: Partial<Session>) 
 
   console.log('[STEP 7] Created session with origin:', newSession.origin);
   plan[idx].sessions.push(newSession);
+
+  const dayDate = new Date();
+  dayDate.setDate(dayDate.getDate() - dayDate.getDay() + 1 + idx);
+  const dateStr = dayDate.toISOString().split('T')[0];
+
+  logSessionCountWarning(dateStr, plan[idx].sessions.length, MAX_SESSIONS_PER_DAY);
+
   setWeekPlan(plan);
 
   return newSession.id;

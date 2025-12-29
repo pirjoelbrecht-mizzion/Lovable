@@ -19,6 +19,7 @@
 
 import type { DailyPlan, Workout, WeeklyPlan, SessionOrigin } from './types';
 import { isStrengthSession } from './strength-integration';
+import { logSessionsRemoved } from '@/lib/telemetry/trainingTelemetry';
 
 /**
  * Conflict types detected by the engine
@@ -242,6 +243,12 @@ export function resolveConflict(
       title: toRemove.title
     }
   });
+
+  logSessionsRemoved(
+    day.day || new Date().toISOString().split('T')[0],
+    [toRemove as any],
+    conflict.reason
+  );
 
   return {
     ...day,
