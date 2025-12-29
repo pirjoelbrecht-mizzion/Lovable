@@ -34,6 +34,7 @@ import {
   getWorkoutById,
   meetsPrerequisites
 } from './workout-library';
+import type { TrainingConstraints } from './constraints';
 
 //
 // ─────────────────────────────────────────────────────────────
@@ -49,6 +50,7 @@ export interface MicrocycleInput {
   isRecoveryWeek?: boolean;
   previousWeekMileage?: number;
   daysToRace?: number; // CRITICAL: Pass days to race for race week detection
+  constraints?: TrainingConstraints; // CRITICAL: v1.1 Rest days from onboarding
 }
 
 //
@@ -76,7 +78,7 @@ const PROGRESSION_RULES = {
  * Generate a complete weekly training plan
  */
 export function generateMicrocycle(input: MicrocycleInput): WeeklyPlan {
-  const { weekNumber, macrocycleWeek, athlete, race, isRecoveryWeek, previousWeekMileage } = input;
+  const { weekNumber, macrocycleWeek, athlete, race, isRecoveryWeek, previousWeekMileage, constraints } = input;
 
   // Calculate target volume
   const targetMileage = calculateTargetMileage({
@@ -110,8 +112,15 @@ export function generateMicrocycle(input: MicrocycleInput): WeeklyPlan {
     vertRange: w.verticalRange
   })));
 
-  // Distribute across days
-  const days = distributeWorkouts(concreteWorkouts, macrocycleWeek.startDate, athlete, race, input.daysToRace);
+  // Distribute across days (respecting rest day constraints from onboarding)
+  const days = distributeWorkouts(
+    concreteWorkouts,
+    macrocycleWeek.startDate,
+    athlete,
+    race,
+    input.daysToRace,
+    constraints
+  );
 
   return {
     weekNumber,
@@ -506,10 +515,18 @@ function distributeWorkouts(
   weekStartDate: string,
   athlete: AthleteProfile,
   race: RaceEvent,
-  daysToRace?: number
+  daysToRace?: number,
+  constraints?: TrainingConstraints
 ): DailyPlan[] {
   const days: DailyPlan[] = [];
   const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  /**
+   * CRITICAL RULE: Rest days are hard constraints.
+   * Auto-fill never places sessions on rest days.
+   * Rest days always win over time/volume targets.
+   */
+  const blockedDays = new Set(constraints?.restDays ?? []);
 
   // Distribution pattern (hard/easy principle)
   const pattern: { [key: string]: string } = {
@@ -625,33 +642,50 @@ function distributeWorkouts(
       }
     }
 
-    // Find matching workout for this day
-    const expectedIds = pattern[dayName]?.split('|') || [];
-    let workout = workouts.find(w => expectedIds.some(id => w.id?.includes(id)));
+    // CRITICAL: Check if this day is a rest day (hard constraint)
+    const isRestDay = blockedDays.has(dayName as any);
 
-    if (!workout) {
-      // Fallback to any remaining workout (check all sessions, not just first)
-      workout = workouts.find(w => !days.some(d => d.sessions.some(s => s.id === w.id)));
-    }
+    let workout: Workout;
 
-    if (!workout) {
-      // Default to rest
+    if (isRestDay) {
+      // Rest days must have no training sessions
       workout = {
         type: 'rest',
         title: 'Rest',
-        description: 'Recovery day',
-        origin: 'BASE_PLAN',  // Rest days are part of base plan
+        description: 'Configured rest day',
+        origin: 'BASE_PLAN',
         locked: false,
         lockReason: undefined
       };
     } else {
-      // Add ownership metadata to workouts from library
-      workout = {
-        ...workout,
-        origin: 'BASE_PLAN',  // All microcycle workouts are from base plan
-        locked: false,
-        lockReason: undefined
-      };
+      // Find matching workout for this day
+      const expectedIds = pattern[dayName]?.split('|') || [];
+      workout = workouts.find(w => expectedIds.some(id => w.id?.includes(id)));
+
+      if (!workout) {
+        // Fallback to any remaining workout (check all sessions, not just first)
+        workout = workouts.find(w => !days.some(d => d.sessions.some(s => s.id === w.id)));
+      }
+
+      if (!workout) {
+        // Default to rest (only on non-constrained days)
+        workout = {
+          type: 'rest',
+          title: 'Rest',
+          description: 'Recovery day',
+          origin: 'BASE_PLAN',
+          locked: false,
+          lockReason: undefined
+        };
+      } else {
+        // Add ownership metadata to workouts from library
+        workout = {
+          ...workout,
+          origin: 'BASE_PLAN',
+          locked: false,
+          lockReason: undefined
+        };
+      }
     }
 
     days.push({

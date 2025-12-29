@@ -48,6 +48,8 @@ import { loadUserProfile } from '@/state/userData';
 import { load } from '@/utils/storage';
 import type { WeekPlan as LocalStorageWeekPlan } from '@/lib/plan';
 import { getCurrentUserId } from '@/lib/supabase';
+import { deriveRestDays } from '@/lib/adaptive-coach/restDays';
+import type { TrainingConstraints } from '@/lib/adaptive-coach/constraints';
 
 /**
  * Convert localStorage WeekPlan format to Adaptive Coach WeeklyPlan format
@@ -668,6 +670,36 @@ export function shouldRefreshContext(): boolean {
   }
 
   return false;
+}
+
+/**
+ * Extract training constraints from athlete profile and user profile.
+ * v1.1: Derives rest days from daysPerWeek using deterministic algorithm.
+ *
+ * Rest days are HARD constraints:
+ * - Auto-fill never places sessions on rest days
+ * - Rest days always win over time/volume targets
+ * - Plan validation flags any rest-day violations
+ *
+ * @param athlete - Athlete profile from onboarding/history
+ * @param userProfile - User profile with daysPerWeek setting
+ * @returns Training constraints including derived rest days
+ */
+export function extractTrainingConstraints(
+  athlete: AthleteProfile,
+  userProfile?: ReturnType<typeof loadUserProfile>
+): TrainingConstraints {
+  const daysPerWeek = userProfile?.daysPerWeek ?? athlete.daysPerWeek ?? 3;
+
+  const restDays = deriveRestDays(daysPerWeek);
+
+  return {
+    daysPerWeek,
+    restDays,
+    targetHoursMin: athlete.targetHoursMin,
+    targetHoursMax: athlete.targetHoursMax,
+    maxVertPerDay: athlete.maxVertPerDay,
+  };
 }
 
 /**
