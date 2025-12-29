@@ -604,431 +604,467 @@ export default function SettingsV2() {
 
         {activeTab === 'training' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div>
-              <h3 className="h2" style={{ marginBottom: 12 }}>Training Profile</h3>
-              <p className="small" style={{ color: 'var(--muted)', marginBottom: 16 }}>
-                View your onboarding profile and training configuration
-              </p>
-            </div>
-
-            <TrainingProfileCard profile={userProfile} />
-            <TrainingLoadExplanation profile={userProfile} />
-
-            <EditTrainingFrequency
-              currentDaysPerWeek={userProfile?.daysPerWeek ?? 3}
-              onSave={async (newDaysPerWeek) => {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) throw new Error('Not authenticated');
-                const updated = await updateUserProfileDb(user.id, { daysPerWeek: newDaysPerWeek });
-                if (updated) {
-                  setUserProfile(updated);
-                }
-              }}
-            />
-
-            <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--line)' }}>
-              <h3 className="h2" style={{ marginBottom: 12 }}>Advanced Settings</h3>
-              <p className="small" style={{ color: 'var(--muted)', marginBottom: 16 }}>
-                Adjust your base training metrics — all workouts adapt automatically
-              </p>
-
-              {/* Data Source Info Panel */}
+            {userProfile === null ? (
               <div style={{
-                padding: 12,
-                marginBottom: 16,
-                background: 'rgba(59, 130, 246, 0.1)',
-                border: '1px solid rgba(59, 130, 246, 0.3)',
-                borderRadius: 8,
-                fontSize: 13
-              }}>
-                <strong>📊 Available Data Sources:</strong>
-                <div style={{ marginTop: 8, paddingLeft: 4 }}>
-                  • <strong>Auto-Calculate:</strong> Analyze your existing activities<br/>
-                  • <strong>Strava API:</strong> Fetch elevation data from connected account<br/>
-                  • <strong>CSV Upload:</strong> Import Strava/Garmin exports<br/>
-                  • <strong>Manual Entry:</strong> Use pace slider below
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
-                <button
-                  className="btn"
-                  style={{
-                    background: '#3b82f6',
-                    color: 'white',
-                    flex: 1,
-                    minWidth: 200,
-                    padding: '12px 16px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    cursor: busy ? 'not-allowed' : 'pointer',
-                    opacity: busy ? 0.6 : 1,
-                    transition: 'all 0.2s'
-                  }}
-                  disabled={busy}
-                  onClick={async () => {
-                    setBusy(true);
-                    try {
-                      const { getLogEntriesByDateRange } = await import('@/lib/database');
-                      const entries = await getLogEntriesByDateRange('2020-01-01', '2030-12-31');
-
-                      if (entries.length === 0) {
-                        toast('No activities found to analyze', 'error');
-                        return;
-                      }
-
-                      const runsWithData = entries
-                        .filter(e => e.km > 0 && e.durationMin && e.hrAvg)
-                        .map(e => ({
-                          pace: e.durationMin! / e.km,
-                          avgHr: e.hrAvg!
-                        }));
-
-                      if (runsWithData.length === 0) {
-                        toast('No activities with pace and heart rate data found', 'error');
-                        return;
-                      }
-
-                      const est = autoEstimateProfile(runsWithData);
-                      if (est) {
-                        setPace(est.paceBase);
-                        setHrResting(est.hrResting);
-                        setHrThreshold(est.hrThreshold);
-                        setHrMax(est.hrMax);
-
-                        await updateUserProfile({
-                          pace_base: est.paceBase,
-                          hr_base: est.heartRateBase,
-                          hr_max: est.hrMax,
-                          hr_resting: est.hrResting,
-                          hr_threshold: est.hrThreshold
-                        });
-
-                        toast(`✅ Auto-calculated from ${runsWithData.length} activities: Pace ${est.paceBase.toFixed(2)} min/km, HR ${est.heartRateBase} bpm`, 'success');
-                      } else {
-                        toast('Unable to calculate - please check your activity data', 'error');
-                      }
-                    } catch (err: any) {
-                      toast(`Error: ${err.message}`, 'error');
-                    } finally {
-                      setBusy(false);
-                    }
-                  }}
-                >
-                  🔄 Auto-Calculate from Activities
-                </button>
-
-                <button
-                  className="btn"
-                  style={{
-                    background: '#10b981',
-                    color: 'white',
-                    flex: 1,
-                    minWidth: 200,
-                    padding: '12px 16px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    cursor: busy ? 'not-allowed' : 'pointer',
-                    opacity: busy ? 0.6 : 1,
-                    transition: 'all 0.2s'
-                  }}
-                  disabled={busy}
-                  onClick={async () => {
-                    setBusy(true);
-                    try {
-                      let backfillModule;
-                      try {
-                        backfillModule = await import('@/utils/backfillElevationData');
-                      } catch (importErr) {
-                        console.error('Import error:', importErr);
-                        toast('Module loading failed. Check console for details.', 'error');
-                        return;
-                      }
-
-                      const { backfillElevationData } = backfillModule;
-                      toast('🏔️ Connecting to Strava API...', 'info');
-
-                      const result = await backfillElevationData();
-
-                      if (result.updated > 0) {
-                        toast(`✅ Elevation data added to ${result.updated} activities!`, 'success');
-
-                        // Trigger full recalculation
-                        const { autoCalculationService } = await import('@/services/autoCalculationService');
-                        await autoCalculationService.scheduleFullRecalculation('Elevation data backfilled');
-                      } else {
-                        toast('ℹ️ All activities already have elevation data, or no Strava connection found.', 'info');
-                      }
-                    } catch (err: any) {
-                      toast(`❌ Error: ${err.message}. Make sure Strava is connected!`, 'error');
-                    } finally {
-                      setBusy(false);
-                    }
-                  }}
-                >
-                  🏔️ Backfill Elevation Data
-                </button>
-              </div>
-
-              <label className="small">Easy pace baseline (min/km)</label>
-              <input
-                type="range"
-                min="5"
-                max="12"
-                step="0.1"
-                value={pace}
-                onChange={onPaceChange}
-                style={{ width: "100%", marginTop: 8 }}
-              />
-              <div style={{ textAlign: "right", fontSize: 13, marginTop: 4 }}>{pace.toFixed(1)} min/km</div>
-            </div>
-
-            <div style={{ background: "#2a2a2a", color: "#fff", padding: 20, borderRadius: 12 }}>
-              <h3 className="h2" style={{ color: "#fff", marginBottom: 12 }}>Heart Rate Zones</h3>
-              <p className="small" style={{ marginBottom: 16, opacity: 0.7 }}>
-                We use HR data to estimate your training zones and provide a Cardio Score
-              </p>
-
-              <div style={{ marginTop: 14 }}>
-                <label className="small">Resting HR</label>
-                <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}>
-                  <input
-                    type="range"
-                    min="30"
-                    max="100"
-                    step="1"
-                    value={hrResting}
-                    onChange={onHrRestingChange}
-                    style={{ flex: 1, accentColor: "#06b6d4" }}
-                  />
-                  <div style={{ minWidth: 60, textAlign: "right", fontSize: 15, fontWeight: 500 }}>
-                    {hrResting} bpm
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ marginTop: 18 }}>
-                <label className="small">Threshold HR</label>
-                <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}>
-                  <input
-                    type="range"
-                    min="120"
-                    max="200"
-                    step="1"
-                    value={hrThreshold}
-                    onChange={onHrThresholdChange}
-                    style={{ flex: 1, accentColor: "#f97316" }}
-                  />
-                  <div style={{ minWidth: 60, textAlign: "right", fontSize: 15, fontWeight: 500 }}>
-                    {hrThreshold} bpm
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ marginTop: 24 }}>
-                {Object.entries(displayZones).map(([zone, [lo]], idx) => {
-                  const zoneKey = zone as keyof typeof zoneColors;
-                  const color = zoneColors[zoneKey];
-                  const pct = Math.round((lo / hrMax) * 100);
-                  return (
-                    <div key={zone} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
-                      <div style={{ display: "flex", gap: 6, alignItems: "center", minWidth: 160 }}>
-                        <input
-                          type="number"
-                          value={lo}
-                          onChange={(e) => onZoneChange(zoneKey, parseInt(e.target.value) || lo)}
-                          style={{
-                            width: 55,
-                            padding: "4px 6px",
-                            background: "#1a1a1a",
-                            border: "1px solid #444",
-                            borderRadius: 4,
-                            color: "#fff",
-                            textAlign: "center",
-                            fontSize: 13
-                          }}
-                        />
-                        <span style={{ fontSize: 12, opacity: 0.6 }}>bpm</span>
-                        <input
-                          type="number"
-                          value={pct}
-                          readOnly
-                          style={{
-                            width: 45,
-                            padding: "4px 6px",
-                            background: "#1a1a1a",
-                            border: "1px solid #444",
-                            borderRadius: 4,
-                            color: "#fff",
-                            textAlign: "center",
-                            fontSize: 13,
-                            opacity: 0.7
-                          }}
-                        />
-                        <span style={{ fontSize: 12, opacity: 0.6 }}>%</span>
-                      </div>
-                      <div
-                        style={{
-                          flex: 1,
-                          height: 20,
-                          background: color,
-                          borderRadius: 4,
-                          display: "flex",
-                          alignItems: "center",
-                          paddingLeft: 8,
-                          fontSize: 11,
-                          fontWeight: 600,
-                          color: "#000"
-                        }}
-                      >
-                        Zone {idx + 1}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div style={{ marginTop: 16, fontSize: 12, opacity: 0.6 }}>
-                Max HR: {hrMax} bpm •{" "}
-                <span
-                  style={{ cursor: "pointer", textDecoration: "underline" }}
-                  onClick={() => {
-                    const newMax = prompt("Enter your max heart rate:", hrMax.toString());
-                    if (newMax) {
-                      const val = parseInt(newMax);
-                      if (val >= 140 && val <= 220) {
-                        setHrMax(val);
-                        updateUserProfile({ hrMax: val });
-                      }
-                    }
-                  }}
-                >
-                  Edit
-                </span>
-              </div>
-            </div>
-
-            <div style={{ background: "#2a2a2a", color: "#fff", padding: 20, borderRadius: 12 }}>
-              <h3 className="h2" style={{ color: "#fff", marginBottom: 12 }}>Pace Zones</h3>
-              <p className="small" style={{ marginBottom: 16, opacity: 0.7 }}>
-                Pace zones correlate with HR intensity — higher intensity = faster pace
-              </p>
-
-              <div style={{ marginTop: 18 }}>
-                {Object.entries(paceZones).map(([zone, [fast, slow]], idx) => {
-                  const zoneKey = zone as keyof typeof zoneColors;
-                  const color = zoneColors[zoneKey];
-                  const fastMins = Math.floor(fast);
-                  const fastSecs = Math.round((fast - fastMins) * 60);
-                  const slowMins = Math.floor(slow);
-                  const slowSecs = Math.round((slow - slowMins) * 60);
-                  const zoneLabels = ["Recovery", "Endurance", "Tempo", "Threshold", "VO₂ / Speed"];
-                  return (
-                    <div key={zone} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
-                      <div style={{ display: "flex", gap: 6, alignItems: "center", minWidth: 180 }}>
-                        <div
-                          style={{
-                            width: 90,
-                            padding: "4px 6px",
-                            background: "#1a1a1a",
-                            border: "1px solid #444",
-                            borderRadius: 4,
-                            color: "#fff",
-                            textAlign: "center",
-                            fontSize: 13,
-                            fontWeight: 500
-                          }}
-                        >
-                          {fastMins}:{fastSecs.toString().padStart(2, '0')}
-                        </div>
-                        <span style={{ fontSize: 12, opacity: 0.6 }}>–</span>
-                        <div
-                          style={{
-                            width: 90,
-                            padding: "4px 6px",
-                            background: "#1a1a1a",
-                            border: "1px solid #444",
-                            borderRadius: 4,
-                            color: "#fff",
-                            textAlign: "center",
-                            fontSize: 13,
-                            fontWeight: 500
-                          }}
-                        >
-                          {slowMins}:{slowSecs.toString().padStart(2, '0')}
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          flex: 1,
-                          height: 20,
-                          background: color,
-                          borderRadius: 4,
-                          display: "flex",
-                          alignItems: "center",
-                          paddingLeft: 8,
-                          fontSize: 11,
-                          fontWeight: 600,
-                          color: "#000"
-                        }}
-                      >
-                        Zone {idx + 1} · {zoneLabels[idx]}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Strength Training Section */}
-              <div style={{
-                marginTop: 24,
-                padding: 20,
-                background: 'rgba(139, 92, 246, 0.1)',
-                border: '1px solid rgba(139, 92, 246, 0.3)',
+                padding: 40,
+                textAlign: 'center',
+                background: 'var(--card)',
                 borderRadius: 12,
+                border: '1px solid var(--line)'
               }}>
-                <h3 className="h2" style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  💪 Adaptive Strength Training
-                </h3>
-                <p className="small" style={{ color: 'var(--muted)', marginBottom: 16 }}>
-                  Terrain-based ME assignment with automatic load regulation. Track soreness,
-                  adjust training load, and resolve ME vs Z3 conflicts automatically.
+                <h3 className="h2" style={{ marginBottom: 12 }}>Complete Your Training Profile</h3>
+                <p className="small" style={{ color: 'var(--muted)', marginBottom: 24, lineHeight: 1.6 }}>
+                  Your training plan is built from onboarding answers.
+                  <br />
+                  You haven't completed your training profile yet.
                 </p>
                 <button
                   className="btn"
+                  onClick={() => navigate('/onboarding')}
                   style={{
-                    background: '#8b5cf6',
+                    background: '#3b82f6',
                     color: 'white',
-                    padding: '14px 24px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '15px',
                     fontWeight: 600,
+                    border: 'none',
+                    padding: '12px 24px',
+                    borderRadius: 8,
                     cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                  }}
-                  onClick={() => navigate('/strength-training')}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#7c3aed';
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#8b5cf6';
-                    e.currentTarget.style.transform = 'translateY(0)';
+                    fontSize: 14,
+                    transition: 'all 0.2s'
                   }}
                 >
-                  🚀 Open Strength Training System
+                  Complete Training Profile
                 </button>
               </div>
-            </div>
+            ) : (
+              <>
+                <div>
+                  <h3 className="h2" style={{ marginBottom: 12 }}>Training Profile</h3>
+                  <p className="small" style={{ color: 'var(--muted)', marginBottom: 16 }}>
+                    View your onboarding profile and training configuration
+                  </p>
+                </div>
+
+                <TrainingProfileCard profile={userProfile} />
+                <TrainingLoadExplanation profile={userProfile} />
+
+                <EditTrainingFrequency
+                  currentDaysPerWeek={userProfile?.daysPerWeek ?? 3}
+                  onSave={async (newDaysPerWeek) => {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) throw new Error('Not authenticated');
+                    const updated = await updateUserProfileDb(user.id, { daysPerWeek: newDaysPerWeek });
+                    if (updated) {
+                      setUserProfile(updated);
+                    }
+                  }}
+                />
+
+                <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--line)' }}>
+                  <h3 className="h2" style={{ marginBottom: 12 }}>Advanced Settings</h3>
+                  <p className="small" style={{ color: 'var(--muted)', marginBottom: 16 }}>
+                    Adjust your base training metrics — all workouts adapt automatically
+                  </p>
+
+                  {/* Data Source Info Panel */}
+                  <div style={{
+                    padding: 12,
+                    marginBottom: 16,
+                    background: 'rgba(59, 130, 246, 0.1)',
+                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                    borderRadius: 8,
+                    fontSize: 13
+                  }}>
+                    <strong>📊 Available Data Sources:</strong>
+                    <div style={{ marginTop: 8, paddingLeft: 4 }}>
+                      • <strong>Auto-Calculate:</strong> Analyze your existing activities<br/>
+                      • <strong>Strava API:</strong> Fetch elevation data from connected account<br/>
+                      • <strong>CSV Upload:</strong> Import Strava/Garmin exports<br/>
+                      • <strong>Manual Entry:</strong> Use pace slider below
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+                    <button
+                      className="btn"
+                      style={{
+                        background: '#3b82f6',
+                        color: 'white',
+                        flex: 1,
+                        minWidth: 200,
+                        padding: '12px 16px',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        cursor: busy ? 'not-allowed' : 'pointer',
+                        opacity: busy ? 0.6 : 1,
+                        transition: 'all 0.2s'
+                      }}
+                      disabled={busy}
+                      onClick={async () => {
+                        setBusy(true);
+                        try {
+                          const { getLogEntriesByDateRange } = await import('@/lib/database');
+                          const entries = await getLogEntriesByDateRange('2020-01-01', '2030-12-31');
+
+                          if (entries.length === 0) {
+                            toast('No activities found to analyze', 'error');
+                            return;
+                          }
+
+                          const runsWithData = entries
+                            .filter(e => e.km > 0 && e.durationMin && e.hrAvg)
+                            .map(e => ({
+                              pace: e.durationMin! / e.km,
+                              avgHr: e.hrAvg!
+                            }));
+
+                          if (runsWithData.length === 0) {
+                            toast('No activities with pace and heart rate data found', 'error');
+                            return;
+                          }
+
+                          const est = autoEstimateProfile(runsWithData);
+                          if (est) {
+                            setPace(est.paceBase);
+                            setHrResting(est.hrResting);
+                            setHrThreshold(est.hrThreshold);
+                            setHrMax(est.hrMax);
+
+                            await updateUserProfile({
+                              pace_base: est.paceBase,
+                              hr_base: est.heartRateBase,
+                              hr_max: est.hrMax,
+                              hr_resting: est.hrResting,
+                              hr_threshold: est.hrThreshold
+                            });
+
+                            toast(`✅ Auto-calculated from ${runsWithData.length} activities: Pace ${est.paceBase.toFixed(2)} min/km, HR ${est.heartRateBase} bpm`, 'success');
+                          } else {
+                            toast('Unable to calculate - please check your activity data', 'error');
+                          }
+                        } catch (err: any) {
+                          toast(`Error: ${err.message}`, 'error');
+                        } finally {
+                          setBusy(false);
+                        }
+                      }}
+                    >
+                      🔄 Auto-Calculate from Activities
+                    </button>
+
+                    <button
+                      className="btn"
+                      style={{
+                        background: '#10b981',
+                        color: 'white',
+                        flex: 1,
+                        minWidth: 200,
+                        padding: '12px 16px',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        cursor: busy ? 'not-allowed' : 'pointer',
+                        opacity: busy ? 0.6 : 1,
+                        transition: 'all 0.2s'
+                      }}
+                      disabled={busy}
+                      onClick={async () => {
+                        setBusy(true);
+                        try {
+                          let backfillModule;
+                          try {
+                            backfillModule = await import('@/utils/backfillElevationData');
+                          } catch (importErr) {
+                            console.error('Import error:', importErr);
+                            toast('Module loading failed. Check console for details.', 'error');
+                            return;
+                          }
+
+                          const { backfillElevationData } = backfillModule;
+                          toast('🏔️ Connecting to Strava API...', 'info');
+
+                          const result = await backfillElevationData();
+
+                          if (result.updated > 0) {
+                            toast(`✅ Elevation data added to ${result.updated} activities!`, 'success');
+
+                            // Trigger full recalculation
+                            const { autoCalculationService } = await import('@/services/autoCalculationService');
+                            await autoCalculationService.scheduleFullRecalculation('Elevation data backfilled');
+                          } else {
+                            toast('ℹ️ All activities already have elevation data, or no Strava connection found.', 'info');
+                          }
+                        } catch (err: any) {
+                          toast(`❌ Error: ${err.message}. Make sure Strava is connected!`, 'error');
+                        } finally {
+                          setBusy(false);
+                        }
+                      }}
+                    >
+                      🏔️ Backfill Elevation Data
+                    </button>
+                  </div>
+
+                  <label className="small">Easy pace baseline (min/km)</label>
+                  <input
+                    type="range"
+                    min="5"
+                    max="12"
+                    step="0.1"
+                    value={pace}
+                    onChange={onPaceChange}
+                    style={{ width: "100%", marginTop: 8 }}
+                  />
+                  <div style={{ textAlign: "right", fontSize: 13, marginTop: 4 }}>{pace.toFixed(1)} min/km</div>
+                </div>
+
+                <div style={{ background: "#2a2a2a", color: "#fff", padding: 20, borderRadius: 12 }}>
+                  <h3 className="h2" style={{ color: "#fff", marginBottom: 12 }}>Heart Rate Zones</h3>
+                  <p className="small" style={{ marginBottom: 16, opacity: 0.7 }}>
+                    We use HR data to estimate your training zones and provide a Cardio Score
+                  </p>
+
+                  <div style={{ marginTop: 14 }}>
+                    <label className="small">Resting HR</label>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}>
+                      <input
+                        type="range"
+                        min="30"
+                        max="100"
+                        step="1"
+                        value={hrResting}
+                        onChange={onHrRestingChange}
+                        style={{ flex: 1, accentColor: "#06b6d4" }}
+                      />
+                      <div style={{ minWidth: 60, textAlign: "right", fontSize: 15, fontWeight: 500 }}>
+                        {hrResting} bpm
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 18 }}>
+                    <label className="small">Threshold HR</label>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}>
+                      <input
+                        type="range"
+                        min="120"
+                        max="200"
+                        step="1"
+                        value={hrThreshold}
+                        onChange={onHrThresholdChange}
+                        style={{ flex: 1, accentColor: "#f97316" }}
+                      />
+                      <div style={{ minWidth: 60, textAlign: "right", fontSize: 15, fontWeight: 500 }}>
+                        {hrThreshold} bpm
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 24 }}>
+                    {Object.entries(displayZones).map(([zone, [lo]], idx) => {
+                      const zoneKey = zone as keyof typeof zoneColors;
+                      const color = zoneColors[zoneKey];
+                      const pct = Math.round((lo / hrMax) * 100);
+                      return (
+                        <div key={zone} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
+                          <div style={{ display: "flex", gap: 6, alignItems: "center", minWidth: 160 }}>
+                            <input
+                              type="number"
+                              value={lo}
+                              onChange={(e) => onZoneChange(zoneKey, parseInt(e.target.value) || lo)}
+                              style={{
+                                width: 55,
+                                padding: "4px 6px",
+                                background: "#1a1a1a",
+                                border: "1px solid #444",
+                                borderRadius: 4,
+                                color: "#fff",
+                                textAlign: "center",
+                                fontSize: 13
+                              }}
+                            />
+                            <span style={{ fontSize: 12, opacity: 0.6 }}>bpm</span>
+                            <input
+                              type="number"
+                              value={pct}
+                              readOnly
+                              style={{
+                                width: 45,
+                                padding: "4px 6px",
+                                background: "#1a1a1a",
+                                border: "1px solid #444",
+                                borderRadius: 4,
+                                color: "#fff",
+                                textAlign: "center",
+                                fontSize: 13,
+                                opacity: 0.7
+                              }}
+                            />
+                            <span style={{ fontSize: 12, opacity: 0.6 }}>%</span>
+                          </div>
+                          <div
+                            style={{
+                              flex: 1,
+                              height: 20,
+                              background: color,
+                              borderRadius: 4,
+                              display: "flex",
+                              alignItems: "center",
+                              paddingLeft: 8,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              color: "#000"
+                            }}
+                          >
+                            Zone {idx + 1}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div style={{ marginTop: 16, fontSize: 12, opacity: 0.6 }}>
+                    Max HR: {hrMax} bpm •{" "}
+                    <span
+                      style={{ cursor: "pointer", textDecoration: "underline" }}
+                      onClick={() => {
+                        const newMax = prompt("Enter your max heart rate:", hrMax.toString());
+                        if (newMax) {
+                          const val = parseInt(newMax);
+                          if (val >= 140 && val <= 220) {
+                            setHrMax(val);
+                            updateUserProfile({ hrMax: val });
+                          }
+                        }
+                      }}
+                    >
+                      Edit
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ background: "#2a2a2a", color: "#fff", padding: 20, borderRadius: 12 }}>
+                  <h3 className="h2" style={{ color: "#fff", marginBottom: 12 }}>Pace Zones</h3>
+                  <p className="small" style={{ marginBottom: 16, opacity: 0.7 }}>
+                    Pace zones correlate with HR intensity — higher intensity = faster pace
+                  </p>
+
+                  <div style={{ marginTop: 18 }}>
+                    {Object.entries(paceZones).map(([zone, [fast, slow]], idx) => {
+                      const zoneKey = zone as keyof typeof zoneColors;
+                      const color = zoneColors[zoneKey];
+                      const fastMins = Math.floor(fast);
+                      const fastSecs = Math.round((fast - fastMins) * 60);
+                      const slowMins = Math.floor(slow);
+                      const slowSecs = Math.round((slow - slowMins) * 60);
+                      const zoneLabels = ["Recovery", "Endurance", "Tempo", "Threshold", "VO₂ / Speed"];
+                      return (
+                        <div key={zone} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
+                          <div style={{ display: "flex", gap: 6, alignItems: "center", minWidth: 180 }}>
+                            <div
+                              style={{
+                                width: 90,
+                                padding: "4px 6px",
+                                background: "#1a1a1a",
+                                border: "1px solid #444",
+                                borderRadius: 4,
+                                color: "#fff",
+                                textAlign: "center",
+                                fontSize: 13,
+                                fontWeight: 500
+                              }}
+                            >
+                              {fastMins}:{fastSecs.toString().padStart(2, '0')}
+                            </div>
+                            <span style={{ fontSize: 12, opacity: 0.6 }}>–</span>
+                            <div
+                              style={{
+                                width: 90,
+                                padding: "4px 6px",
+                                background: "#1a1a1a",
+                                border: "1px solid #444",
+                                borderRadius: 4,
+                                color: "#fff",
+                                textAlign: "center",
+                                fontSize: 13,
+                                fontWeight: 500
+                              }}
+                            >
+                              {slowMins}:{slowSecs.toString().padStart(2, '0')}
+                            </div>
+                          </div>
+                          <div
+                            style={{
+                              flex: 1,
+                              height: 20,
+                              background: color,
+                              borderRadius: 4,
+                              display: "flex",
+                              alignItems: "center",
+                              paddingLeft: 8,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              color: "#000"
+                            }}
+                          >
+                            Zone {idx + 1} · {zoneLabels[idx]}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Strength Training Section */}
+                  <div style={{
+                    marginTop: 24,
+                    padding: 20,
+                    background: 'rgba(139, 92, 246, 0.1)',
+                    border: '1px solid rgba(139, 92, 246, 0.3)',
+                    borderRadius: 12,
+                  }}>
+                    <h3 className="h2" style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      💪 Adaptive Strength Training
+                    </h3>
+                    <p className="small" style={{ color: 'var(--muted)', marginBottom: 16 }}>
+                      Terrain-based ME assignment with automatic load regulation. Track soreness,
+                      adjust training load, and resolve ME vs Z3 conflicts automatically.
+                    </p>
+                    <button
+                      className="btn"
+                      style={{
+                        background: '#8b5cf6',
+                        color: 'white',
+                        padding: '14px 24px',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '15px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                      }}
+                      onClick={() => navigate('/strength-training')}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#7c3aed';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = '#8b5cf6';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      🚀 Open Strength Training System
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 
