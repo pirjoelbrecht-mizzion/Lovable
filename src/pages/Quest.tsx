@@ -137,7 +137,7 @@ export default function Quest() {
   const [openQuick, setOpenQuick] = useState(false);
   const [races, setRaces] = useState<Race[]>([]);
   const [viewMode, setViewMode] = useState<"bubbles" | "list" | "mobile" | "cosmic">("cosmic");
-  const [selectedSession, setSelectedSession] = useState<SessionNode | null>(null);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [liveWorkoutMode, setLiveWorkoutMode] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [addSessionDay, setAddSessionDay] = useState<{ label: string; index: number } | null>(null);
@@ -253,7 +253,7 @@ export default function Quest() {
 
   const handleRouteSelected = (route: DbSavedRoute) => {
     toast(`Selected route: ${route.name}`, 'success');
-    setSelectedSession(null);
+    setSelectedSessionId(null);
   };
 
   useEffect(() => {
@@ -631,6 +631,74 @@ export default function Quest() {
   // Generate today's training data for mobile view
   const todayData = useTodayTrainingData(sessions, profile);
 
+  // STEP C: Resolve selectedSession from selectedSessionId by global lookup
+  const selectedSession = useMemo(() => {
+    if (!selectedSessionId) return null;
+
+    // CRITICAL: Look up across entire week, not just one day
+    const matchedSession = weekPlan
+      .flatMap(d => d.sessions)
+      .find(s => s.id === selectedSessionId);
+
+    if (!matchedSession) {
+      console.error('[Quest] Selected sessionId not found:', selectedSessionId);
+      return null;
+    }
+
+    // Find which day this session is on
+    let dayIndex = -1;
+    let sessionIndexInDay = -1;
+    for (let i = 0; i < weekPlan.length; i++) {
+      const idx = weekPlan[i].sessions.findIndex(s => s.id === selectedSessionId);
+      if (idx >= 0) {
+        dayIndex = i;
+        sessionIndexInDay = idx;
+        break;
+      }
+    }
+
+    if (dayIndex === -1) {
+      console.error('[Quest] Could not find day for sessionId:', selectedSessionId);
+      return null;
+    }
+
+    // Reconstruct SessionNode for compatibility with modal UI
+    const sessionType = detectSessionType(matchedSession.title || '', matchedSession.notes, (matchedSession as any).type);
+    const isStrength = sessionType === 'strength';
+
+    const reconstructed: SessionNode = {
+      id: matchedSession.id!,
+      day: DAYS_SHORT[dayIndex],
+      dayFull: DAYS[dayIndex],
+      type: isStrength ? 'Strength Training' : matchedSession.title || 'Workout',
+      emoji: SESSION_EMOJIS[sessionType] || '🏃',
+      duration: isStrength
+        ? '40 min'
+        : (matchedSession as any)?.durationMin
+          ? `${Math.floor((matchedSession as any).durationMin / 60)}h ${Math.floor((matchedSession as any).durationMin % 60)}m`.replace(/0h /, '')
+          : matchedSession.km ? estimateDuration(matchedSession.km, sessionType) : '30 min',
+      distance: isStrength ? undefined : (matchedSession.km ? `${matchedSession.km}K` : undefined),
+      elevation: (matchedSession as any).elevationGain,
+      zones: (matchedSession as any).zones,
+      completed: completionStatus[selectedSessionId] || false,
+      isToday: dayIndex === today,
+      isAdapted: matchedSession.source === 'coach',
+      isMESession: isStrength,
+      x: BUBBLE_POSITIONS[dayIndex]?.x || 0,
+      y: BUBBLE_POSITIONS[dayIndex]?.y || 0,
+      size: BUBBLE_POSITIONS[dayIndex]?.size || 80,
+    };
+
+    return reconstructed;
+  }, [selectedSessionId, weekPlan, completionStatus, today]);
+
+  // Sanity assertion (dev only)
+  if (process.env.NODE_ENV !== 'production') {
+    if (selectedSessionId && !selectedSession) {
+      console.error('[Quest] CRITICAL: sessionId set but session not found', selectedSessionId);
+    }
+  }
+
   // GUARD: Multi-session day detection + Session ID validation
   useEffect(() => {
     weekPlan.forEach((day, dayIdx) => {
@@ -718,7 +786,7 @@ export default function Quest() {
 
   const handleBubbleClick = (session: SessionNode) => {
     if (draggingId) return;
-    setSelectedSession(session);
+    setSelectedSessionId(session.id);
   };
 
   const handleListDragStart = (e: React.DragEvent, id: string) => {
@@ -792,7 +860,7 @@ export default function Quest() {
     console.log('[Quest] Log entry ID:', logEntry.id, 'Type:', typeof logEntry.id);
 
     // Close the session detail modal first
-    setSelectedSession(null);
+    setSelectedSessionId(null);
 
     // Then open the feedback modal
     setSelectedWorkoutForFeedback({ session, logEntry });
@@ -1058,44 +1126,11 @@ export default function Quest() {
                     });
                   })()}
                   onWorkoutClick={(workout, day) => {
-                    const dayIndex = DAYS.indexOf(day);
-                    const dayData = weekPlan[dayIndex];
-
                     if (!workout.sessionId) {
                       console.error('[Quest] Workout missing sessionId:', workout);
                       return;
                     }
-
-                    const matchedSession = dayData?.sessions.find(s => s.id === workout.sessionId);
-                    if (!matchedSession) {
-                      console.warn('[Quest] No session found for sessionId:', workout.sessionId);
-                      return;
-                    }
-
-                    if (workout.type === 'strength' && meAssignment && meTemplates.length > 0) {
-                      const strengthSession: SessionNode = {
-                        id: matchedSession.id || `strength-${dayIndex}`,
-                        day: DAYS_SHORT[dayIndex],
-                        dayFull: DAYS[dayIndex],
-                        type: 'Strength Training',
-                        emoji: String.fromCodePoint(0x1F4AA),
-                        duration: '40 min',
-                        description: 'ME session - terrain-based strength work',
-                        completed: completionStatus[matchedSession.id || ''] || false,
-                        isToday: dayIndex === today,
-                        isAdapted: matchedSession.source === 'coach',
-                        isMESession: true,
-                        x: 0,
-                        y: 0,
-                        size: 80,
-                      };
-                      setSelectedSession(strengthSession);
-                    } else if (matchedSession) {
-                      const existingSession = sessions.find(s => s.id === matchedSession.id);
-                      if (existingSession) {
-                        setSelectedSession(existingSession);
-                      }
-                    }
+                    setSelectedSessionId(workout.sessionId);
                   }}
                   onAddClick={() => {
                     console.log('[Quest] Add workout clicked');
@@ -1134,7 +1169,7 @@ export default function Quest() {
                       }}
                       onEdit={() => {
                         const todaySession = sessions.find(s => s.isToday);
-                        if (todaySession) setSelectedSession(todaySession);
+                        if (todaySession) setSelectedSessionId(todaySession.id);
                       }}
                     />
 
@@ -1287,7 +1322,7 @@ export default function Quest() {
                     onDragOver={(e) => handleListDragOver(e, session.id)}
                     onDrop={(e) => handleListDrop(e, session.id)}
                     onDragEnd={handleListDragEnd}
-                    onClick={() => !draggedListItem && setSelectedSession(session)}
+                    onClick={() => !draggedListItem && setSelectedSessionId(session.id)}
                   >
                     <div
                       className="quest-list-drag-handle"
@@ -1416,9 +1451,9 @@ export default function Quest() {
       </div>
 
       {selectedSession && (
-        <div className="quest-session-modal-backdrop" onClick={() => { setSelectedSession(null); setLiveWorkoutMode(false); }}>
+        <div className="quest-session-modal-backdrop" onClick={() => { setSelectedSessionId(null); setLiveWorkoutMode(false); }}>
           <div className="quest-session-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="quest-session-modal-close" onClick={() => { setSelectedSession(null); setLiveWorkoutMode(false); }}>
+            <button className="quest-session-modal-close" onClick={() => { setSelectedSessionId(null); setLiveWorkoutMode(false); }}>
               ✕
             </button>
 
@@ -1453,9 +1488,11 @@ export default function Quest() {
                       template={defaultTemplate}
                       userId={userId}
                       onComplete={() => {
+                        if (selectedSession) {
+                          handleWorkoutComplete(selectedSession);
+                        }
                         setLiveWorkoutMode(false);
-                        setSelectedSession(null);
-                        handleWorkoutComplete(selectedSession);
+                        setSelectedSessionId(null);
                         toast('Strength session completed!', 'success');
                       }}
                       onClose={() => setLiveWorkoutMode(false)}
@@ -1522,7 +1559,7 @@ export default function Quest() {
                         Start Workout
                       </button>
                       <button
-                        onClick={() => { setSelectedSession(null); setLiveWorkoutMode(false); }}
+                        onClick={() => { setSelectedSessionId(null); setLiveWorkoutMode(false); }}
                         style={{
                           padding: '14px 20px',
                           background: 'rgba(255,255,255,0.1)',
@@ -1556,9 +1593,13 @@ export default function Quest() {
                     isToday: true,
                     isAdapted: false
                   }}
-                  onComplete={() => handleWorkoutComplete(selectedSession)}
+                  onComplete={() => {
+                    if (selectedSession) {
+                      handleWorkoutComplete(selectedSession);
+                    }
+                  }}
                   onEdit={() => {
-                    setSelectedSession(null);
+                    setSelectedSessionId(null);
                   }}
                 />
 
