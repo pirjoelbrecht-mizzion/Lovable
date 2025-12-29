@@ -6,7 +6,18 @@ import type {
   StrengthLoadAdjustment,
   METype,
 } from '@/types/strengthTraining';
-import type { WeeklyPlan, TrainingPhase, DailyPlan } from './types';
+import type { WeeklyPlan, TrainingPhase, DailyPlan, Workout } from './types';
+
+/**
+ * IMPORTANT: Strength module must NEVER consume run sessions.
+ * Only check explicit strength types.
+ */
+export function isStrengthSession(session: Workout): boolean {
+  return (
+    session.type === 'strength' ||
+    session.type === 'muscular_endurance'
+  );
+}
 
 /**
  * Generate suggested terrain access configuration based on surface preference
@@ -508,7 +519,7 @@ export function getMESessionForToday(
   }
 
   const meSession = todayPlan.sessions.find(
-    s => s.type === 'strength' && s.meData
+    s => isStrengthSession(s) && s.meData
   );
 
   return {

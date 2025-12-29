@@ -18,6 +18,7 @@
  */
 
 import type { DailyPlan, Workout, WeeklyPlan, SessionOrigin } from './types';
+import { isStrengthSession } from './strength-integration';
 
 /**
  * Conflict types detected by the engine
@@ -121,10 +122,10 @@ export function detectDailyConflicts(day: DailyPlan): SessionConflict[] {
     });
   }
 
-  const hasME = day.sessions.some(s => s.type === 'muscular_endurance');
+  const hasME = day.sessions.some(isStrengthSession);
   const hasLongRun = day.sessions.some(s => s.type === 'long' && (s.distanceKm || 0) > 20);
   if (hasME && hasLongRun) {
-    const meSessions = day.sessions.filter(s => s.type === 'muscular_endurance');
+    const meSessions = day.sessions.filter(isStrengthSession);
     const longSessions = day.sessions.filter(s => s.type === 'long');
     conflicts.push({
       type: 'CONTRADICTORY_GOALS',
