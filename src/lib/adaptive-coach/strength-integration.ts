@@ -1,3 +1,61 @@
+/**
+ * ⚠️ STRENGTH MODULE CONTRACT — STEP 10 LOCK-IN ⚠️
+ *
+ * This module integrates strength training decisions into the adaptive coach.
+ *
+ * CRITICAL INVARIANTS (ENFORCED BY TESTS + DEV ASSERTIONS):
+ * ─────────────────────────────────────────────────────────────────────────
+ *
+ * 1. ONLY STRENGTH SESSIONS
+ *    ✅ All inputs MUST have type === 'strength' or 'muscular_endurance'
+ *    ❌ NEVER accept run sessions (easy, tempo, intervals, long, etc.)
+ *    ❌ NEVER accept rest or recovery sessions
+ *
+ * 2. TYPE-BASED FILTERING
+ *    ✅ Always check: session.type === 'strength'
+ *    ❌ NEVER infer from: title.includes('Strength'), title parsing, position
+ *    ❌ NEVER merge with run sessions
+ *
+ * 3. SESSION IDENTITY PRESERVATION
+ *    ✅ Each strength session has immutable id (session.id)
+ *    ✅ Never merge or collapse strength sessions
+ *    ❌ NEVER use position-based selection (sessions[0])
+ *    ❌ NEVER lose session identity during transformations
+ *
+ * 4. MULTI-SESSION SAFETY
+ *    ✅ Strength sessions can coexist with runs on same day
+ *    ✅ Example: Wednesday has easy run + strength training (2 distinct)
+ *    ✅ Both must be processed independently
+ *    ❌ NEVER collapse Wednesday to single session
+ *    ❌ NEVER merge run + strength into combined session
+ *
+ * 5. MODIFICATION vs DELETION
+ *    ✅ Adaptive logic can MODIFY strength sessions
+ *    ✅ Can change: load (reps, sets), type (upgrade/downgrade difficulty)
+ *    ❌ NEVER DELETE protected sessions (source: 'coach')
+ *    ❌ NEVER REMOVE sessions from week
+ *
+ * TEST COVERAGE:
+ * ─────────────────────────────────────────────────────────────────────────
+ * ✅ src/tests/strengthIsolation.test.ts (20 tests)
+ * ✅ src/tests/ownershipProtection.test.ts (18 tests)
+ * ✅ Regression checks: title.includes() patterns, position-based access
+ *
+ * VIOLATION EXAMPLES:
+ * ─────────────────────────────────────────────────────────────────────────
+ * 🔴 BAD:  if (title.includes('Strength')) { ... }
+ * 🟢 GOOD: if (session.type === 'strength') { ... }
+ *
+ * 🔴 BAD:  const strength = sessions[0];
+ * 🟢 GOOD: const strength = sessions.find(s => s.id === strengthId);
+ *
+ * 🔴 BAD:  sessions.filter(s => s.km === 0);
+ * 🟢 GOOD: sessions.filter(s => s.type === 'strength');
+ *
+ * 🔴 BAD:  day.sessions = [mergedSession];
+ * 🟢 GOOD: day.sessions = [runSession, strengthSession];
+ */
+
 import type {
   MEAssignment,
   LoadRegulationDecision,

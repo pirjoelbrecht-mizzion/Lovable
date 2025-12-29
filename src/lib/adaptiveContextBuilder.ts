@@ -35,6 +35,7 @@
 
 import type { AdaptiveContext, RaceInfo } from '@/engine';
 import type { AthleteProfile, WeeklyPlan as AdaptiveWeeklyPlan, DailyPlan, Workout } from '@/lib/adaptive-coach/types';
+import { assertNoDayWorkoutUsage } from '@/lib/architecture/invariants';
 import { calculateReadinessScore } from '@/utils/readiness';
 import { calculateTrainingLoad } from '@/lib/loadAnalysis';
 import { getACWRZoneStatus, getACWRTrendDirection } from '@/utils/acwrZones';
@@ -67,6 +68,11 @@ function convertToAdaptiveWeekPlan(localPlan: LocalStorageWeekPlan | AdaptiveWee
   console.log('[MULTI-SESSION] Sessions per day:',
     planArray.map((d, i) => `${d.label}: ${d.sessions?.length || 0} sessions`)
   );
+
+  // STEP 10: Ensure no legacy day.workout property
+  planArray.forEach((day) => {
+    assertNoDayWorkoutUsage(day, 'adaptiveContextBuilder.convertToAdaptiveWeekPlan');
+  });
 
   const days: DailyPlan[] = planArray.map((day, index) => {
     const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];

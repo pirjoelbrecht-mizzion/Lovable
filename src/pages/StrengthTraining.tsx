@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import useSession from '@/lib/useSession';
+import { assertStrengthSession } from '@/lib/architecture/invariants';
 import { useStrengthTraining } from '@/hooks/useStrengthTraining';
 import { useCoreTraining } from '@/hooks/useCoreTraining';
 import {
@@ -24,15 +25,11 @@ export default function StrengthTraining() {
   const { user, loading: authLoading, isAuthed } = useSession();
   const userId = user?.id;
 
-  // SAFETY GUARD: Verify any session routed here is a strength type (prevents regression)
+  // STEP 10: Strength isolation guard using architectural invariant
   const validateStrengthSession = (session?: any): boolean => {
     if (!session) return true;
-    if (session.type !== 'strength') {
-      throw new Error(
-        '[StrengthTraining] Non-strength session reached strength module: ' +
-        `type="${session.type}" title="${session.title}"`
-      );
-    }
+    // Use STEP 10 invariant for hard isolation guard
+    assertStrengthSession(session, 'StrengthTraining.validateStrengthSession');
     return true;
   };
 

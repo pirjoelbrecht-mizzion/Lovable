@@ -1,6 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useT } from "@/i18n";
+import {
+  assertSessionHasId,
+  assertUniqueSessionIds,
+  debugDay,
+  debugSessionSelection,
+  __DEV__,
+} from "@/lib/architecture/invariants";
 import QuickAddRace from "@/components/QuickAddRace";
 import WeatherAlertBanner from "@/components/WeatherAlertBanner";
 import { AddSessionModal } from "@/components/AddSessionModal";
@@ -170,6 +177,18 @@ export default function Quest() {
       console.error('[Quest] Invalid initial plan, creating default');
       return defaultWeek();
     }
+
+    // STEP 10: Validate session architecture at load time
+    if (__DEV__) {
+      plan.forEach((day) => {
+        assertUniqueSessionIds(day.sessions ?? [], `Quest.weekPlan.${day.label}`);
+        (day.sessions ?? []).forEach((session) => {
+          assertSessionHasId(session, `Quest.weekPlan.${day.label}`);
+          debugDay(day, 'Quest.weekPlan.load');
+        });
+      });
+    }
+
     return plan;
   });
   const [weatherData, setWeatherData] = useState<DailyWeather[]>([]);
@@ -521,11 +540,21 @@ export default function Quest() {
       const pos = BUBBLE_POSITIONS[idx];
 
       if (daySessions.length > 1) {
-        console.log(`[STEP 6] Multi-session day detected:`, {
-          day: DAYS[idx],
-          sessionCount: daySessions.length,
-          sessions: daySessions.map(s => s?.title || 'Rest')
-        });
+        // STEP 10: Dev diagnostic for multi-session days
+        if (__DEV__) {
+          console.debug(`[ARCHITECTURE] Multi-session day detected:`, {
+            day: DAYS[idx],
+            dateISO: day.dateISO,
+            sessionCount: daySessions.length,
+            sessions: daySessions.map(s => ({
+              id: s?.id,
+              type: s?.type,
+              title: s?.title || 'Rest',
+              km: s?.km,
+              source: s?.source,
+            })),
+          });
+        }
       }
 
       return daySessions.map((session, sessionIdx) => {
@@ -787,6 +816,13 @@ export default function Quest() {
 
   const handleBubbleClick = (session: SessionNode) => {
     if (draggingId) return;
+
+    // STEP 10: Validate session identity before selection
+    if (__DEV__) {
+      assertSessionHasId(session, 'Quest.handleBubbleClick');
+      debugSessionSelection(session, 'Quest.handleBubbleClick');
+    }
+
     setSelectedSessionId(session.id);
   };
 

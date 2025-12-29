@@ -16,6 +16,63 @@
  */
 
 /**
+ * 🚨 ARCHITECTURAL RULES — STEP 9–10 LOCK-IN 🚨
+ *
+ * These rules are ENFORCED by tests (STEP 9) and dev invariants (STEP 10).
+ * Violations will cause test failures and dev mode errors.
+ *
+ * CRITICAL RULES:
+ * ───────────────────────────────────────────────────────────────────
+ *
+ * 1. MULTI-SESSION STRUCTURE
+ *    ✅ A day contains MULTIPLE sessions → day.sessions[]
+ *    ✅ Each session in array must have unique id
+ *    ❌ DO NOT use day.workout (legacy, forbidden)
+ *    ❌ DO NOT collapse multi-session days to single session
+ *
+ * 2. SESSION IDENTITY
+ *    ✅ Session identity is ALWAYS session.id (stable across all operations)
+ *    ✅ Select sessions using: sessions.find(s => s.id === targetId)
+ *    ❌ DO NOT select by position: sessions[0]
+ *    ❌ DO NOT select by inference: title.includes('Run')
+ *
+ * 3. SESSION TYPE
+ *    ✅ Session type is session.type property
+ *    ✅ Filter using: sessions.filter(s => s.type === 'strength')
+ *    ❌ DO NOT infer type from title text parsing
+ *    ❌ DO NOT use title.includes('Strength') to detect strength sessions
+ *
+ * 4. SESSION OWNERSHIP
+ *    ✅ Source property indicates ownership: 'coach', 'user', 'adaptive'
+ *    ✅ BASE_PLAN (source: 'coach') sessions are protected from deletion
+ *    ✅ Adaptive logic can MODIFY but NEVER DELETE base sessions
+ *    ❌ DO NOT delete sessions based on day index or position
+ *
+ * 5. SUPPORT SESSIONS (NEVER LEAKED TO RUNS)
+ *    ✅ Strength, Heat, Altitude, Core sessions type-specific
+ *    ✅ StrengthTraining module ONLY accepts type === 'strength'
+ *    ✅ Run-based modules ONLY accept km > 0 and running types
+ *    ❌ DO NOT show strength sessions in run modules
+ *    ❌ DO NOT show runs in strength modules
+ *
+ * ENFORCEMENT:
+ * ───────────────────────────────────────────────────────────────────
+ * ✅ STEP 9 TESTS: 52 tests validate these rules (see src/tests/)
+ * ✅ STEP 10 INVARIANTS: Dev-only assertions throw on violations
+ * ✅ PROD SAFETY: Zero overhead (all checks disabled in production)
+ *
+ * REGRESSION DETECTION:
+ * ───────────────────────────────────────────────────────────────────
+ * If you see errors like these:
+ *   "[ARCHITECTURE VIOLATION] Session missing id in Quest.weekPlan"
+ *   "[ARCHITECTURE VIOLATION] Duplicate session IDs detected"
+ *   "[ARCHITECTURE VIOLATION] Non-strength session reached Strength module"
+ *
+ * A regression has been introduced. DO NOT silence the error.
+ * Fix the root cause in your code change.
+ */
+
+/**
  * Session types - what kind of training is this?
  */
 export type SessionType =
