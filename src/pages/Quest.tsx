@@ -488,125 +488,118 @@ export default function Quest() {
     const hasUserPlan = weekPlan.some(day => day.sessions.length > 0);
     const defaultPlan = hasUserPlan ? null : loadWeekPlan();
 
-    return weekPlan.map((day, idx) => {
-      const mainSession = day.sessions[0];
-      const secondSession = day.sessions[1]; // Check for multiple sessions
+    return weekPlan.flatMap((day, idx) => {
+      const daySessions = day.sessions.length > 0 ? day.sessions : [null];
       const fallback = defaultPlan ? defaultPlan[idx] : null;
-
-      let title = mainSession?.title || fallback?.title || "Rest";
-      const km = mainSession?.km ?? fallback?.km;
-      let notes = mainSession?.notes || fallback?.notes || "";
-      const explicitType = (mainSession as any)?.type || (fallback as any)?.type;
-      let sessionType = detectSessionType(title, notes, explicitType);
-
-      // Check if there's a second session (e.g., strength training)
-      const hasStrengthSession = secondSession && ((secondSession as any)?.type === 'strength' || /strength|gym|ME/i.test(secondSession.title || ''));
-
-      let emoji = SESSION_EMOJIS[sessionType] || "🏃";
-
-      // Enrich strength sessions with ME assignment data
-      if (sessionType === 'strength') {
-        if (meAssignment) {
-          title = `ME ${meAssignment.meType.replace('_', ' ').toUpperCase()}`;
-          const loadInfo = loadRegulation?.shouldAdjust
-            ? ` • Load ${loadRegulation.adjustmentType === 'reduce' ? 'Reduced' : 'Adjusted'}`
-            : '';
-          notes = `${meAssignment.reason}${loadInfo ? '\n\n' + loadRegulation.reason : ''}${coachingMessage ? '\n\n' + coachingMessage : ''}`;
-          emoji = loadRegulation?.shouldAdjust ? "⚠️" : "💪";
-        }
-        // Ensure strength sessions have no distance/pace
-        sessionType = 'strength';
-        emoji = emoji || "💪";
-      }
-
-      // Use actual duration if available, otherwise estimate
-      const durationMin = (mainSession as any)?.durationMin ?? (fallback as any)?.durationMin;
-      const duration = durationMin
-        ? `${Math.floor(durationMin / 60)}h ${Math.floor(durationMin % 60)}m`.replace(/0h /, '')
-        : estimateDuration(km, sessionType);
-
-      const elevation = (mainSession as any)?.elevationGain ?? (fallback as any)?.elevationGain;
-      const isToday = idx === today;
-      const isAdapted = mainSession?.source === "coach";
-
-      const wx = weatherData[idx];
-      const weather = wx
-        ? {
-            temp: Math.round((wx.tMinC + wx.tMaxC) / 2),
-            condition: wx.desc,
-            icon: WEATHER_ICONS[wx.icon] || "☁️",
-          }
-        : undefined;
-
       const pos = BUBBLE_POSITIONS[idx];
 
-      let zones = "";
-      if (/z1|zone 1/i.test(notes)) zones = "Zone 1";
-      else if (/z2|zone 2/i.test(notes)) zones = "Zone 2";
-      else if (/z3|zone 3/i.test(notes)) zones = "Zone 3";
-      else if (/z4|zone 4|threshold/i.test(notes)) zones = "Zone 4";
-      else if (/z5|zone 5|vo2/i.test(notes)) zones = "Zone 5";
-
-      let pace = km && km > 0 ? `${(profile.paceBase - 0.5).toFixed(1)} - ${profile.paceBase.toFixed(1)} min/km` : undefined;
-
-      // Override distance and pace for strength sessions
-      let finalDistance = km && km > 0 ? `${km}K` : undefined;
-      if (sessionType === 'strength') {
-        finalDistance = undefined;
-        pace = undefined;
+      if (daySessions.length > 1) {
+        console.log(`[STEP 6] Multi-session day detected:`, {
+          day: DAYS[idx],
+          sessionCount: daySessions.length,
+          sessions: daySessions.map(s => s?.title || 'Rest')
+        });
       }
 
-      // Check if this workout is completed
-      const monday = getMonday();
-      const workoutDate = new Date(monday);
-      workoutDate.setDate(workoutDate.getDate() + idx);
-      const dateStr = workoutDate.toISOString().slice(0, 10);
-      const isCompleted = completionStatus[dateStr] || false;
+      return daySessions.map((session, sessionIdx) => {
+        const mainSession = session;
 
-      // Build description with elevation if available
-      let description = notes || `${title} session as planned.`;
-      if (sessionType === 'strength' && notes) {
-        // For strength sessions, use the enriched notes directly
-        description = notes;
-      } else if (elevation && elevation > 0) {
-        description = `${km && km > 0 ? `${km}km` : ''} ${elevation ? `• ${Math.round(elevation)}m↑` : ''} ${duration ? `• ${duration}` : ''}`.trim();
-        if (notes && !notes.includes('Est.')) {
-          description += ` • ${notes}`;
+        let title = mainSession?.title || fallback?.title || "Rest";
+        const km = mainSession?.km ?? fallback?.km;
+        let notes = mainSession?.notes || fallback?.notes || "";
+        const explicitType = (mainSession as any)?.type || (fallback as any)?.type;
+        let sessionType = detectSessionType(title, notes, explicitType);
+
+        let emoji = SESSION_EMOJIS[sessionType] || "🏃";
+
+        if (sessionType === 'strength') {
+          if (meAssignment) {
+            title = `ME ${meAssignment.meType.replace('_', ' ').toUpperCase()}`;
+            const loadInfo = loadRegulation?.shouldAdjust
+              ? ` • Load ${loadRegulation.adjustmentType === 'reduce' ? 'Reduced' : 'Adjusted'}`
+              : '';
+            notes = `${meAssignment.reason}${loadInfo ? '\n\n' + loadRegulation.reason : ''}${coachingMessage ? '\n\n' + coachingMessage : ''}`;
+            emoji = loadRegulation?.shouldAdjust ? "⚠️" : "💪";
+          }
+          sessionType = 'strength';
+          emoji = emoji || "💪";
         }
-      }
 
-      // Add strength session info if present
-      if (hasStrengthSession && secondSession) {
-        const strengthNotes = secondSession.notes || 'ME session';
-        description += `\n\n💪 ${secondSession.title || 'Strength Training'}: ${strengthNotes}`;
-        if (meAssignment) {
-          const meType = meAssignment.meType.replace('_', ' ').toUpperCase();
-          description = `${km && km > 0 ? `${km}km` : ''} ${duration ? `• ${duration}` : ''} Morning run\n\n💪 ME ${meType}: ${meAssignment.reason}`;
+        const durationMin = (mainSession as any)?.durationMin ?? (fallback as any)?.durationMin;
+        const duration = durationMin
+          ? `${Math.floor(durationMin / 60)}h ${Math.floor(durationMin % 60)}m`.replace(/0h /, '')
+          : estimateDuration(km, sessionType);
+
+        const elevation = (mainSession as any)?.elevationGain ?? (fallback as any)?.elevationGain;
+        const isToday = idx === today;
+        const isAdapted = mainSession?.source === "coach";
+
+        const wx = weatherData[idx];
+        const weather = wx
+          ? {
+              temp: Math.round((wx.tMinC + wx.tMaxC) / 2),
+              condition: wx.desc,
+              icon: WEATHER_ICONS[wx.icon] || "☁️",
+            }
+          : undefined;
+
+        let zones = "";
+        if (/z1|zone 1/i.test(notes)) zones = "Zone 1";
+        else if (/z2|zone 2/i.test(notes)) zones = "Zone 2";
+        else if (/z3|zone 3/i.test(notes)) zones = "Zone 3";
+        else if (/z4|zone 4|threshold/i.test(notes)) zones = "Zone 4";
+        else if (/z5|zone 5|vo2/i.test(notes)) zones = "Zone 5";
+
+        let pace = km && km > 0 ? `${(profile.paceBase - 0.5).toFixed(1)} - ${profile.paceBase.toFixed(1)} min/km` : undefined;
+
+        let finalDistance = km && km > 0 ? `${km}K` : undefined;
+        if (sessionType === 'strength') {
+          finalDistance = undefined;
+          pace = undefined;
         }
-      }
 
-      return {
-        id: day.label.toLowerCase(),
-        day: DAYS_SHORT[idx],
-        dayFull: DAYS[idx],
-        type: title,
-        emoji,
-        duration,
-        distance: finalDistance,
-        elevation: elevation && elevation > 0 ? Math.round(elevation) : undefined,
-        pace,
-        zones,
-        description,
-        weather,
-        completed: isCompleted,
-        isToday,
-        isAdapted,
-        isMESession: sessionType === 'strength',
-        x: pos.x,
-        y: pos.y,
-        size: isToday ? 94 : pos.size,
-      };
-    });
+        const monday = getMonday();
+        const workoutDate = new Date(monday);
+        workoutDate.setDate(workoutDate.getDate() + idx);
+        const dateStr = workoutDate.toISOString().slice(0, 10);
+        const isCompleted = completionStatus[dateStr] || false;
+
+        let description = notes || `${title} session as planned.`;
+        if (sessionType === 'strength' && notes) {
+          description = notes;
+        } else if (elevation && elevation > 0) {
+          description = `${km && km > 0 ? `${km}km` : ''} ${elevation ? `• ${Math.round(elevation)}m↑` : ''} ${duration ? `• ${duration}` : ''}`.trim();
+          if (notes && !notes.includes('Est.')) {
+            description += ` • ${notes}`;
+          }
+        }
+
+        const xOffset = sessionIdx > 0 ? sessionIdx * 3 : 0;
+        const yOffset = sessionIdx > 0 ? sessionIdx * 2 : 0;
+
+        return {
+          id: `${day.label.toLowerCase()}-${sessionIdx}`,
+          day: DAYS_SHORT[idx],
+          dayFull: DAYS[idx],
+          type: title,
+          emoji,
+          duration,
+          distance: finalDistance,
+          elevation: elevation && elevation > 0 ? Math.round(elevation) : undefined,
+          pace,
+          zones,
+          description,
+          weather,
+          completed: isCompleted,
+          isToday,
+          isAdapted,
+          isMESession: sessionType === 'strength',
+          x: pos.x + xOffset,
+          y: pos.y + yOffset,
+          size: isToday ? 94 : pos.size,
+        };
+      });
+    }).flat();
   }, [weekPlan, weatherData, today, profile, completionStatus]);
 
   // Generate today's training data for mobile view
@@ -1087,17 +1080,24 @@ export default function Quest() {
                   onPointerMove={handlePointerMove}
                   onPointerUp={handlePointerUp}
                 >
-                  {sessions.map((session) => (
-                    <div key={`label-${session.id}`} style={{ position: "absolute", left: `${session.x}%`, top: `${session.y}%` }}>
-                      <div className={`quest-day-label ${session.x > 50 ? "quest-day-right" : "quest-day-left"}`}>
-                        {session.day}
+                  {Array.from(new Set(sessions.map(s => s.day))).map(day => {
+                    const firstSessionForDay = sessions.find(s => s.day === day);
+                    if (!firstSessionForDay) return null;
+                    return (
+                      <div key={`label-${day}`} style={{ position: "absolute", left: `${firstSessionForDay.x}%`, top: `${firstSessionForDay.y}%` }}>
+                        <div className={`quest-day-label ${firstSessionForDay.x > 50 ? "quest-day-right" : "quest-day-left"}`}>
+                          {day}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {sessions.map((session) => {
                     const pos = tempPositions[session.id] || { x: session.x, y: session.y };
                     const isDragging = draggingId === session.id;
                     const isSwapTarget = swappingWith === session.id;
+                    const sessionsOnSameDay = sessions.filter(s => s.day === session.day);
+                    const isMultiSession = sessionsOnSameDay.length > 1;
+                    const sessionIndex = sessionsOnSameDay.findIndex(s => s.id === session.id) + 1;
 
                     return (
                       <div
@@ -1129,6 +1129,21 @@ export default function Quest() {
                         </div>
                         {session.completed && <div className="quest-bubble-badge quest-bubble-check">✓</div>}
                         {session.isToday && <div className="quest-bubble-badge quest-bubble-now">NOW</div>}
+                        {isMultiSession && (
+                          <div
+                            className="quest-bubble-badge"
+                            style={{
+                              background: 'rgba(59, 130, 246, 0.9)',
+                              fontSize: '10px',
+                              top: 'auto',
+                              bottom: '4px',
+                              right: '4px'
+                            }}
+                            title={`Session ${sessionIndex} of ${sessionsOnSameDay.length}`}
+                          >
+                            {sessionIndex}/{sessionsOnSameDay.length}
+                          </div>
+                        )}
                         {session.isAdapted && <div className="quest-bubble-badge quest-bubble-ai">AI</div>}
                       </div>
                     );
