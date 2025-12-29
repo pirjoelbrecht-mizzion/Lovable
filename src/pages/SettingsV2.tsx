@@ -11,6 +11,9 @@ import { backfillPhotoFlags } from "@/utils/backfillPhotoFlags";
 import WearablePrioritySettings from "@/components/WearablePrioritySettings";
 import ConnectProviders from "@/components/ConnectProviders";
 import { PaceProfileCard } from "@/components/PaceProfileCard";
+import TrainingProfileCard from "@/components/TrainingProfileCard";
+import TrainingLoadExplanation from "@/components/TrainingLoadExplanation";
+import EditTrainingFrequency from "@/components/EditTrainingFrequency";
 import {
   save,
   load,
@@ -22,6 +25,8 @@ import {
 import { toast } from "@/components/ToastHost";
 import type { UserSettings } from "@/lib/userSettings";
 import { supabase } from "@/lib/supabase";
+import { getCurrentUserProfile, updateUserProfile as updateUserProfileDb } from "@/lib/userProfile";
+import type { UserProfile } from "@/types/onboarding";
 
 type TabType = 'profile' | 'training' | 'pace' | 'devices' | 'data' | 'preferences';
 
@@ -58,6 +63,7 @@ export default function SettingsV2() {
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   const [pace, setPace] = useState(9.0);
   const [hrResting, setHrResting] = useState(54);
@@ -94,6 +100,11 @@ export default function SettingsV2() {
       setHrMax(profile.hrMax ?? estimateHrMax(profile.age ?? 30));
       if (profile.zones) {
         setCustomZones(profile.zones);
+      }
+
+      const dbProfile = await getCurrentUserProfile();
+      if (dbProfile) {
+        setUserProfile(dbProfile);
       }
     } finally {
       setLoading(false);
@@ -596,6 +607,28 @@ export default function SettingsV2() {
             <div>
               <h3 className="h2" style={{ marginBottom: 12 }}>Training Profile</h3>
               <p className="small" style={{ color: 'var(--muted)', marginBottom: 16 }}>
+                View your onboarding profile and training configuration
+              </p>
+            </div>
+
+            <TrainingProfileCard profile={userProfile} />
+            <TrainingLoadExplanation profile={userProfile} />
+
+            <EditTrainingFrequency
+              currentDaysPerWeek={userProfile?.daysPerWeek ?? 3}
+              onSave={async (newDaysPerWeek) => {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) throw new Error('Not authenticated');
+                const updated = await updateUserProfileDb(user.id, { daysPerWeek: newDaysPerWeek });
+                if (updated) {
+                  setUserProfile(updated);
+                }
+              }}
+            />
+
+            <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--line)' }}>
+              <h3 className="h2" style={{ marginBottom: 12 }}>Advanced Settings</h3>
+              <p className="small" style={{ color: 'var(--muted)', marginBottom: 16 }}>
                 Adjust your base training metrics — all workouts adapt automatically
               </p>
 
@@ -950,51 +983,51 @@ export default function SettingsV2() {
                   );
                 })}
               </div>
-            </div>
 
-            {/* Strength Training Section */}
-            <div style={{
-              marginTop: 24,
-              padding: 20,
-              background: 'rgba(139, 92, 246, 0.1)',
-              border: '1px solid rgba(139, 92, 246, 0.3)',
-              borderRadius: 12,
-            }}>
-              <h3 className="h2" style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                💪 Adaptive Strength Training
-              </h3>
-              <p className="small" style={{ color: 'var(--muted)', marginBottom: 16 }}>
-                Terrain-based ME assignment with automatic load regulation. Track soreness,
-                adjust training load, and resolve ME vs Z3 conflicts automatically.
-              </p>
-              <button
-                className="btn"
-                style={{
-                  background: '#8b5cf6',
-                  color: 'white',
-                  padding: '14px 24px',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '15px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-                onClick={() => navigate('/strength-training')}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#7c3aed';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#8b5cf6';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-              >
-                🚀 Open Strength Training System
-              </button>
+              {/* Strength Training Section */}
+              <div style={{
+                marginTop: 24,
+                padding: 20,
+                background: 'rgba(139, 92, 246, 0.1)',
+                border: '1px solid rgba(139, 92, 246, 0.3)',
+                borderRadius: 12,
+              }}>
+                <h3 className="h2" style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  💪 Adaptive Strength Training
+                </h3>
+                <p className="small" style={{ color: 'var(--muted)', marginBottom: 16 }}>
+                  Terrain-based ME assignment with automatic load regulation. Track soreness,
+                  adjust training load, and resolve ME vs Z3 conflicts automatically.
+                </p>
+                <button
+                  className="btn"
+                  style={{
+                    background: '#8b5cf6',
+                    color: 'white',
+                    padding: '14px 24px',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                  onClick={() => navigate('/strength-training')}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#7c3aed';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#8b5cf6';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  🚀 Open Strength Training System
+                </button>
+              </div>
             </div>
           </div>
         )}
