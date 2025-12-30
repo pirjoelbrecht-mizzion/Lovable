@@ -289,29 +289,29 @@ function sessionToWorkout(session: Session): UIWorkout {
   // Extract adaptive workout fields (may not all be present)
   const adaptiveSession = session as any;
 
-  // Format duration
+  // Format duration to match UI convention ("45 min" not "45m")
   let durationStr: string | undefined;
   if (adaptiveSession.durationMin) {
     const hours = Math.floor(adaptiveSession.durationMin / 60);
     const mins = adaptiveSession.durationMin % 60;
     if (hours > 0) {
-      durationStr = `${hours}h ${mins}m`;
+      durationStr = `${hours}h ${mins} min`;
     } else {
-      durationStr = `${mins}m`;
+      durationStr = `${mins} min`;
     }
   } else if (adaptiveSession.durationRange) {
     const [min, max] = adaptiveSession.durationRange;
-    durationStr = `${min}-${max}m`;
+    durationStr = `${min}-${max} min`;
   }
 
-  // Format distance
+  // Format distance to match UI convention ("8K" not "8.0km")
   let distanceStr: string | undefined;
   if (adaptiveSession.distanceKm || session.km) {
     const km = adaptiveSession.distanceKm || session.km;
-    distanceStr = `${km.toFixed(1)}km`;
+    distanceStr = `${km}K`;
   } else if (adaptiveSession.distanceRange) {
     const [min, max] = adaptiveSession.distanceRange;
-    distanceStr = `${min}-${max}km`;
+    distanceStr = `${min}-${max}K`;
   }
 
   // Format zones
@@ -324,30 +324,35 @@ function sessionToWorkout(session: Session): UIWorkout {
   const elevation = adaptiveSession.verticalGain || undefined;
 
   // Determine workout type (convert to UI type if needed)
-  let workoutType = adaptiveSession.type || session.type || 'run';
+  let workoutType = adaptiveSession.type || session.type || 'easy';
 
-  // Map adaptive workout types to UI types
+  // CRITICAL: Map adaptive workout types to CosmicWeekView-compatible types
+  // CosmicWeekView expects: 'rest' | 'recovery' | 'easy' | 'tempo' | 'intervals' | 'long' | 'strength' | 'workout'
+  // OLD BUG: All types were mapped to 'run', causing UI render gate to hide them
   const typeMap: Record<string, string> = {
-    'easy': 'run',
-    'aerobic': 'run',
-    'long': 'run',
-    'backToBack': 'run',
-    'tempo': 'run',
-    'threshold': 'run',
-    'vo2': 'run',
-    'hill_sprints': 'run',
-    'hill_repeats': 'run',
+    'easy': 'easy',
+    'aerobic': 'easy',
+    'long': 'long',
+    'backToBack': 'long',
+    'tempo': 'tempo',
+    'threshold': 'tempo',
+    'vo2': 'intervals',
+    'hill_sprints': 'intervals',
+    'hill_repeats': 'intervals',
     'muscular_endurance': 'strength',
     'strength': 'strength',
-    'cross_train': 'cross',
+    'cross_train': 'recovery',
     'rest': 'rest',
-    'shakeout': 'run',
-    'race_pace': 'run',
-    'speed_play': 'run',
-    'hike': 'run',
-    'RUN': 'run',
+    'shakeout': 'recovery',
+    'race_pace': 'workout',
+    'speed_play': 'workout',
+    'hike': 'long',
+    'RUN': 'easy',
     'STRENGTH': 'strength',
-    'CORE': 'core',
+    'CORE': 'strength',
+    'recovery': 'recovery',
+    'intervals': 'intervals',
+    'workout': 'workout',
   };
 
   if (typeMap[workoutType]) {
@@ -359,7 +364,7 @@ function sessionToWorkout(session: Session): UIWorkout {
     sessionId: session.id,
     type: workoutType,
     title: session.title || adaptiveSession.title || 'Workout',
-    duration: durationStr,
+    duration: durationStr || (workoutType === 'strength' ? '40 min' : '30 min'),
     distance: distanceStr,
     completed: false,
     elevation,
