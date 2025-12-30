@@ -76,7 +76,7 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
   const [hoveredWorkout, setHoveredWorkout] = useState<string | null>(null);
   const todayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
 
-  const effectiveWeekData = weekData && weekData.length === 7 && weekData.some(d => d.workouts && d.workouts.length > 0)
+  const effectiveWeekData = weekData && weekData.length === 7
     ? weekData
     : DAYS_FALLBACK.map((dayName, idx) => ({
         day: dayName,
