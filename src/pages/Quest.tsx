@@ -233,7 +233,7 @@ export default function Quest() {
     });
 
     if (plan && plan.length === 7) {
-      console.log('[Quest] Setting adaptive plan as authoritative state');
+      console.log('[Quest] Setting adaptive plan as authoritative state (normalization happens in setWeekPlan)');
       setWeekPlan(plan);
     } else {
       console.warn('[Quest] Received invalid adaptive plan, not setting state:', {

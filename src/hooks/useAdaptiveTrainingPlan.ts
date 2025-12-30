@@ -180,7 +180,7 @@ export function useAdaptiveTrainingPlan(
       const localStoragePlan = convertToLocalStoragePlan(modifiedPlan, plan);
 
       // Mark plan with adaptive source and timestamp to prevent overwrites
-      const adaptivePlan = localStoragePlan.map((day, idx) => ({
+      let adaptivePlan = localStoragePlan.map((day, idx) => ({
         ...day,
         planSource: 'adaptive' as const,
         planAppliedAt: Date.now(),

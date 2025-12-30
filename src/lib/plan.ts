@@ -110,23 +110,26 @@ export function getWeekPlan(): WeekPlan {
 export function setWeekPlan(plan: WeekPlan, options: { skipGuard?: boolean } = {}) {
   const currentPlan = getWeekPlan();
 
-  if (!options.skipGuard && !canOverwritePlan(currentPlan, plan)) {
+  // Normalize plan schema to ensure sessions are properly populated
+  const normalizedPlan = normalizeAdaptivePlan(plan);
+
+  if (!options.skipGuard && !canOverwritePlan(currentPlan, normalizedPlan)) {
     console.debug('[WeekPlan] Overwrite blocked by guard', {
-      source: plan[0]?.planSource,
-      timestamp: plan[0]?.planAppliedAt,
-      hasRestDays: plan.some(d => !d.sessions || d.sessions.length === 0),
+      source: normalizedPlan[0]?.planSource,
+      timestamp: normalizedPlan[0]?.planAppliedAt,
+      hasRestDays: normalizedPlan.some(d => !d.sessions || d.sessions.length === 0),
     });
     return;
   }
 
   console.debug('[WeekPlan Apply]', {
-    source: plan[0]?.planSource || 'unknown',
-    timestamp: plan[0]?.planAppliedAt,
-    dayCount: plan.length,
-    hasRestDays: plan.some(d => !d.sessions || d.sessions.length === 0),
+    source: normalizedPlan[0]?.planSource || 'unknown',
+    timestamp: normalizedPlan[0]?.planAppliedAt,
+    dayCount: normalizedPlan.length,
+    hasRestDays: normalizedPlan.some(d => !d.sessions || d.sessions.length === 0),
   });
 
-  save(KEY, plan);
+  save(KEY, normalizedPlan);
   window.dispatchEvent(new CustomEvent("plan:updated"));
   window.dispatchEvent(new CustomEvent("planner:updated"));
 }
@@ -134,23 +137,26 @@ export function setWeekPlan(plan: WeekPlan, options: { skipGuard?: boolean } = {
 export function saveWeekPlan(plan: WeekPlan, options: { skipGuard?: boolean } = {}) {
   const currentPlan = getWeekPlan();
 
-  if (!options.skipGuard && !canOverwritePlan(currentPlan, plan)) {
+  // Normalize plan schema to ensure sessions are properly populated
+  const normalizedPlan = normalizeAdaptivePlan(plan);
+
+  if (!options.skipGuard && !canOverwritePlan(currentPlan, normalizedPlan)) {
     console.debug('[WeekPlan] Overwrite blocked by guard', {
-      source: plan[0]?.planSource,
-      timestamp: plan[0]?.planAppliedAt,
-      hasRestDays: plan.some(d => !d.sessions || d.sessions.length === 0),
+      source: normalizedPlan[0]?.planSource,
+      timestamp: normalizedPlan[0]?.planAppliedAt,
+      hasRestDays: normalizedPlan.some(d => !d.sessions || d.sessions.length === 0),
     });
     return;
   }
 
   console.debug('[WeekPlan Apply]', {
-    source: plan[0]?.planSource || 'unknown',
-    timestamp: plan[0]?.planAppliedAt,
-    dayCount: plan.length,
-    hasRestDays: plan.some(d => !d.sessions || d.sessions.length === 0),
+    source: normalizedPlan[0]?.planSource || 'unknown',
+    timestamp: normalizedPlan[0]?.planAppliedAt,
+    dayCount: normalizedPlan.length,
+    hasRestDays: normalizedPlan.some(d => !d.sessions || d.sessions.length === 0),
   });
 
-  save(KEY, plan);
+  save(KEY, normalizedPlan);
   window.dispatchEvent(new CustomEvent("plan:updated"));
   window.dispatchEvent(new CustomEvent("planner:updated"));
 }
@@ -252,4 +258,38 @@ export function todayDayIndex(): number {
   const js = new Date().getDay(); // 0..6 (Sun..Sat)
   // convert: Sun(0)->6, Mon(1)->0 ... Sat(6)->5
   return js === 0 ? 6 : js - 1;
+}
+
+/**
+ * Normalize adaptive plan to UI schema
+ * Ensures sessions field is always populated before applying to UI state
+ * Maps: day.sessions → day.sessions (already normalized by convertToLocalStoragePlan)
+ * This is a safety bridge between adaptive engine and UI layer
+ */
+export function normalizeAdaptivePlan(plan: WeekPlan): WeekPlan {
+  if (!plan || !Array.isArray(plan)) {
+    console.warn('[Normalize] Invalid plan passed, returning empty week');
+    return defaultWeek();
+  }
+
+  const normalized = plan.map((day, idx) => {
+    // Ensure sessions is always an array, even for rest days
+    const sessions = Array.isArray(day.sessions) ? day.sessions : [];
+
+    return {
+      ...day,
+      sessions,
+      label: day.label || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][idx],
+    };
+  });
+
+  // Log normalization details for debugging
+  console.log('[Normalize] Adaptive plan normalized:', {
+    daysProcessed: normalized.length,
+    restDays: normalized.filter(d => d.sessions.length === 0).length,
+    trainingDays: normalized.filter(d => d.sessions.length > 0).length,
+    totalSessions: normalized.reduce((sum, d) => sum + d.sessions.length, 0),
+  });
+
+  return normalized;
 }
