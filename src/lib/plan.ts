@@ -262,9 +262,10 @@ export function todayDayIndex(): number {
 
 /**
  * Normalize adaptive plan to UI schema
- * Ensures sessions field is always populated before applying to UI state
- * Maps: day.sessions → day.sessions (already normalized by convertToLocalStoragePlan)
- * This is a safety bridge between adaptive engine and UI layer
+ * CRITICAL: Ensures both sessions AND workouts fields are populated
+ * Maps: day.sessions → day.workouts (for UI rendering)
+ * The UI exclusively renders from day.workouts
+ * This is the compatibility bridge between adaptive engine and UI layer
  */
 export function normalizeAdaptivePlan(plan: WeekPlan): WeekPlan {
   if (!plan || !Array.isArray(plan)) {
@@ -276,11 +277,16 @@ export function normalizeAdaptivePlan(plan: WeekPlan): WeekPlan {
     // Ensure sessions is always an array, even for rest days
     const sessions = Array.isArray(day.sessions) ? day.sessions : [];
 
+    // CRITICAL: UI renders from workouts, not sessions
+    // Populate workouts from sessions if not already set
+    const workouts = (day as any).workouts ?? sessions;
+
     return {
       ...day,
       sessions,
+      workouts,
       label: day.label || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][idx],
-    };
+    } as any;
   });
 
   // Log normalization details for debugging
@@ -289,6 +295,7 @@ export function normalizeAdaptivePlan(plan: WeekPlan): WeekPlan {
     restDays: normalized.filter(d => d.sessions.length === 0).length,
     trainingDays: normalized.filter(d => d.sessions.length > 0).length,
     totalSessions: normalized.reduce((sum, d) => sum + d.sessions.length, 0),
+    totalWorkouts: normalized.reduce((sum, d) => sum + ((d as any).workouts?.length || 0), 0),
   });
 
   return normalized;
