@@ -11,7 +11,7 @@ import {
 import QuickAddRace from "@/components/QuickAddRace";
 import WeatherAlertBanner from "@/components/WeatherAlertBanner";
 import { AddSessionModal } from "@/components/AddSessionModal";
-import { getWeekPlan, defaultWeek, type WeekPlan, todayDayIndex, addUserSession } from "@/lib/plan";
+import { getWeekPlan, defaultWeek, type WeekPlan, todayDayIndex, addUserSession, normalizeAdaptivePlan } from "@/lib/plan";
 import { fetchDailyWeather, type DailyWeather, getWeatherForLocation, type CurrentWeather } from "@/utils/weather";
 import { loadUserProfile } from "@/state/userData";
 import { loadWeekPlan } from "@/utils/weekPlan";
@@ -189,7 +189,8 @@ export default function Quest() {
       });
     }
 
-    return plan;
+    // CRITICAL: Normalize plan to convert sessions → workouts for UI rendering
+    return normalizeAdaptivePlan(plan);
   });
   const weekPlanRef = useRef(weekPlan);
   const [weatherData, setWeatherData] = useState<DailyWeather[]>([]);
@@ -233,8 +234,12 @@ export default function Quest() {
     });
 
     if (plan && plan.length === 7) {
-      console.log('[Quest] Setting adaptive plan as authoritative state (normalization happens in setWeekPlan)');
-      setWeekPlan(plan);
+      // CRITICAL: Normalize plan to convert sessions → workouts for UI rendering
+      const normalizedPlan = normalizeAdaptivePlan(plan);
+      console.log('[Quest] Setting normalized adaptive plan with workouts:', {
+        totalWorkouts: normalizedPlan.reduce((sum, d) => sum + ((d as any).workouts?.length || 0), 0),
+      });
+      setWeekPlan(normalizedPlan);
     } else {
       console.warn('[Quest] Received invalid adaptive plan, not setting state:', {
         length: plan?.length,
@@ -438,7 +443,8 @@ export default function Quest() {
         }
 
         console.log('[Quest] Plan updated via event', { source: updatedPlan[0]?.planSource });
-        setWeekPlan(updatedPlan);
+        const normalizedPlan = normalizeAdaptivePlan(updatedPlan);
+        setWeekPlan(normalizedPlan);
       } else {
         console.warn('[Quest] Received invalid plan update, ignoring');
       }
@@ -474,7 +480,8 @@ export default function Quest() {
         }
 
         console.log('[Quest] Plan adapted via event', { source: updatedPlan[0]?.planSource });
-        setWeekPlan(updatedPlan);
+        const normalizedPlan = normalizeAdaptivePlan(updatedPlan);
+        setWeekPlan(normalizedPlan);
         loadCompletionStatus();
         loadLogEntries(); // Refresh log entries when plan adapts
       } else {
