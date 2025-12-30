@@ -102,6 +102,7 @@ export function getWeekPlan(): WeekPlan {
     label: DOW[i],
     dateISO: d.dateISO || isoOfOffset(i),
     sessions: Array.isArray(d.sessions) ? d.sessions : [],
+    workouts: d.workouts,
     planSource: d.planSource || 'hydrated' as const,
     planAppliedAt: d.planAppliedAt || 0,
   }));
