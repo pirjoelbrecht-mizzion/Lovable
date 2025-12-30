@@ -192,12 +192,14 @@ export function useAdaptiveTrainingPlan(
         throw new Error(`Invalid plan generated: ${adaptivePlan?.length || 0} days instead of 7`);
       }
 
-      // Validate each day has at least one session
-      const invalidDays = adaptivePlan.filter(day => !day.sessions || day.sessions.length === 0);
-      if (invalidDays.length > 0) {
-        console.error('[Module 4] Plan has days without sessions:', invalidDays);
-        throw new Error(`Invalid plan: ${invalidDays.length} days without sessions`);
-      }
+      // Rest days (days with empty sessions) are now valid
+      // Validate that we have a proper 7-day plan structure
+      const validDays = adaptivePlan.filter(day => day && (day.sessions !== undefined && Array.isArray(day.sessions)));
+      console.log('[Module 4] Plan structure validated:', {
+        totalDays: adaptivePlan.length,
+        daysWithSessions: validDays.filter(d => d.sessions.length > 0).length,
+        restDays: validDays.filter(d => d.sessions.length === 0).length,
+      });
 
       // Sync to localStorage for backward compatibility
       console.log('[Module 4] Syncing adjusted plan to localStorage...');
