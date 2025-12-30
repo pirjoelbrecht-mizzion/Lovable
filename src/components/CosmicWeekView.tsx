@@ -100,12 +100,11 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
       <div className="cosmic-week-content">
         {effectiveWeekData.map((day, dayIndex) => {
           const workout = day.workouts[0];
-          if (!workout) return null;
-
-          const isRace = isRaceWorkout(workout);
-          const color = isRace ? '#F59E0B' : WORKOUT_COLORS[workout.type] || '#8B5CF6';
-          const icon = isRace ? '🏆' : (WORKOUT_ICONS[workout.type] || '🏃');
-          const isHovered = hoveredWorkout === workout.id;
+          const isRestDay = !workout || day.workouts.length === 0;
+          const isRace = !isRestDay && isRaceWorkout(workout);
+          const color = isRestDay ? '#6B7280' : (isRace ? '#F59E0B' : WORKOUT_COLORS[workout.type] || '#8B5CF6');
+          const icon = isRestDay ? '🌙' : (isRace ? '🏆' : (WORKOUT_ICONS[workout.type] || '🏃'));
+          const isHovered = !isRestDay && hoveredWorkout === workout.id;
           const isToday = day.isToday;
 
           return (
@@ -119,44 +118,60 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
 
               <div className="cosmic-day-line" style={{ background: `linear-gradient(to bottom, ${color}40, ${color}10)` }} />
 
-              <motion.div
-                className={`cosmic-bubble ${isToday ? 'today' : ''} ${workout.completed ? 'completed' : ''} ${isRace ? 'race' : ''}`}
-                style={{ '--bubble-color': color } as React.CSSProperties}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: dayIndex * 0.08, duration: 0.4 }}
-                whileHover={{ scale: 1.1 }}
-                onMouseEnter={() => setHoveredWorkout(workout.id)}
-                onMouseLeave={() => setHoveredWorkout(null)}
-                onClick={() => onWorkoutClick?.(workout, day.day)}
-              >
-                <div className="bubble-glow-ring" />
-
-                {isToday ? (
-                  <div className="bubble-today-content">
-                    <span className="now-label">NOW</span>
+              {isRestDay ? (
+                <motion.div
+                  className="cosmic-bubble rest-day"
+                  style={{ '--bubble-color': color } as React.CSSProperties}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: dayIndex * 0.08, duration: 0.4 }}
+                >
+                  <div className="bubble-glow-ring" />
+                  <div className="bubble-rest-content">
                     <span className="bubble-icon">{icon}</span>
+                    <div style={{ fontSize: '11px', marginTop: 4, opacity: 0.8 }}>Rest</div>
                   </div>
-                ) : (
-                  <div className="bubble-icon-content">
-                    <span className="bubble-icon">{icon}</span>
-                    {workout.completed && <span className="completed-check">✓</span>}
-                  </div>
-                )}
+                </motion.div>
+              ) : (
+                <motion.div
+                  className={`cosmic-bubble ${isToday ? 'today' : ''} ${workout.completed ? 'completed' : ''} ${isRace ? 'race' : ''}`}
+                  style={{ '--bubble-color': color } as React.CSSProperties}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: dayIndex * 0.08, duration: 0.4 }}
+                  whileHover={{ scale: 1.1 }}
+                  onMouseEnter={() => setHoveredWorkout(workout.id)}
+                  onMouseLeave={() => setHoveredWorkout(null)}
+                  onClick={() => onWorkoutClick?.(workout, day.day)}
+                >
+                  <div className="bubble-glow-ring" />
 
-                {isHovered && (
-                  <motion.div
-                    className="bubble-tooltip"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <div className="tooltip-title">{workout.title}</div>
-                    {workout.distance && <div className="tooltip-detail">{workout.distance}</div>}
-                  </motion.div>
-                )}
-              </motion.div>
+                  {isToday ? (
+                    <div className="bubble-today-content">
+                      <span className="now-label">NOW</span>
+                      <span className="bubble-icon">{icon}</span>
+                    </div>
+                  ) : (
+                    <div className="bubble-icon-content">
+                      <span className="bubble-icon">{icon}</span>
+                      {workout.completed && <span className="completed-check">✓</span>}
+                    </div>
+                  )}
 
-              {day.workouts.length > 1 && day.workouts.slice(1).map((extraWorkout, extraIdx) => {
+                  {isHovered && (
+                    <motion.div
+                      className="bubble-tooltip"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                    >
+                      <div className="tooltip-title">{workout.title}</div>
+                      {workout.distance && <div className="tooltip-detail">{workout.distance}</div>}
+                    </motion.div>
+                  )}
+                </motion.div>
+              )}
+
+              {!isRestDay && day.workouts.length > 1 && day.workouts.slice(1).map((extraWorkout, extraIdx) => {
                 const extraColor = WORKOUT_COLORS[extraWorkout.type] || '#8B5CF6';
                 const extraIcon = WORKOUT_ICONS[extraWorkout.type] || '🏃';
                 return (
