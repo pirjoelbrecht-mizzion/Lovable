@@ -1118,8 +1118,23 @@ export default function Quest() {
                   weekData={(() => {
                     const defaultPlan = loadWeekPlan();
 
+                    console.log('[Quest] Building weekData for CosmicWeekView - weekPlan:', {
+                      planLength: weekPlan?.length,
+                      planSource: weekPlan[0]?.planSource,
+                      totalSessions: weekPlan.reduce((sum, d) => sum + (d.sessions?.length || 0), 0),
+                      totalWorkouts: weekPlan.reduce((sum, d) => sum + (((d as any).workouts?.length || 0)), 0),
+                    });
+
                     return DAYS.map((dayName, idx) => {
                       const dayData = weekPlan[idx];
+
+                      console.log(`[Quest] Processing ${dayName}:`, {
+                        hasWorkouts: !!(dayData as any)?.workouts,
+                        workoutsIsArray: Array.isArray((dayData as any)?.workouts),
+                        workoutsLength: ((dayData as any)?.workouts?.length || 0),
+                        hasSessions: !!dayData?.sessions,
+                        sessionsLength: dayData?.sessions?.length || 0,
+                      });
 
                       // CRITICAL: Check if workouts are already populated (from adaptive plan normalization)
                       // If so, use them directly instead of transforming sessions
@@ -1138,6 +1153,8 @@ export default function Quest() {
                           isToday: idx === today,
                         };
                       }
+
+                      console.log(`[Quest] ⚠️ ${dayName} - No pre-transformed workouts, falling back to session transformation`);
 
                       // FALLBACK: Legacy transformation from sessions
                       const userSessions = dayData?.sessions || [];

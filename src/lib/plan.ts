@@ -393,11 +393,22 @@ export function normalizeAdaptivePlan(plan: WeekPlan): WeekPlan {
     // Use adapter to convert sessions into UI-valid workouts
     const workouts = (day as any).workouts ?? sessions.map(sessionToWorkout);
 
+    // Debug logging for each day
+    const dayLabel = day.label || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][idx];
+    console.log(`[Normalize] ${dayLabel}:`, {
+      hasSessions: sessions.length > 0,
+      sessionsCount: sessions.length,
+      hasWorkouts: workouts.length > 0,
+      workoutsCount: workouts.length,
+      sessionTypes: sessions.map((s: any) => s.type || 'unknown'),
+      workoutTypes: workouts.map((w: any) => w.type || 'unknown'),
+    });
+
     return {
       ...day,
       sessions,      // Keep original sessions for adaptive logic
       workouts,      // Add UI-valid workouts for rendering
-      label: day.label || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][idx],
+      label: dayLabel,
     } as any;
   });
 
