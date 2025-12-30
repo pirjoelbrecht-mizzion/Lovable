@@ -1136,11 +1136,20 @@ export default function Quest() {
                         sessionsLength: dayData?.sessions?.length || 0,
                       });
 
-                      // CRITICAL: Check if workouts are already populated (from adaptive plan normalization)
-                      // If so, use them directly instead of transforming sessions
-                      if ((dayData as any)?.workouts && Array.isArray((dayData as any).workouts)) {
-                        const existingWorkouts = (dayData as any).workouts;
-                        console.log(`[Quest] ✨ ${dayName} - Using pre-transformed workouts:`, existingWorkouts.length);
+                      // CRITICAL: Preserve day.workouts if it exists (even if empty array)
+                      // Only fall back to session transformation if workouts is undefined
+                      // Rule: const workouts = day.workouts ?? deriveFromSessions(day.sessions)
+                      const hasWorkouts = (dayData as any)?.workouts !== undefined;
+
+                      if (hasWorkouts) {
+                        const existingWorkouts = (dayData as any).workouts || [];
+                        const workoutCount = existingWorkouts.length;
+
+                        if (workoutCount > 0) {
+                          console.log(`[Quest] ✨ ${dayName} - Using pre-transformed workouts:`, workoutCount);
+                        } else {
+                          console.log(`[Quest] 🌙 ${dayName} - Rest day (workouts: [])`);
+                        }
 
                         return {
                           day: dayName,
@@ -1154,7 +1163,7 @@ export default function Quest() {
                         };
                       }
 
-                      console.log(`[Quest] ⚠️ ${dayName} - No pre-transformed workouts, falling back to session transformation`);
+                      console.log(`[Quest] ⚠️ ${dayName} - workouts undefined, falling back to session transformation`);
 
                       // FALLBACK: Legacy transformation from sessions
                       const userSessions = dayData?.sessions || [];
