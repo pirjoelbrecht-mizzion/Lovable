@@ -261,6 +261,112 @@ export function todayDayIndex(): number {
 }
 
 /**
+ * ======================================================================
+ * SESSION → WORKOUT ADAPTER
+ * ======================================================================
+ * Converts adaptive engine sessions into UI-valid workout objects
+ *
+ * Adaptive sessions are training prescriptions (what to train)
+ * UI workouts are renderable objects (how to display)
+ *
+ * This adapter bridges the semantic gap between engine output and UI input
+ */
+interface UIWorkout {
+  id: string;
+  sessionId?: string;
+  type: string;
+  title: string;
+  duration?: string;
+  distance?: string;
+  completed: boolean;
+  isToday?: boolean;
+  elevation?: number;
+  zones?: string;
+}
+
+function sessionToWorkout(session: Session): UIWorkout {
+  // Extract adaptive workout fields (may not all be present)
+  const adaptiveSession = session as any;
+
+  // Format duration
+  let durationStr: string | undefined;
+  if (adaptiveSession.durationMin) {
+    const hours = Math.floor(adaptiveSession.durationMin / 60);
+    const mins = adaptiveSession.durationMin % 60;
+    if (hours > 0) {
+      durationStr = `${hours}h ${mins}m`;
+    } else {
+      durationStr = `${mins}m`;
+    }
+  } else if (adaptiveSession.durationRange) {
+    const [min, max] = adaptiveSession.durationRange;
+    durationStr = `${min}-${max}m`;
+  }
+
+  // Format distance
+  let distanceStr: string | undefined;
+  if (adaptiveSession.distanceKm || session.km) {
+    const km = adaptiveSession.distanceKm || session.km;
+    distanceStr = `${km.toFixed(1)}km`;
+  } else if (adaptiveSession.distanceRange) {
+    const [min, max] = adaptiveSession.distanceRange;
+    distanceStr = `${min}-${max}km`;
+  }
+
+  // Format zones
+  let zonesStr: string | undefined;
+  if (adaptiveSession.intensityZones && Array.isArray(adaptiveSession.intensityZones)) {
+    zonesStr = adaptiveSession.intensityZones.join(', ');
+  }
+
+  // Extract elevation
+  const elevation = adaptiveSession.verticalGain || undefined;
+
+  // Determine workout type (convert to UI type if needed)
+  let workoutType = adaptiveSession.type || session.type || 'run';
+
+  // Map adaptive workout types to UI types
+  const typeMap: Record<string, string> = {
+    'easy': 'run',
+    'aerobic': 'run',
+    'long': 'run',
+    'backToBack': 'run',
+    'tempo': 'run',
+    'threshold': 'run',
+    'vo2': 'run',
+    'hill_sprints': 'run',
+    'hill_repeats': 'run',
+    'muscular_endurance': 'strength',
+    'strength': 'strength',
+    'cross_train': 'cross',
+    'rest': 'rest',
+    'shakeout': 'run',
+    'race_pace': 'run',
+    'speed_play': 'run',
+    'hike': 'run',
+    'RUN': 'run',
+    'STRENGTH': 'strength',
+    'CORE': 'core',
+  };
+
+  if (typeMap[workoutType]) {
+    workoutType = typeMap[workoutType];
+  }
+
+  return {
+    id: session.id || `w_${Math.random().toString(36).slice(2)}`,
+    sessionId: session.id,
+    type: workoutType,
+    title: session.title || adaptiveSession.title || 'Workout',
+    duration: durationStr,
+    distance: distanceStr,
+    completed: false,
+    elevation,
+    zones: zonesStr,
+  };
+}
+
+/**
  * Normalize adaptive plan to UI schema
  * CRITICAL: Ensures both sessions AND workouts fields are populated
  * Maps: day.sessions → day.workouts (for UI rendering)
@@ -278,13 +384,13 @@ export function normalizeAdaptivePlan(plan: WeekPlan): WeekPlan {
     const sessions = Array.isArray(day.sessions) ? day.sessions : [];
 
     // CRITICAL: UI renders from workouts, not sessions
-    // Populate workouts from sessions if not already set
-    const workouts = (day as any).workouts ?? sessions;
+    // Use adapter to convert sessions into UI-valid workouts
+    const workouts = (day as any).workouts ?? sessions.map(sessionToWorkout);
 
     return {
       ...day,
-      sessions,
-      workouts,
+      sessions,      // Keep original sessions for adaptive logic
+      workouts,      // Add UI-valid workouts for rendering
       label: day.label || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][idx],
     } as any;
   });

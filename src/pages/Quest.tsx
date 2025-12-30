@@ -1113,6 +1113,26 @@ export default function Quest() {
 
                     return DAYS.map((dayName, idx) => {
                       const dayData = weekPlan[idx];
+
+                      // CRITICAL: Check if workouts are already populated (from adaptive plan normalization)
+                      // If so, use them directly instead of transforming sessions
+                      if ((dayData as any)?.workouts && Array.isArray((dayData as any).workouts)) {
+                        const existingWorkouts = (dayData as any).workouts;
+                        console.log(`[Quest] ✨ ${dayName} - Using pre-transformed workouts:`, existingWorkouts.length);
+
+                        return {
+                          day: dayName,
+                          dayShort: DAYS_SHORT[idx],
+                          workouts: existingWorkouts.map((w: any) => ({
+                            ...w,
+                            completed: completionStatus[w.sessionId || w.id] || false,
+                            isToday: idx === today,
+                          })),
+                          isToday: idx === today,
+                        };
+                      }
+
+                      // FALLBACK: Legacy transformation from sessions
                       const userSessions = dayData?.sessions || [];
                       const fallback = defaultPlan[idx];
 
