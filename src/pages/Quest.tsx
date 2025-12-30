@@ -223,6 +223,26 @@ export default function Quest() {
   const today = todayDayIndex();
   const profile = loadUserProfile();
 
+  // Memoized callback for adaptive plan adjustment
+  // This is critical to prevent recreating the callback on every render
+  // Must be defined BEFORE useAdaptiveTrainingPlan hook call
+  const handleAdaptivePlanAdjusted = useCallback((decision: any, plan: WeekPlan) => {
+    console.log('[Quest] Adaptive Engine plan received:', plan?.length, 'days', {
+      source: plan?.[0]?.planSource,
+      timestamp: plan?.[0]?.planAppliedAt,
+    });
+
+    if (plan && plan.length === 7) {
+      console.log('[Quest] Setting adaptive plan as authoritative state');
+      setWeekPlan(plan);
+    } else {
+      console.warn('[Quest] Received invalid adaptive plan, not setting state:', {
+        length: plan?.length,
+        isArray: Array.isArray(plan),
+      });
+    }
+  }, []);
+
   // Adaptive Decision Engine - single source of truth for training plans
   const {
     adjustedPlan,
@@ -261,25 +281,6 @@ export default function Quest() {
     toast(`Selected route: ${route.name}`, 'success');
     setSelectedSessionId(null);
   };
-
-  // Memoized callback for adaptive plan adjustment
-  // This is critical to prevent recreating the callback on every render
-  const handleAdaptivePlanAdjusted = useCallback((decision: any, plan: WeekPlan) => {
-    console.log('[Quest] Adaptive Engine plan received:', plan?.length, 'days', {
-      source: plan?.[0]?.planSource,
-      timestamp: plan?.[0]?.planAppliedAt,
-    });
-
-    if (plan && plan.length === 7) {
-      console.log('[Quest] Setting adaptive plan as authoritative state');
-      setWeekPlan(plan);
-    } else {
-      console.warn('[Quest] Received invalid adaptive plan, not setting state:', {
-        length: plan?.length,
-        isArray: Array.isArray(plan),
-      });
-    }
-  }, []);
 
   // Keep ref in sync with weekPlan state
   useEffect(() => {
