@@ -425,27 +425,28 @@ export function normalizeAdaptivePlan(plan: WeekPlan): WeekPlan {
 }
 
 /**
- * 3️⃣ Auto-recovery: Detect empty locked adaptive plans
- * Returns true if the plan is adaptive, has no workouts, and should be regenerated
+ * 3️⃣ Auto-recovery: Detect empty locked plans that need recovery
+ * Returns true if the plan has no workouts and should be regenerated
+ *
+ * IMPORTANT: Checks ANY empty plan (adaptive OR default source) because:
+ * - Old bug created empty 'default' plans with locks
+ * - Need to recover from any empty locked state regardless of source
  */
 export function isEmptyLockedAdaptivePlan(plan: WeekPlan | null): boolean {
   if (!plan || plan.length === 0) {
     return false;
   }
 
-  const isAdaptive = plan[0]?.planSource === 'adaptive';
-  if (!isAdaptive) {
-    return false;
-  }
-
+  // Check if plan is empty (0 workouts across all days)
   const totalSessions = plan.reduce((sum, day) => sum + (day.sessions?.length ?? 0), 0);
   const isEmpty = totalSessions === 0;
 
   if (isEmpty) {
-    console.warn('[Plan Recovery] Detected empty locked adaptive plan', {
+    console.warn('[Plan Recovery] Detected empty locked plan requiring recovery', {
       planSource: plan[0]?.planSource,
       planAppliedAt: plan[0]?.planAppliedAt,
       totalSessions,
+      recoveryNeeded: true,
     });
   }
 
