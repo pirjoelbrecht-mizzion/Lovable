@@ -236,3 +236,79 @@ export function debugSessionSelection(session: any, context: string): void {
     source: session?.source,
   });
 }
+
+/**
+ * CRITICAL AUTHORITY CONTRACT
+ *
+ * Assert that an adaptive plan is treated as authoritative.
+ * Once Module 4 generates a plan, NO other plan generator may override it.
+ *
+ * @throws Error in dev mode if adaptive plan is being replaced
+ * @example
+ *   assertAdaptivePlanAuthority(weekPlan, 'adaptiveContextBuilder')
+ */
+export function assertAdaptivePlanAuthority(weekPlan: any, context: string): void {
+  if (!__DEV__) return;
+
+  const isAdaptive = weekPlan?.[0]?.planSource === 'adaptive';
+  const hasSessions = weekPlan?.some((day: any) => (day.sessions?.length ?? 0) > 0);
+
+  if (isAdaptive && hasSessions) {
+    throw new Error(
+      `[ARCHITECTURE VIOLATION] Attempting to override adaptive plan in ${context}\n\n` +
+      `RULE: Once adaptive plan exists, it is AUTHORITATIVE.\n` +
+      `NO default plans, NO constraint-based generation, NO fallback logic.\n\n` +
+      `Current plan: ${JSON.stringify({ planSource: weekPlan[0]?.planSource, totalSessions: weekPlan.reduce((sum: number, d: any) => sum + (d.sessions?.length ?? 0), 0) })}\n\n` +
+      `Context: ${context}`
+    );
+  }
+}
+
+/**
+ * CRITICAL: Check if an adaptive plan exists and is authoritative.
+ * Returns true if NO other plan generators should run.
+ *
+ * @example
+ *   if (isAdaptivePlanAuthoritative(weekPlan)) {
+ *     console.log('Skipping default plan generation - adaptive plan exists');
+ *     return weekPlan;
+ *   }
+ */
+export function isAdaptivePlanAuthoritative(weekPlan: any): boolean {
+  if (!weekPlan || weekPlan.length === 0) return false;
+
+  const isAdaptive = weekPlan[0]?.planSource === 'adaptive';
+  const totalSessions = weekPlan.reduce((sum: number, day: any) => sum + (day.sessions?.length ?? 0), 0);
+
+  return isAdaptive && totalSessions > 0;
+}
+
+/**
+ * Assert that normalization is not adding rest days.
+ * Normalization ONLY maps sessions → workouts. It MUST NOT add days.
+ *
+ * @throws Error in dev mode if normalization added days
+ * @example
+ *   assertNormalizationDidNotAddDays(originalPlan, normalizedPlan, 'plan.normalize')
+ */
+export function assertNormalizationDidNotAddDays(
+  original: any[],
+  normalized: any[],
+  context: string
+): void {
+  if (!__DEV__) return;
+
+  const originalSessions = original.reduce((sum: number, d: any) => sum + (d.sessions?.length ?? 0), 0);
+  const normalizedSessions = normalized.reduce((sum: number, d: any) => sum + (d.sessions?.length ?? 0), 0);
+
+  if (normalizedSessions > originalSessions) {
+    throw new Error(
+      `[ARCHITECTURE VIOLATION] Normalization ADDED sessions in ${context}\n\n` +
+      `Before: ${originalSessions} sessions\n` +
+      `After: ${normalizedSessions} sessions\n\n` +
+      `RULE: Normalization may ONLY map sessions → workouts.\n` +
+      `It MUST NOT add rest days, training days, or any sessions.\n` +
+      `Context: ${context}`
+    );
+  }
+}

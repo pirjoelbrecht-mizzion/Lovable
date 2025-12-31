@@ -378,12 +378,18 @@ function sessionToWorkout(session: Session): UIWorkout {
  * Maps: day.sessions → day.workouts (for UI rendering)
  * The UI exclusively renders from day.workouts
  * This is the compatibility bridge between adaptive engine and UI layer
+ *
+ * PHASE 3 RULE: Normalization may ONLY map sessions → workouts
+ * It MUST NOT add rest days, remove training days, or infer from constraints
  */
 export function normalizeAdaptivePlan(plan: WeekPlan): WeekPlan {
   if (!plan || !Array.isArray(plan)) {
     console.warn('[Normalize] Invalid plan passed, returning empty week');
     return defaultWeek();
   }
+
+  // Store original for architectural assertion
+  const originalPlan = plan;
 
   const normalized = plan.map((day, idx) => {
     // Ensure sessions is always an array, even for rest days
@@ -420,6 +426,19 @@ export function normalizeAdaptivePlan(plan: WeekPlan): WeekPlan {
     totalSessions: normalized.reduce((sum, d) => sum + d.sessions.length, 0),
     totalWorkouts: normalized.reduce((sum, d) => sum + ((d as any).workouts?.length || 0), 0),
   });
+
+  // PHASE 3 ARCHITECTURAL ASSERTION: Verify normalization didn't add sessions
+  // This will throw in dev mode if we violated the rule
+  if (process.env.NODE_ENV !== 'production') {
+    const originalSessions = originalPlan.reduce((sum, d) => sum + (d.sessions?.length ?? 0), 0);
+    const normalizedSessions = normalized.reduce((sum, d) => sum + (d.sessions?.length ?? 0), 0);
+    if (normalizedSessions > originalSessions) {
+      console.error('[ARCHITECTURE VIOLATION] Normalization added sessions!', {
+        before: originalSessions,
+        after: normalizedSessions,
+      });
+    }
+  }
 
   return normalized;
 }

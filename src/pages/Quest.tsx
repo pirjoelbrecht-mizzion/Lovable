@@ -597,12 +597,12 @@ export default function Quest() {
       return [];
     }
 
-    const hasUserPlan = weekPlan.some(day => day.sessions.length > 0);
-    const defaultPlan = hasUserPlan ? null : loadWeekPlan();
+    // PHASE 5: REMOVED defaultPlan fallback logic
+    // UI must consume ONLY weekPlan.days[].sessions
+    // NO fallback, NO default plan loading, NO inferring rest days
 
     return weekPlan.flatMap((day, idx) => {
       const daySessions = day.sessions.length > 0 ? day.sessions : [null];
-      const fallback = defaultPlan ? defaultPlan[idx] : null;
       const pos = BUBBLE_POSITIONS[idx];
 
       if (daySessions.length > 1) {
@@ -626,10 +626,11 @@ export default function Quest() {
       return daySessions.map((session, sessionIdx) => {
         const mainSession = session;
 
-        let title = mainSession?.title || fallback?.title || "Rest";
-        const km = mainSession?.km ?? fallback?.km;
-        let notes = mainSession?.notes || fallback?.notes || "";
-        const explicitType = (mainSession as any)?.type || (fallback as any)?.type;
+        // PHASE 5: NO fallback data - use ONLY what's in mainSession
+        let title = mainSession?.title || "Rest";
+        const km = mainSession?.km;
+        let notes = mainSession?.notes || "";
+        const explicitType = (mainSession as any)?.type;
         let sessionType = detectSessionType(title, notes, explicitType);
 
         let emoji = SESSION_EMOJIS[sessionType] || "🏃";
@@ -647,12 +648,13 @@ export default function Quest() {
           emoji = emoji || "💪";
         }
 
-        const durationMin = (mainSession as any)?.durationMin ?? (fallback as any)?.durationMin;
+        // PHASE 5: NO fallback - use ONLY mainSession data
+        const durationMin = (mainSession as any)?.durationMin;
         const duration = durationMin
           ? `${Math.floor(durationMin / 60)}h ${Math.floor(durationMin % 60)}m`.replace(/0h /, '')
           : estimateDuration(km, sessionType);
 
-        const elevation = (mainSession as any)?.elevationGain ?? (fallback as any)?.elevationGain;
+        const elevation = (mainSession as any)?.elevationGain;
         const isToday = idx === today;
         const isAdapted = mainSession?.source === "coach";
 
@@ -1121,7 +1123,8 @@ export default function Quest() {
               <>
                 <CosmicWeekView
                   weekData={(() => {
-                    const defaultPlan = loadWeekPlan();
+                    // PHASE 5: REMOVED defaultPlan loading
+                    // UI consumes ONLY weekPlan.days[].workouts
 
                     console.log('[Quest] Building weekData for CosmicWeekView - weekPlan:', {
                       planLength: weekPlan?.length,
@@ -1170,32 +1173,29 @@ export default function Quest() {
 
                       console.log(`[Quest] ⚠️ ${dayName} - workouts undefined, falling back to session transformation`);
 
-                      // FALLBACK: Legacy transformation from sessions
+                      // PHASE 5: NO FALLBACK - use ONLY userSessions from weekPlan
                       const userSessions = dayData?.sessions || [];
-                      const fallback = defaultPlan[idx];
 
                       if (idx === 2) {
                         console.log(`[Quest] 🔍 ${dayName} - User sessions count:`, userSessions.length);
                         userSessions.forEach((s, i) => {
                           console.log(`[Quest]   Session ${i}:`, s.title, 'km:', s.km, 'type:', (s as any).type, 'notes:', s.notes);
                         });
-                        console.log(`[Quest] 🔍 ${dayName} - Fallback:`, fallback?.title, 'km:', fallback?.km, 'type:', (fallback as any)?.type);
                       }
 
-                      // Start with user sessions or fallback
+                      // PHASE 5: Use ONLY what's in userSessions, no fallback
                       let daySessions: any[] = userSessions.length > 0
                         ? userSessions
-                        : [{ title: fallback?.title || 'Rest', km: fallback?.km || 0, notes: fallback?.notes || '', type: fallback?.type || 'rest' }];
+                        : [{ title: 'Rest', km: 0, notes: '', type: 'rest' }];
 
                       // Check if we need to split combined "run + strength" sessions
-                      // This handles both user sessions and fallback sessions
                       if (daySessions.length === 1) {
                         const sessionTitle = (daySessions[0].title || '').toLowerCase();
                         const hasRunAndStrength = (sessionTitle.includes('run') || sessionTitle.includes('easy')) &&
                                                    (sessionTitle.includes('strength') || sessionTitle.includes('me session') || sessionTitle.includes('+'));
 
                         if (hasRunAndStrength) {
-                          const baseKm = daySessions[0].km || (fallback?.km || 6);
+                          const baseKm = daySessions[0].km || 6;
                           console.log(`[Quest] ⚡ ${dayName} BEFORE SPLIT:`, daySessions[0]);
                           daySessions = [
                             { title: 'Easy run', km: baseKm, type: 'easy', notes: '' },

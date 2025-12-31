@@ -465,14 +465,26 @@ export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | Adaptiv
   const athlete = buildAthleteProfile();
   const userProfile = loadUserProfile();
 
+  // PHASE 2 CRITICAL GUARD: Check if adaptive plan exists and is authoritative
+  // If adaptive plan exists, skip ALL default plan generation
+  const existingPlanSource = Array.isArray(plan) && plan.length > 0 ? plan[0]?.planSource : null;
+  const isAdaptiveAuthoritative = existingPlanSource === 'adaptive' &&
+                                  Array.isArray(plan) &&
+                                  plan.some(day => day.sessions && day.sessions.length > 0);
+
+  if (isAdaptiveAuthoritative) {
+    console.log('[buildAdaptiveContext] ✅ Adaptive plan is authoritative - skipping default generation');
+  }
+
   // Convert plan to adaptive format (handles both formats)
   // If no plan exists or all days are empty, create a default base plan
+  // BUT ONLY if no adaptive plan exists (never override adaptive plans)
   let adaptivePlan: AdaptiveWeeklyPlan;
   const isEmptyPlan = !plan ||
                       (Array.isArray(plan) && plan.length === 0) ||
                       (Array.isArray(plan) && plan.every(day => !day.sessions || day.sessions.length === 0));
 
-  if (isEmptyPlan) {
+  if (isEmptyPlan && !isAdaptiveAuthoritative) {
     console.log('[buildAdaptiveContext] Generating default base plan (empty/missing plan detected)');
 
     // Extract constraints to respect rest days during plan generation
