@@ -19,8 +19,8 @@ import { buildAdaptiveContext, shouldRefreshContext, markContextRefreshed, conve
 import { getCurrentUserId } from '@/lib/supabase';
 import { load, save } from '@/utils/storage';
 import type { WeeklyPlan as AdaptiveWeeklyPlan } from '@/lib/adaptive-coach/types';
-import { getWeekPlan, saveWeekPlan, type WeekPlan as LocalStorageWeekPlan } from '@/lib/plan';
-import { hasRunAdaptiveForWeek, lockAdaptiveExecutionForWeek } from '@/lib/adaptiveExecutionLock';
+import { getWeekPlan, saveWeekPlan, type WeekPlan as LocalStorageWeekPlan, isEmptyLockedAdaptivePlan, clearStoredWeekPlan } from '@/lib/plan';
+import { hasRunAdaptiveForWeek, lockAdaptiveExecutionForWeek, clearAdaptiveExecutionLock } from '@/lib/adaptiveExecutionLock';
 
 export interface UseAdaptiveTrainingPlanOptions {
   /**
@@ -308,11 +308,31 @@ export function useAdaptiveTrainingPlan(
   }, [checkDailyExecution]);
 
   /**
-   * Effect: Auto-execute on mount if needed (runs once only)
+   * Effect: Auto-recovery and auto-execute on mount
+   * Checks for empty locked plans FIRST, then executes if needed
    */
   useEffect(() => {
     if (!autoExecute) return;
 
+    // 3️⃣ Auto-recovery: Check for empty locked adaptive plans FIRST
+    const currentPlan = getWeekPlan();
+    if (isEmptyLockedAdaptivePlan(currentPlan)) {
+      console.warn('[Module 4] Auto-recovery: empty locked plan detected on mount');
+      console.warn('[Module 4] Clearing lock and storage, will trigger fresh execution');
+
+      clearAdaptiveExecutionLock();
+      clearStoredWeekPlan();
+
+      // Force immediate execution after recovery (bypass lock since we just cleared it)
+      setTimeout(() => {
+        console.log('[Module 4] Executing after auto-recovery');
+        execute(undefined, true); // Bypass lock check
+      }, 50);
+
+      return; // Skip normal execution check, recovery will handle it
+    }
+
+    // Normal execution check
     const shouldExecute = checkExecutionNeeded();
     setNeedsExecution(shouldExecute);
 

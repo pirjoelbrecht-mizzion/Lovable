@@ -11,7 +11,7 @@ import {
 import QuickAddRace from "@/components/QuickAddRace";
 import WeatherAlertBanner from "@/components/WeatherAlertBanner";
 import { AddSessionModal } from "@/components/AddSessionModal";
-import { getWeekPlan, defaultWeek, type WeekPlan, todayDayIndex, addUserSession, normalizeAdaptivePlan, isEmptyLockedAdaptivePlan, clearStoredWeekPlan } from "@/lib/plan";
+import { getWeekPlan, defaultWeek, type WeekPlan, todayDayIndex, addUserSession, normalizeAdaptivePlan, clearStoredWeekPlan } from "@/lib/plan";
 import { clearAdaptiveExecutionLock } from "@/lib/adaptiveExecutionLock";
 import { fetchDailyWeather, type DailyWeather, getWeatherForLocation, type CurrentWeather } from "@/utils/weather";
 import { loadUserProfile } from "@/state/userData";
@@ -265,26 +265,8 @@ export default function Quest() {
     },
   });
 
-  // 3️⃣ Auto-recovery: Detect and recover from empty locked adaptive plans
-  useEffect(() => {
-    const currentPlan = getWeekPlan();
-
-    if (isEmptyLockedAdaptivePlan(currentPlan)) {
-      console.warn('[Quest] Auto-recovery triggered: empty locked adaptive plan detected');
-      console.warn('[Quest] Clearing lock and stored plan, triggering fresh adaptive run');
-
-      // Clear the invalid state
-      clearAdaptiveExecutionLock();
-      clearStoredWeekPlan();
-
-      // Trigger fresh adaptive execution
-      setTimeout(() => {
-        console.log('[Quest] Triggering adaptive engine refresh after recovery');
-        refreshAdaptivePlan();
-      }, 100);
-    }
-  }, []); // Only run once on mount
-
+  // Auto-recovery now handled directly in useAdaptiveTrainingPlan hook
+  // No additional recovery logic needed here
 
   const todayTarget = useMemo(() => {
     const todaySession = weekPlan[today];

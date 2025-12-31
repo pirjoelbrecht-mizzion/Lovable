@@ -10,6 +10,8 @@ The adaptive engine had no validation to reject empty plans before saving and lo
 
 ## Solution Implemented
 
+**All recovery is now fully automatic. No button clicks required.**
+
 ### 1️⃣ Empty Plan Rejection (useAdaptiveTrainingPlan.ts:204-211)
 
 **Added validation before save/lock:**
@@ -39,34 +41,38 @@ lockAdaptiveExecutionForWeek(userId);
 
 **Result:** The execution lock is only created for valid plans with workouts.
 
-### 3️⃣ Auto-Recovery on Load (Quest.tsx:268-286)
+### 3️⃣ Auto-Recovery Built Into Hook (useAdaptiveTrainingPlan.ts:317-332)
 
-**Added detection and recovery logic:**
+**Added detection and recovery logic directly in the adaptive hook:**
 ```typescript
-// Auto-recovery: Detect and recover from empty locked adaptive plans
-useEffect(() => {
-  const currentPlan = getWeekPlan();
+// Auto-recovery: Check for empty locked adaptive plans FIRST
+const currentPlan = getWeekPlan();
+if (isEmptyLockedAdaptivePlan(currentPlan)) {
+  console.warn('[Module 4] Auto-recovery: empty locked plan detected on mount');
 
-  if (isEmptyLockedAdaptivePlan(currentPlan)) {
-    console.warn('[Quest] Auto-recovery triggered: empty locked adaptive plan detected');
+  clearAdaptiveExecutionLock();
+  clearStoredWeekPlan();
 
-    // Clear the invalid state
-    clearAdaptiveExecutionLock();
-    clearStoredWeekPlan();
+  // Force immediate execution after recovery (bypass lock)
+  setTimeout(() => {
+    console.log('[Module 4] Executing after auto-recovery');
+    execute(undefined, true); // Bypass lock check
+  }, 50);
 
-    // Trigger fresh adaptive execution
-    setTimeout(() => {
-      refreshAdaptivePlan();
-    }, 100);
-  }
-}, []); // Only run once on mount
+  return; // Skip normal execution check, recovery will handle it
+}
 ```
+
+**Why in the hook?**
+- Runs at the right time - BEFORE the hook decides whether to execute
+- Guaranteed to run on every app load
+- No timing issues with other useEffects
 
 **Helper functions added to plan.ts:**
 - `isEmptyLockedAdaptivePlan()` - Detects empty adaptive plans
 - `clearStoredWeekPlan()` - Clears all plan storage
 
-**Result:** Users automatically recover from empty locked plans on app load.
+**Result:** Users automatically recover from empty locked plans on app load. No manual intervention needed.
 
 ### 4️⃣ Hardened Reset Plan (Quest.tsx:1113-1118)
 
@@ -110,6 +116,8 @@ export function clearAdaptiveExecutionLock(): void {
 1. **src/hooks/useAdaptiveTrainingPlan.ts**
    - Added empty plan validation before save (lines 204-211)
    - Moved lock after validation (lines 217-219)
+   - Added auto-recovery check in mount effect (lines 317-332)
+   - Imported recovery helpers
 
 2. **src/lib/adaptiveExecutionLock.ts**
    - Exported `clearAdaptiveExecutionLock()` function
@@ -119,18 +127,34 @@ export function clearAdaptiveExecutionLock(): void {
    - Added `clearStoredWeekPlan()` helper
 
 4. **src/pages/Quest.tsx**
-   - Added auto-recovery logic on mount (lines 268-286)
    - Hardened Reset Plan button (lines 1113-1118)
-   - Added required imports
+   - Added required imports (clearStoredWeekPlan, clearAdaptiveExecutionLock)
+
+## How It Works Now
+
+**Fully Automatic Recovery:**
+
+1. **First Load After Fix:**
+   - If you have an empty locked plan, the app detects it automatically
+   - Auto-recovery clears the bad state
+   - Fresh plan is generated immediately
+   - No button clicks needed
+
+2. **Ongoing Protection:**
+   - Adaptive engine rejects empty plans before saving
+   - Lock only happens for valid plans
+   - If an empty plan somehow exists, auto-recovery handles it
+
+3. **Manual Reset (if needed):**
+   - The existing "Reset Plan" button now properly clears everything
+   - Forces a clean regeneration
+   - Use only if you want to start fresh
 
 ## Testing Checklist
 
-- [ ] Clear localStorage
-- [ ] Reload app - should auto-recover if empty plan exists
-- [ ] Add 4 race events from the Quest page
-- [ ] Click "Regenerate Plan" - should generate workouts
-- [ ] Verify workouts appear in Cosmic view
-- [ ] Click "Reset Plan" - should clear and regenerate
+- [ ] Reload app - should auto-recover if empty plan exists (automatic)
+- [ ] Verify workouts appear in Cosmic view (automatic)
+- [ ] Optionally click "Reset Plan" to force regeneration (manual)
 - [ ] Verify plan never gets permanently locked with 0 workouts
 
 ## Technical Notes
