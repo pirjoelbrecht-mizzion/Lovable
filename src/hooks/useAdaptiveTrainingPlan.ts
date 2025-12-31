@@ -312,10 +312,22 @@ export function useAdaptiveTrainingPlan(
    * Checks for empty locked plans FIRST, then executes if needed
    */
   useEffect(() => {
-    if (!autoExecute) return;
+    console.log('[Module 4] Mount effect starting...', { autoExecute });
+
+    if (!autoExecute) {
+      console.log('[Module 4] Auto-execute disabled, skipping');
+      return;
+    }
 
     // 3️⃣ Auto-recovery: Check for empty locked adaptive plans FIRST
     const currentPlan = getWeekPlan();
+    console.log('[Module 4] Checking current plan:', {
+      planExists: !!currentPlan,
+      planLength: currentPlan?.length,
+      planSource: currentPlan?.[0]?.planSource,
+      totalSessions: currentPlan?.reduce((sum, day) => sum + (day.sessions?.length ?? 0), 0),
+    });
+
     if (isEmptyLockedAdaptivePlan(currentPlan)) {
       console.warn('[Module 4] Auto-recovery: empty locked plan detected on mount');
       console.warn('[Module 4] Clearing lock and storage, will trigger fresh execution');
@@ -334,11 +346,14 @@ export function useAdaptiveTrainingPlan(
 
     // Normal execution check
     const shouldExecute = checkExecutionNeeded();
+    console.log('[Module 4] Execution check:', { shouldExecute, isExecuting: executionRef.current });
     setNeedsExecution(shouldExecute);
 
     if (shouldExecute && !executionRef.current) {
       console.log('[Module 4] Auto-executing on mount');
       execute();
+    } else {
+      console.log('[Module 4] Skipping execution:', { shouldExecute, alreadyExecuting: executionRef.current });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
