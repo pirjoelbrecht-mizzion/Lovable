@@ -201,11 +201,21 @@ export function useAdaptiveTrainingPlan(
         restDays: validDays.filter(d => d.sessions.length === 0).length,
       });
 
+      // 1️⃣ CRITICAL: Detect and reject empty adaptive plans
+      const totalWorkouts = adaptivePlan.reduce((sum, day) => sum + (day.sessions?.length ?? 0), 0);
+      if (totalWorkouts === 0) {
+        console.warn('[Module 4] Generated empty plan (0 workouts) – aborting save and lock');
+        console.warn('[Module 4] This prevents invalid empty plans from becoming permanent');
+        setError('Generated plan has no workouts. Please check your goals and settings.');
+        return null;
+      }
+
       // Sync to localStorage for backward compatibility
       console.log('[Module 4] Syncing adjusted plan to localStorage...');
       saveWeekPlan(adaptivePlan);
 
-      // Lock execution for this week to prevent duplicate runs
+      // 2️⃣ Lock execution ONLY after confirming valid plan is saved
+      console.log('[Module 4] Valid plan confirmed, locking execution for this week');
       lockAdaptiveExecutionForWeek(userId);
 
       // Update state

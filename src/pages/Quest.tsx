@@ -11,7 +11,8 @@ import {
 import QuickAddRace from "@/components/QuickAddRace";
 import WeatherAlertBanner from "@/components/WeatherAlertBanner";
 import { AddSessionModal } from "@/components/AddSessionModal";
-import { getWeekPlan, defaultWeek, type WeekPlan, todayDayIndex, addUserSession, normalizeAdaptivePlan } from "@/lib/plan";
+import { getWeekPlan, defaultWeek, type WeekPlan, todayDayIndex, addUserSession, normalizeAdaptivePlan, isEmptyLockedAdaptivePlan, clearStoredWeekPlan } from "@/lib/plan";
+import { clearAdaptiveExecutionLock } from "@/lib/adaptiveExecutionLock";
 import { fetchDailyWeather, type DailyWeather, getWeatherForLocation, type CurrentWeather } from "@/utils/weather";
 import { loadUserProfile } from "@/state/userData";
 import { loadWeekPlan } from "@/utils/weekPlan";
@@ -254,6 +255,7 @@ export default function Quest() {
     decision: adaptiveDecision,
     isExecuting: isModule4Running,
     lastExecuted: module4LastExecuted,
+    refresh: refreshAdaptivePlan,
   } = useAdaptiveTrainingPlan({
     autoExecute: true,
     dailyExecution: true,
@@ -262,6 +264,26 @@ export default function Quest() {
       console.error('[Quest] Adaptive Engine error:', error);
     },
   });
+
+  // 3️⃣ Auto-recovery: Detect and recover from empty locked adaptive plans
+  useEffect(() => {
+    const currentPlan = getWeekPlan();
+
+    if (isEmptyLockedAdaptivePlan(currentPlan)) {
+      console.warn('[Quest] Auto-recovery triggered: empty locked adaptive plan detected');
+      console.warn('[Quest] Clearing lock and stored plan, triggering fresh adaptive run');
+
+      // Clear the invalid state
+      clearAdaptiveExecutionLock();
+      clearStoredWeekPlan();
+
+      // Trigger fresh adaptive execution
+      setTimeout(() => {
+        console.log('[Quest] Triggering adaptive engine refresh after recovery');
+        refreshAdaptivePlan();
+      }, 100);
+    }
+  }, []); // Only run once on mount
 
 
   const todayTarget = useMemo(() => {
@@ -1088,10 +1110,11 @@ export default function Quest() {
                 <button
                   className="quest-list-btn"
                   onClick={() => {
-                    if (confirm('Reset this week\'s plan? This will load the default training template.')) {
-                      localStorage.removeItem('weekPlan_current');
-                      localStorage.removeItem('userWeekPlan');
-                      localStorage.removeItem('planner:week');
+                    if (confirm('Reset this week\'s plan? This will clear the plan and regenerate from your goals.')) {
+                      // 4️⃣ Harden reset: Clear all plan state including adaptive lock
+                      clearStoredWeekPlan();
+                      clearAdaptiveExecutionLock();
+                      console.log('[Quest] Plan reset: cleared stored plan and execution lock');
                       window.location.reload();
                     }
                   }}

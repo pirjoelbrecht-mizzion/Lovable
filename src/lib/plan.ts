@@ -423,3 +423,41 @@ export function normalizeAdaptivePlan(plan: WeekPlan): WeekPlan {
 
   return normalized;
 }
+
+/**
+ * 3️⃣ Auto-recovery: Detect empty locked adaptive plans
+ * Returns true if the plan is adaptive, has no workouts, and should be regenerated
+ */
+export function isEmptyLockedAdaptivePlan(plan: WeekPlan | null): boolean {
+  if (!plan || plan.length === 0) {
+    return false;
+  }
+
+  const isAdaptive = plan[0]?.planSource === 'adaptive';
+  if (!isAdaptive) {
+    return false;
+  }
+
+  const totalSessions = plan.reduce((sum, day) => sum + (day.sessions?.length ?? 0), 0);
+  const isEmpty = totalSessions === 0;
+
+  if (isEmpty) {
+    console.warn('[Plan Recovery] Detected empty locked adaptive plan', {
+      planSource: plan[0]?.planSource,
+      planAppliedAt: plan[0]?.planAppliedAt,
+      totalSessions,
+    });
+  }
+
+  return isEmpty;
+}
+
+/**
+ * Clear the stored week plan (for recovery scenarios)
+ */
+export function clearStoredWeekPlan(): void {
+  console.debug('[WeekPlan] Clearing stored plan');
+  save(KEY, null);
+  localStorage.removeItem('weekPlan_current');
+  localStorage.removeItem('userWeekPlan');
+}

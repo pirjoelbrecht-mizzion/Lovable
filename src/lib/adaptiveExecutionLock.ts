@@ -82,6 +82,11 @@ export function resetAdaptiveExecutionLock(): void {
   save(WEEKLY_KEY_KEY, null);
 }
 
+export function clearAdaptiveExecutionLock(): void {
+  console.debug('[Adaptive Lock] Clearing execution lock (alias for reset)');
+  resetAdaptiveExecutionLock();
+}
+
 export function shouldTriggerAdaptiveExecution(userId: string | null): {
   should: boolean;
   reason: string;
