@@ -57,48 +57,24 @@ const isRaceWorkout = (workout: Workout): boolean => {
   return title.includes('race') || title.includes('event') || title.includes('bt2') || title.includes('marathon') || title.includes('ultra');
 };
 
-type DefaultWorkout = { title: string; type: WorkoutType; distance?: string };
-type DefaultDayWorkouts = DefaultWorkout[];
-
-const DEFAULT_WEEK_DATA: DefaultDayWorkouts[] = [
-  [{ title: 'Rest / Mobility', type: 'rest' }],
-  [{ title: 'Easy run', type: 'easy', distance: '8K' }],
-  [{ title: 'Easy run', type: 'easy', distance: '6K' }, { title: 'Strength', type: 'strength' }],
-  [{ title: 'Easy run', type: 'easy', distance: '8K' }],
-  [{ title: 'Workout', type: 'workout', distance: '10K' }],
-  [{ title: 'Long run', type: 'long', distance: '16K' }],
-  [{ title: 'Easy shakeout', type: 'easy', distance: '6K' }],
-];
-
-const DAYS_FALLBACK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
 export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicWeekViewProps) {
-  const [hoveredWorkout, setHoveredWorkout] = useState<string | null>(null);
-  const todayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+  console.log(
+    '[CosmicWeekView] RENDER',
+    weekData.map(d => ({
+      day: d.day,
+      workouts: d.workouts?.length ?? 0,
+      workoutTypes: d.workouts?.map(w => w.type) ?? []
+    }))
+  );
 
-  const effectiveWeekData = weekData && weekData.length === 7
-    ? weekData
-    : DAYS_FALLBACK.map((dayName, idx) => ({
-        day: dayName,
-        dayShort: dayName,
-        isToday: idx === todayIndex,
-        workouts: DEFAULT_WEEK_DATA[idx].map((w, wIdx) => ({
-          id: `default-${idx}-${wIdx}`,
-          type: w.type,
-          title: w.title,
-          distance: w.distance,
-          duration: '45 min',
-          completed: idx < todayIndex,
-          isToday: idx === todayIndex && wIdx === 0,
-        })),
-      }));
+  const [hoveredWorkout, setHoveredWorkout] = useState<string | null>(null);
 
   return (
     <div className="cosmic-week-container">
       <div className="cosmic-grid-floor" />
 
       <div className="cosmic-week-content">
-        {effectiveWeekData.map((day, dayIndex) => {
+        {weekData.map((day, dayIndex) => {
           const workout = day.workouts[0];
           const isRestDay = !workout || day.workouts.length === 0;
           const isRace = !isRestDay && isRaceWorkout(workout);
