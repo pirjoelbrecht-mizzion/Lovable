@@ -143,21 +143,23 @@ export function convertToLocalStoragePlan(
     return Array.from({ length: 7 }, (_, i) => {
       const date = new Date(monday);
       date.setDate(date.getDate() + i);
+      const restSession = {
+        id: `rest_${i}`,
+        title: 'Rest Day',
+        type: 'rest',
+        notes: 'Recovery',
+        km: 0,
+        distanceKm: 0,
+        durationMin: 0,
+        zones: [],
+        elevationGain: 0,
+        source: 'coach' as const,
+      };
       return {
         label: dayLabels[i],
         dateISO: date.toISOString().slice(0, 10),
-        sessions: [{
-          id: `rest_${i}`,
-          title: 'Rest Day',
-          type: 'rest',
-          notes: 'Recovery',
-          km: 0,
-          distanceKm: 0,
-          durationMin: 0,
-          zones: [],
-          elevationGain: 0,
-          source: 'coach' as const,
-        }],
+        sessions: [restSession],
+        workouts: [sessionToWorkout(restSession)], // CRITICAL: Convert to workouts
       };
     });
   }
@@ -204,10 +206,15 @@ export function convertToLocalStoragePlan(
       source: 'coach' as const,
     }));
 
+    // CRITICAL: Convert sessions to workouts for UI rendering
+    // The UI exclusively renders from day.workouts, not day.sessions
+    const workouts = sessions.map(sessionToWorkout);
+
     return {
       label: day.day.slice(0, 3), // Mon, Tue, etc.
       dateISO: day.date,
       sessions,
+      workouts, // UI rendering layer
     };
   });
 
@@ -215,11 +222,24 @@ export function convertToLocalStoragePlan(
   console.log('[MULTI-SESSION] Output sessions per day:',
     result.map(d => `${d.label}: ${d.sessions.length} sessions`)
   );
+  console.log('[MULTI-SESSION] Output workouts per day:',
+    result.map(d => `${d.label}: ${d.workouts?.length || 0} workouts`)
+  );
 
   // FINAL GUARD: Ensure exactly 7 days in output
   if (result.length !== 7) {
     console.error('[convertToLocalStoragePlan] INVARIANT VIOLATION: Output has', result.length, 'days instead of 7');
     throw new Error(`Invariant violation: convertToLocalStoragePlan must return 7 days, got ${result.length}`);
+  }
+
+  // CRITICAL INVARIANT: Every day must have workouts.length === sessions.length
+  const invalidDays = result.filter(day => day.workouts.length !== day.sessions.length);
+  if (invalidDays.length > 0) {
+    console.error('[convertToLocalStoragePlan] INVARIANT VIOLATION: Mismatch between sessions and workouts');
+    invalidDays.forEach(day => {
+      console.error(`  ${day.label}: ${day.sessions.length} sessions but ${day.workouts.length} workouts`);
+    });
+    throw new Error(`Invariant violation: workouts.length must equal sessions.length on all days`);
   }
 
   return result;
