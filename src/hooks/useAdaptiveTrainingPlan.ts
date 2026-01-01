@@ -201,12 +201,19 @@ export function useAdaptiveTrainingPlan(
         restDays: validDays.filter(d => d.sessions.length === 0).length,
       });
 
-      // 1️⃣ CRITICAL: Detect and reject empty adaptive plans
-      const totalWorkouts = adaptivePlan.reduce((sum, day) => sum + (day.sessions?.length ?? 0), 0);
+      // 1️⃣ CRITICAL: Detect empty adaptive plans
+      // Count non-rest workouts (rest days are valid)
+      const totalWorkouts = adaptivePlan.reduce((sum, day) => {
+        const nonRestSessions = day.sessions?.filter(s => s.type !== 'rest') ?? [];
+        return sum + nonRestSessions.length;
+      }, 0);
+
       if (totalWorkouts === 0) {
-        console.warn('[Module 4] Generated empty plan (0 workouts) – aborting save and lock');
-        console.warn('[Module 4] This prevents invalid empty plans from becoming permanent');
-        setError('Generated plan has no workouts. Please check your goals and settings.');
+        console.warn('[Module 4] Generated plan with only rest days (0 active workouts)');
+        console.warn('[Module 4] Keeping last valid plan instead of overwriting with empty plan');
+        setError('Generated plan has no active workouts. Keeping existing plan.');
+        // Do NOT clear the execution lock - allow retry next week
+        // Do NOT save the empty plan - preserve what's currently in storage
         return null;
       }
 
@@ -330,10 +337,11 @@ export function useAdaptiveTrainingPlan(
 
     if (isEmptyLockedAdaptivePlan(currentPlan)) {
       console.warn('[Module 4] Auto-recovery: empty locked plan detected on mount');
-      console.warn('[Module 4] Clearing lock and storage, will trigger fresh execution');
+      console.warn('[Module 4] Clearing lock to allow fresh execution, but keeping plan as fallback');
 
+      // Clear the lock to allow a new attempt, but DON'T clear the stored plan
+      // This prevents losing any fallback plan that might exist
       clearAdaptiveExecutionLock();
-      clearStoredWeekPlan();
 
       // Force immediate execution after recovery (bypass lock since we just cleared it)
       setTimeout(() => {

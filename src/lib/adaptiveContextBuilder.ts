@@ -132,6 +132,61 @@ export function convertToLocalStoragePlan(
   console.log('[MULTI-SESSION] Converting adaptive plan to localStorage');
   console.log('[MULTI-SESSION] Days in adaptive plan:', adaptivePlan.days.length);
 
+  // CRITICAL GUARD: Ensure we always have 7 days
+  if (!adaptivePlan.days || adaptivePlan.days.length === 0) {
+    console.error('[convertToLocalStoragePlan] CRITICAL: Adaptive plan has 0 days! Creating empty week structure.');
+
+    // Create a valid 7-day structure with rest days
+    const monday = getMondayOfWeek();
+    const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+
+    return Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(monday);
+      date.setDate(date.getDate() + i);
+      return {
+        label: dayLabels[i],
+        dateISO: date.toISOString().slice(0, 10),
+        sessions: [{
+          id: `rest_${i}`,
+          title: 'Rest Day',
+          type: 'rest',
+          notes: 'Recovery',
+          km: 0,
+          distanceKm: 0,
+          durationMin: 0,
+          zones: [],
+          elevationGain: 0,
+          source: 'coach' as const,
+        }],
+      };
+    });
+  }
+
+  // Ensure exactly 7 days (fill missing days with rest days if needed)
+  if (adaptivePlan.days.length < 7) {
+    console.warn('[convertToLocalStoragePlan] Plan has only', adaptivePlan.days.length, 'days. Filling to 7 days.');
+    const monday = getMondayOfWeek();
+    const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+    // Fill missing days
+    while (adaptivePlan.days.length < 7) {
+      const idx = adaptivePlan.days.length;
+      const date = new Date(monday);
+      date.setDate(date.getDate() + idx);
+
+      adaptivePlan.days.push({
+        day: dayNames[idx],
+        date: date.toISOString().slice(0, 10),
+        sessions: [{
+          type: 'rest',
+          title: 'Rest Day',
+          description: 'Recovery',
+        }],
+        completed: false,
+      });
+    }
+  }
+
   const result = adaptivePlan.days.map((day, idx) => {
     // Convert all sessions from adaptive format to localStorage format
     const adaptiveSessions = day.sessions || [];
@@ -160,6 +215,12 @@ export function convertToLocalStoragePlan(
   console.log('[MULTI-SESSION] Output sessions per day:',
     result.map(d => `${d.label}: ${d.sessions.length} sessions`)
   );
+
+  // FINAL GUARD: Ensure exactly 7 days in output
+  if (result.length !== 7) {
+    console.error('[convertToLocalStoragePlan] INVARIANT VIOLATION: Output has', result.length, 'days instead of 7');
+    throw new Error(`Invariant violation: convertToLocalStoragePlan must return 7 days, got ${result.length}`);
+  }
 
   return result;
 }
@@ -515,13 +576,31 @@ export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | Adaptiv
 
     if (adaptivePending && hasUserConstraints) {
       console.log('[buildAdaptiveContext] ⏭️ Skipping fallback plan - adaptive execution pending with user constraints');
-      // Return minimal valid plan to prevent errors
+      // Return minimal valid 7-day plan with all rest days
+      // CRITICAL: Must have 7 days to prevent downstream failures
+      const monday = getMondayOfWeek();
+      const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      const emptyDays: DailyPlan[] = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date(monday);
+        date.setDate(date.getDate() + i);
+        return {
+          day: dayNames[i],
+          date: date.toISOString().slice(0, 10),
+          sessions: [{
+            type: 'rest',
+            title: 'Rest Day',
+            description: 'Recovery',
+          }],
+          completed: false,
+        };
+      });
+
       adaptivePlan = {
         weekNumber: 1,
         phase: 'base',
         targetMileage: 0,
         targetVert: 0,
-        days: [],
+        days: emptyDays,
         actualMileage: 0,
         actualVert: 0,
       };

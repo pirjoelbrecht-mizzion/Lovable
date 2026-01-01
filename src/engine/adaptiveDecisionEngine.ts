@@ -181,7 +181,7 @@ export function computeTrainingAdjustment(context: AdaptiveContext): AdaptiveDec
   const resolution = resolveConflicts(layers, context);
 
   // Apply all approved changes (pass context to check for race day)
-  const modifiedPlan = applyAllLayers(context.plan, resolution.approvedLayers, context);
+  let modifiedPlan = applyAllLayers(context.plan, resolution.approvedLayers, context);
 
   // Generate final reasoning
   const finalReasoning = generateReasoning(resolution.approvedLayers, context);
@@ -192,6 +192,21 @@ export function computeTrainingAdjustment(context: AdaptiveContext): AdaptiveDec
     .map(l => l.reasoning);
 
   const warnings = detectWarnings(context, resolution.approvedLayers);
+
+  // FINAL INVARIANT CHECK: Ensure modified plan has exactly 7 days
+  if (!modifiedPlan.days || modifiedPlan.days.length !== 7) {
+    console.error('[ADE] CRITICAL INVARIANT VIOLATION: Modified plan has', modifiedPlan.days?.length, 'days instead of 7');
+    console.error('[ADE] Original plan had', context.plan.days?.length, 'days');
+    console.error('[ADE] Fixing by filling missing days...');
+
+    if (modifiedPlan.days.length === 0) {
+      modifiedPlan = createEmptyWeekPlan();
+    } else if (modifiedPlan.days.length < 7) {
+      modifiedPlan = fillMissingDays(modifiedPlan);
+    }
+
+    console.log('[ADE] Fixed plan now has', modifiedPlan.days.length, 'days');
+  }
 
   return {
     originalPlan: context.plan,
@@ -905,6 +920,15 @@ function applyLayerToPlan(plan: WeeklyPlan, layer: AdjustmentLayer): WeeklyPlan 
 function applyAllLayers(plan: WeeklyPlan, layers: AdjustmentLayer[], context?: AdaptiveContext): WeeklyPlan {
   let result = plan;
 
+  // CRITICAL GUARD: Ensure input plan has 7 days
+  if (!result.days || result.days.length === 0) {
+    console.error('[applyAllLayers] CRITICAL: Input plan has 0 days! Creating empty 7-day structure.');
+    result = createEmptyWeekPlan();
+  } else if (result.days.length < 7) {
+    console.warn('[applyAllLayers] Input plan has only', result.days.length, 'days. Filling to 7 days.');
+    result = fillMissingDays(result);
+  }
+
   layers.forEach(layer => {
     result = applyLayerToPlan(result, layer);
   });
@@ -981,6 +1005,88 @@ function generateReasoning(layers: AdjustmentLayer[], context: AdaptiveContext):
   }
 
   return reasons;
+}
+
+/**
+ * Create an empty 7-day week plan with all rest days
+ * Used as a fallback when the input plan has 0 days
+ */
+function createEmptyWeekPlan(): WeeklyPlan {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const monday = new Date(now);
+  monday.setDate(monday.getDate() - daysToMonday);
+
+  const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  const days: DailyPlan[] = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(monday);
+    date.setDate(date.getDate() + i);
+    return {
+      day: dayNames[i],
+      date: date.toISOString().slice(0, 10),
+      sessions: [{
+        type: 'rest',
+        title: 'Rest Day',
+        description: 'Recovery',
+      }],
+      completed: false,
+    };
+  });
+
+  return {
+    weekNumber: 1,
+    phase: 'base',
+    targetMileage: 0,
+    targetVert: 0,
+    days,
+    actualMileage: 0,
+    actualVert: 0,
+  };
+}
+
+/**
+ * Fill missing days in a plan to ensure it has exactly 7 days
+ */
+function fillMissingDays(plan: WeeklyPlan): WeeklyPlan {
+  const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  // Get the Monday of the current week from the first day in the plan
+  let monday: Date;
+  if (plan.days.length > 0 && plan.days[0].date) {
+    monday = new Date(plan.days[0].date);
+  } else {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    monday = new Date(now);
+    monday.setDate(monday.getDate() - daysToMonday);
+  }
+
+  const filledDays = [...plan.days];
+
+  while (filledDays.length < 7) {
+    const idx = filledDays.length;
+    const date = new Date(monday);
+    date.setDate(date.getDate() + idx);
+
+    filledDays.push({
+      day: dayNames[idx],
+      date: date.toISOString().slice(0, 10),
+      sessions: [{
+        type: 'rest',
+        title: 'Rest Day',
+        description: 'Recovery',
+      }],
+      completed: false,
+    });
+  }
+
+  return {
+    ...plan,
+    days: filledDays,
+  };
 }
 
 function detectWarnings(context: AdaptiveContext, layers: AdjustmentLayer[]): string[] {
