@@ -221,6 +221,22 @@ function buildAthleteProfile(): AthleteProfile {
 }
 
 /**
+ * Load Supabase user profile for rest days and training preferences
+ */
+async function loadSupabaseProfile(): Promise<any> {
+  try {
+    const userId = await getCurrentUserId();
+    if (userId) {
+      const { getUserProfile } = await import('@/lib/userProfile');
+      return await getUserProfile(userId);
+    }
+  } catch (error) {
+    console.warn('[loadSupabaseProfile] Failed to load:', error);
+  }
+  return null;
+}
+
+/**
  * Get training history metrics
  */
 async function getTrainingHistory() {
@@ -461,6 +477,9 @@ export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | Adaptiv
     }
   }
 
+  // Load Supabase profile for user-defined rest days
+  const supabaseProfile = await loadSupabaseProfile();
+
   // Get athlete profile early (needed for constraints and context)
   const athlete = buildAthleteProfile();
   const userProfile = loadUserProfile();
@@ -484,101 +503,125 @@ export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | Adaptiv
                       (Array.isArray(plan) && plan.length === 0) ||
                       (Array.isArray(plan) && plan.every(day => !day.sessions || day.sessions.length === 0));
 
+  // CRITICAL GUARD: Check if adaptive execution is pending
+  // If adaptive execution will run soon, don't generate fallback plan
+  const userId = await getCurrentUserId();
+  const { shouldTriggerAdaptiveExecution } = await import('@/lib/adaptiveExecutionLock');
+  const { should: adaptivePending } = shouldTriggerAdaptiveExecution(userId);
+
   if (isEmptyPlan && !isAdaptiveAuthoritative) {
-    console.log('[buildAdaptiveContext] Generating default base plan (empty/missing plan detected)');
+    // If adaptive execution is pending and we have user constraints, skip fallback
+    const hasUserConstraints = supabaseProfile?.restDays || supabaseProfile?.daysPerWeek;
 
-    // Extract constraints to respect rest days during plan generation
-    const constraints = extractTrainingConstraints(athlete, userProfile);
-    const restDaySet = new Set(constraints.restDays || []);
-
-    console.log('[buildAdaptiveContext] Rest days from constraints:', constraints.restDays, 'daysPerWeek:', constraints.daysPerWeek);
-
-    // Generate a default 7-day base plan RESPECTING REST DAYS
-    const monday = getMondayOfWeek();
-    const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
-    const defaultPlan: LocalStorageWeekPlan = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date(monday);
-      date.setDate(date.getDate() + i);
-      const dayLabel = dayLabels[i];
-      const dateStr = date.toISOString().slice(0, 10);
-
-      // CRITICAL: Check if this day is a rest day
-      const isRestDay = restDaySet.has(dayLabel);
-
-      if (isRestDay) {
-        // Rest days have no sessions
-        console.log(`[buildAdaptiveContext] ${dayLabel} is a rest day (from constraints)`);
-        return {
-          label: dayLabel,
-          dateISO: dateStr,
-          sessions: []
-        };
-      }
-
-      // Wednesday is easy run + strength training day
-      if (i === 2) {
-        return {
-          label: dayLabel,
-          dateISO: dateStr,
-          sessions: [
-            {
-              id: `default_${i}_run`,
-              title: 'Easy run',
-              type: 'easy',
-              notes: 'Recovery run',
-              km: 6,
-              distanceKm: 6,
-              durationMin: 36,
-              zones: ['Z2'],
-              elevationGain: 0,
-              source: 'coach' as const
-            },
-            {
-              id: `default_${i}_strength`,
-              title: 'Strength Training',
-              type: 'strength',
-              notes: 'ME session - terrain-based strength work',
-              km: 0,
-              distanceKm: 0,
-              durationMin: 40,
-              zones: [],
-              elevationGain: 0,
-              source: 'coach' as const
-            }
-          ]
-        };
-      }
-
-      return {
-        label: dayLabel,
-        dateISO: dateStr,
-        sessions: [{
-          id: `default_${i}`,
-          title: 'Easy Run',
-          type: 'easy',
-          notes: 'Base training',
-          km: 8,
-          distanceKm: 8,
-          durationMin: 48,
-          zones: ['Z2'],
-          elevationGain: 0,
-          source: 'coach' as const
-        }]
+    if (adaptivePending && hasUserConstraints) {
+      console.log('[buildAdaptiveContext] ⏭️ Skipping fallback plan - adaptive execution pending with user constraints');
+      // Return minimal valid plan to prevent errors
+      adaptivePlan = {
+        weekNumber: 1,
+        phase: 'base',
+        targetMileage: 0,
+        targetVert: 0,
+        days: [],
+        actualMileage: 0,
+        actualVert: 0,
       };
-    });
+    } else {
+      console.log('[buildAdaptiveContext] Generating default base plan (empty/missing plan detected)');
 
-    // Validate training day count matches constraints
-    const trainingDays = defaultPlan.filter(d => d.sessions && d.sessions.length > 0);
-    if (trainingDays.length !== constraints.daysPerWeek) {
-      console.warn('[buildAdaptiveContext] Training day count mismatch!', {
-        expected: constraints.daysPerWeek,
-        actual: trainingDays.length,
-        trainingDays: trainingDays.map(d => d.label),
-        restDays: constraints.restDays
+      // Extract constraints to respect rest days during plan generation
+      // Pass Supabase profile to get user-defined rest days
+      const constraints = extractTrainingConstraints(athlete, supabaseProfile || userProfile);
+      const restDaySet = new Set(constraints.restDays || []);
+
+      console.log('[buildAdaptiveContext] Rest days from constraints:', constraints.restDays, 'daysPerWeek:', constraints.daysPerWeek);
+
+      // Generate a default 7-day base plan RESPECTING REST DAYS
+      const monday = getMondayOfWeek();
+      const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+      const defaultPlan: LocalStorageWeekPlan = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date(monday);
+        date.setDate(date.getDate() + i);
+        const dayLabel = dayLabels[i];
+        const dateStr = date.toISOString().slice(0, 10);
+
+        // CRITICAL: Check if this day is a rest day
+        const isRestDay = restDaySet.has(dayLabel);
+
+        if (isRestDay) {
+          // Rest days have no sessions
+          console.log(`[buildAdaptiveContext] ${dayLabel} is a rest day (from constraints)`);
+          return {
+            label: dayLabel,
+            dateISO: dateStr,
+            sessions: []
+          };
+        }
+
+        // Wednesday is easy run + strength training day
+        if (i === 2) {
+          return {
+            label: dayLabel,
+            dateISO: dateStr,
+            sessions: [
+              {
+                id: `default_${i}_run`,
+                title: 'Easy run',
+                type: 'easy',
+                notes: 'Recovery run',
+                km: 6,
+                distanceKm: 6,
+                durationMin: 36,
+                zones: ['Z2'],
+                elevationGain: 0,
+                source: 'coach' as const
+              },
+              {
+                id: `default_${i}_strength`,
+                title: 'Strength Training',
+                type: 'strength',
+                notes: 'ME session - terrain-based strength work',
+                km: 0,
+                distanceKm: 0,
+                durationMin: 40,
+                zones: [],
+                elevationGain: 0,
+                source: 'coach' as const
+              }
+            ]
+          };
+        }
+
+        return {
+          label: dayLabel,
+          dateISO: dateStr,
+          sessions: [{
+            id: `default_${i}`,
+            title: 'Easy Run',
+            type: 'easy',
+            notes: 'Base training',
+            km: 8,
+            distanceKm: 8,
+            durationMin: 48,
+            zones: ['Z2'],
+            elevationGain: 0,
+            source: 'coach' as const
+          }]
+        };
       });
-    }
 
-    adaptivePlan = convertToAdaptiveWeekPlan(defaultPlan);
+      // Validate training day count matches constraints
+      const trainingDays = defaultPlan.filter(d => d.sessions && d.sessions.length > 0);
+      if (trainingDays.length !== constraints.daysPerWeek) {
+        console.warn('[buildAdaptiveContext] Training day count mismatch!', {
+          expected: constraints.daysPerWeek,
+          actual: trainingDays.length,
+          trainingDays: trainingDays.map(d => d.label),
+          restDays: constraints.restDays
+        });
+      }
+
+      adaptivePlan = convertToAdaptiveWeekPlan(defaultPlan);
+    }
   } else {
     adaptivePlan = convertToAdaptiveWeekPlan(plan);
   }
@@ -635,8 +678,7 @@ export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | Adaptiv
   const wbgt = calculateWBGT(weather.temp, weather.humidity);
   const climateLevel = calculateClimateLevel(weather);
 
-  // Get user ID for database queries
-  const userId = await getCurrentUserId();
+  // Reuse userId from earlier (already loaded)
   if (!userId) {
     console.warn('[Context Builder] No user ID found - returning fallback motivation data');
   }
@@ -721,16 +763,20 @@ export function shouldRefreshContext(): boolean {
 
 /**
  * Extract training constraints from athlete profile and user profile.
- * v1.1: Derives rest days from daysPerWeek using deterministic algorithm.
+ * v2.0: Respects user-defined rest days, only derives from daysPerWeek as fallback.
  *
  * Rest days are HARD constraints:
  * - Auto-fill never places sessions on rest days
  * - Rest days always win over time/volume targets
  * - Plan validation flags any rest-day violations
  *
+ * Priority order:
+ * 1. User-defined rest days (from onboarding/profile)
+ * 2. Derived from daysPerWeek (only if no explicit rest days)
+ *
  * @param athlete - Athlete profile from onboarding/history
- * @param userProfile - User profile with daysPerWeek setting
- * @returns Training constraints including derived rest days
+ * @param userProfile - User profile with optional rest days and daysPerWeek
+ * @returns Training constraints with user-defined or derived rest days
  */
 export function extractTrainingConstraints(
   athlete: AthleteProfile,
@@ -738,7 +784,22 @@ export function extractTrainingConstraints(
 ): TrainingConstraints {
   const daysPerWeek = userProfile?.daysPerWeek ?? athlete.daysPerWeek ?? 3;
 
-  const restDays = deriveRestDays(daysPerWeek);
+  // CRITICAL FIX: Check for user-defined rest days first
+  // Load from Supabase profile if available
+  let restDays: string[] = [];
+
+  // Try to get rest days from user profile (Supabase)
+  const userRestDays = (userProfile as any)?.restDays;
+
+  if (userRestDays && Array.isArray(userRestDays) && userRestDays.length > 0) {
+    // User has explicitly defined rest days - use them
+    restDays = userRestDays;
+    console.log('[extractTrainingConstraints] Using user-defined rest days:', restDays);
+  } else {
+    // No explicit rest days - derive from daysPerWeek as soft preference
+    restDays = deriveRestDays(daysPerWeek);
+    console.log('[extractTrainingConstraints] Deriving rest days from daysPerWeek:', daysPerWeek, '→', restDays);
+  }
 
   return {
     daysPerWeek,
