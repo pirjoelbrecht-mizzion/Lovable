@@ -202,18 +202,19 @@ export function useAdaptiveTrainingPlan(
       });
 
       // 1️⃣ CRITICAL: Detect empty adaptive plans
-      // Count non-rest workouts (rest days are valid)
-      const totalWorkouts = adaptivePlan.reduce((sum, day) => {
-        const nonRestSessions = day.sessions?.filter(s => s.type !== 'rest') ?? [];
-        return sum + nonRestSessions.length;
+      // Count TOTAL sessions (not by type - type-based detection is fragile)
+      const totalSessions = adaptivePlan.reduce((sum, day) => {
+        return sum + (day.sessions?.length ?? 0);
       }, 0);
 
-      if (totalWorkouts === 0) {
-        console.warn('[Module 4] Generated plan with only rest days (0 active workouts)');
+      console.log('[Module 4] Plan has', totalSessions, 'total sessions across 7 days');
+
+      // Only reject plans with NO sessions at all
+      // If adaptive engine generated sessions, trust them (even if all are "rest" type)
+      if (totalSessions === 0) {
+        console.warn('[Module 4] Generated plan with 0 sessions - this is a bug in the adaptive engine');
         console.warn('[Module 4] Keeping last valid plan instead of overwriting with empty plan');
-        setError('Generated plan has no active workouts. Keeping existing plan.');
-        // Do NOT clear the execution lock - allow retry next week
-        // Do NOT save the empty plan - preserve what's currently in storage
+        setError('Generated plan has no sessions. Keeping existing plan.');
         return null;
       }
 
