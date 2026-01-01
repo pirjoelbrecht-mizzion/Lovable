@@ -81,94 +81,97 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
             console.error('[BUG] Rest day detected with workouts', day);
           }
 
-          const workout = day.workouts[0];
-          const isRace = !isRestDay && workout && isRaceWorkout(workout);
-          const color = isRestDay ? '#6B7280' : (isRace ? '#F59E0B' : (workout ? WORKOUT_COLORS[workout.type] : '#8B5CF6') || '#8B5CF6');
-          const icon = isRestDay ? '🌙' : (isRace ? '🏆' : (workout ? WORKOUT_ICONS[workout.type] : '🏃') || '🏃');
-          const isHovered = !isRestDay && workout && hoveredWorkout === workout.id;
+          if (day.workouts.length > 0) {
+            console.assert(
+              day.workouts.every(w => w),
+              '[BUG] Workouts exist but cards not rendered',
+              day
+            );
+          }
+
           const isToday = day.isToday;
+          const restColor = '#6B7280';
 
           return (
             <div key={dayIndex} className="cosmic-day-column">
               <div
                 className={`cosmic-day-header ${isToday ? 'today' : ''}`}
-                style={{ '--day-color': color } as React.CSSProperties}
+                style={{ '--day-color': isRestDay ? restColor : (day.workouts[0] ? WORKOUT_COLORS[day.workouts[0].type] ?? WORKOUT_COLORS.easy : restColor) } as React.CSSProperties}
               >
                 {day.dayShort.charAt(0)}
               </div>
 
-              <div className="cosmic-day-line" style={{ background: `linear-gradient(to bottom, ${color}40, ${color}10)` }} />
+              <div className="cosmic-day-line" style={{ background: `linear-gradient(to bottom, ${isRestDay ? restColor : (day.workouts[0] ? WORKOUT_COLORS[day.workouts[0].type] ?? WORKOUT_COLORS.easy : restColor)}40, ${isRestDay ? restColor : (day.workouts[0] ? WORKOUT_COLORS[day.workouts[0].type] ?? WORKOUT_COLORS.easy : restColor)}10)` }} />
 
               {isRestDay ? (
                 <motion.div
                   className="cosmic-bubble rest-day"
-                  style={{ '--bubble-color': color } as React.CSSProperties}
+                  style={{ '--bubble-color': restColor } as React.CSSProperties}
                   initial={{ scale: 0, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: dayIndex * 0.08, duration: 0.4 }}
                 >
                   <div className="bubble-glow-ring" />
                   <div className="bubble-rest-content">
-                    <span className="bubble-icon">{icon}</span>
+                    <span className="bubble-icon">🌙</span>
                     <div style={{ fontSize: '11px', marginTop: 4, opacity: 0.8 }}>Rest</div>
                   </div>
                 </motion.div>
-              ) : workout ? (
-                <motion.div
-                  className={`cosmic-bubble ${isToday ? 'today' : ''} ${workout.completed ? 'completed' : ''} ${isRace ? 'race' : ''}`}
-                  style={{ '--bubble-color': color } as React.CSSProperties}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: dayIndex * 0.08, duration: 0.4 }}
-                  whileHover={{ scale: 1.1 }}
-                  onMouseEnter={() => setHoveredWorkout(workout.id)}
-                  onMouseLeave={() => setHoveredWorkout(null)}
-                  onClick={() => onWorkoutClick?.(workout, day.day)}
-                >
-                  <div className="bubble-glow-ring" />
+              ) : (
+                day.workouts.map((workout, workoutIdx) => {
+                  const normalizedWorkout = {
+                    ...workout,
+                    type: workout.type || 'easy',
+                  };
+                  const isRace = isRaceWorkout(normalizedWorkout);
+                  const color = isRace ? '#F59E0B' : (WORKOUT_COLORS[normalizedWorkout.type] ?? WORKOUT_COLORS.easy);
+                  const icon = isRace ? '🏆' : (WORKOUT_ICONS[normalizedWorkout.type] ?? WORKOUT_ICONS.easy);
+                  const isHovered = hoveredWorkout === normalizedWorkout.id;
+                  const isPrimaryWorkout = workoutIdx === 0;
 
-                  {isToday ? (
-                    <div className="bubble-today-content">
-                      <span className="now-label">NOW</span>
-                      <span className="bubble-icon">{icon}</span>
-                    </div>
-                  ) : (
-                    <div className="bubble-icon-content">
-                      <span className="bubble-icon">{icon}</span>
-                      {workout.completed && <span className="completed-check">✓</span>}
-                    </div>
-                  )}
-
-                  {isHovered && (
+                  return (
                     <motion.div
-                      className="bubble-tooltip"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
+                      key={normalizedWorkout.id}
+                      className={`cosmic-bubble ${isPrimaryWorkout ? '' : 'extra'} ${isToday && isPrimaryWorkout ? 'today' : ''} ${normalizedWorkout.completed ? 'completed' : ''} ${isRace ? 'race' : ''}`}
+                      style={{ '--bubble-color': color } as React.CSSProperties}
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: dayIndex * 0.08 + (isPrimaryWorkout ? 0.4 : 0.1 * (workoutIdx + 1)), duration: isPrimaryWorkout ? 0.4 : 0.3 }}
+                      whileHover={isPrimaryWorkout ? { scale: 1.1 } : undefined}
+                      onMouseEnter={() => setHoveredWorkout(normalizedWorkout.id)}
+                      onMouseLeave={() => setHoveredWorkout(null)}
+                      onClick={() => onWorkoutClick?.(normalizedWorkout, day.day)}
                     >
-                      <div className="tooltip-title">{workout.title}</div>
-                      {workout.distance && <div className="tooltip-detail">{workout.distance}</div>}
-                    </motion.div>
-                  )}
-                </motion.div>
-              ) : null}
+                      <div className="bubble-glow-ring" />
 
-              {!isRestDay && day.workouts.length > 1 && day.workouts.slice(1).map((extraWorkout, extraIdx) => {
-                const extraColor = WORKOUT_COLORS[extraWorkout.type] || '#8B5CF6';
-                const extraIcon = WORKOUT_ICONS[extraWorkout.type] || '🏃';
-                return (
-                  <motion.div
-                    key={extraWorkout.id}
-                    className={`cosmic-bubble extra ${extraWorkout.completed ? 'completed' : ''}`}
-                    style={{ '--bubble-color': extraColor } as React.CSSProperties}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: dayIndex * 0.08 + 0.1 * (extraIdx + 1) }}
-                    onClick={() => onWorkoutClick?.(extraWorkout, day.day)}
-                  >
-                    <span className="bubble-icon small">{extraIcon}</span>
-                  </motion.div>
-                );
-              })}
+                      {isToday && isPrimaryWorkout ? (
+                        <div className="bubble-today-content">
+                          <span className="now-label">NOW</span>
+                          <span className="bubble-icon">{icon}</span>
+                        </div>
+                      ) : isPrimaryWorkout ? (
+                        <div className="bubble-icon-content">
+                          <span className="bubble-icon">{icon}</span>
+                          {normalizedWorkout.completed && <span className="completed-check">✓</span>}
+                        </div>
+                      ) : (
+                        <span className="bubble-icon small">{icon}</span>
+                      )}
+
+                      {isHovered && isPrimaryWorkout && (
+                        <motion.div
+                          className="bubble-tooltip"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                        >
+                          <div className="tooltip-title">{normalizedWorkout.title}</div>
+                          {normalizedWorkout.distance && <div className="tooltip-detail">{normalizedWorkout.distance}</div>}
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  );
+                })
+              )}
             </div>
           );
         })}
