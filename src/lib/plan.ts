@@ -285,7 +285,7 @@ interface UIWorkout {
   zones?: string;
 }
 
-function sessionToWorkout(session: Session): UIWorkout {
+export function sessionToWorkout(session: Session): UIWorkout {
   // Extract adaptive workout fields (may not all be present)
   const adaptiveSession = session as any;
 

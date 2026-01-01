@@ -47,6 +47,7 @@ import { getSavedLocation } from '@/utils/location';
 import { loadUserProfile } from '@/state/userData';
 import { load } from '@/utils/storage';
 import type { WeekPlan as LocalStorageWeekPlan } from '@/lib/plan';
+import { sessionToWorkout } from '@/lib/plan';
 import { getCurrentUserId } from '@/lib/supabase';
 import { deriveRestDays } from '@/lib/adaptive-coach/restDays';
 import type { TrainingConstraints } from '@/lib/adaptive-coach/constraints';
