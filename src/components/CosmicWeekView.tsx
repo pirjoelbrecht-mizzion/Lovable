@@ -75,12 +75,17 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
 
       <div className="cosmic-week-content">
         {weekData.map((day, dayIndex) => {
+          const isRestDay = !Array.isArray(day.workouts) || day.workouts.length === 0;
+
+          if (day.workouts.length > 0 && isRestDay) {
+            console.error('[BUG] Rest day detected with workouts', day);
+          }
+
           const workout = day.workouts[0];
-          const isRestDay = !workout || day.workouts.length === 0;
-          const isRace = !isRestDay && isRaceWorkout(workout);
-          const color = isRestDay ? '#6B7280' : (isRace ? '#F59E0B' : WORKOUT_COLORS[workout.type] || '#8B5CF6');
-          const icon = isRestDay ? '🌙' : (isRace ? '🏆' : (WORKOUT_ICONS[workout.type] || '🏃'));
-          const isHovered = !isRestDay && hoveredWorkout === workout.id;
+          const isRace = !isRestDay && workout && isRaceWorkout(workout);
+          const color = isRestDay ? '#6B7280' : (isRace ? '#F59E0B' : (workout ? WORKOUT_COLORS[workout.type] : '#8B5CF6') || '#8B5CF6');
+          const icon = isRestDay ? '🌙' : (isRace ? '🏆' : (workout ? WORKOUT_ICONS[workout.type] : '🏃') || '🏃');
+          const isHovered = !isRestDay && workout && hoveredWorkout === workout.id;
           const isToday = day.isToday;
 
           return (
@@ -108,7 +113,7 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
                     <div style={{ fontSize: '11px', marginTop: 4, opacity: 0.8 }}>Rest</div>
                   </div>
                 </motion.div>
-              ) : (
+              ) : workout ? (
                 <motion.div
                   className={`cosmic-bubble ${isToday ? 'today' : ''} ${workout.completed ? 'completed' : ''} ${isRace ? 'race' : ''}`}
                   style={{ '--bubble-color': color } as React.CSSProperties}
@@ -145,7 +150,7 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
                     </motion.div>
                   )}
                 </motion.div>
-              )}
+              ) : null}
 
               {!isRestDay && day.workouts.length > 1 && day.workouts.slice(1).map((extraWorkout, extraIdx) => {
                 const extraColor = WORKOUT_COLORS[extraWorkout.type] || '#8B5CF6';
