@@ -852,6 +852,15 @@ function resolveConflicts(
 //
 
 function applyLayerToPlan(plan: WeeklyPlan, layer: AdjustmentLayer): WeeklyPlan {
+  // ARCHITECTURAL GUARD: Do NOT mutate modern adaptive plans that use day.sessions[]
+  // Legacy mutation code operates on day.workout (deprecated schema)
+  // Modern adaptive plans use day.sessions[] and must NEVER be mutated post-generation
+  const usesModernSchema = plan.days?.some(d => Array.isArray(d.sessions) && !d.workout);
+  if (usesModernSchema) {
+    console.log('[applyLayerToPlan] BLOCKED: Cannot mutate modern adaptive plan (uses day.sessions[])');
+    return plan; // Return unmodified
+  }
+
   const modified = JSON.parse(JSON.stringify(plan)); // Deep clone
 
   layer.changes.forEach(change => {
@@ -877,7 +886,9 @@ function applyLayerToPlan(plan: WeeklyPlan, layer: AdjustmentLayer): WeeklyPlan 
           break;
         case 'replace':
           day.workout.type = change.newValue;
-          // When replacing with rest, clear old workout properties
+          // DEPRECATED: This mutation code violates architectural principles
+          // Constraints should influence INPUT, never mutate OUTPUT
+          // Kept for legacy plans only - will be removed in future refactor
           if (change.newValue === 'rest') {
             day.workout.distanceKm = 0;
             day.workout.description = 'Complete rest day for recovery';
