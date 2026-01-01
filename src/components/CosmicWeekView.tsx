@@ -129,6 +129,17 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
                   const isHovered = hoveredWorkout === normalizedWorkout.id;
                   const isPrimaryWorkout = workoutIdx === 0;
 
+                  console.log('[WorkoutCard] render', {
+                    day: day.dayShort,
+                    workoutIdx,
+                    id: normalizedWorkout.id,
+                    title: normalizedWorkout.title,
+                    type: normalizedWorkout.type,
+                    color,
+                    icon,
+                    isPrimaryWorkout
+                  });
+
                   return (
                     <motion.div
                       key={normalizedWorkout.id}
