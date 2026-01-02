@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import './CosmicWeekView.css';
 
-type WorkoutType = 'rest' | 'recovery' | 'easy' | 'tempo' | 'intervals' | 'long' | 'strength' | 'workout';
+type WorkoutType = 'recovery' | 'easy' | 'tempo' | 'intervals' | 'long' | 'strength' | 'workout';
 
 interface Workout {
   id: string;
@@ -30,8 +30,7 @@ interface CosmicWeekViewProps {
   onAddClick?: () => void;
 }
 
-const WORKOUT_COLORS: Record<WorkoutType, string> = {
-  rest: '#10B981',
+const WORKOUT_COLORS: Record<string, string> = {
   recovery: '#34D399',
   easy: '#06B6D4',
   tempo: '#8B5CF6',
@@ -41,8 +40,7 @@ const WORKOUT_COLORS: Record<WorkoutType, string> = {
   workout: '#EC4899',
 };
 
-const WORKOUT_ICONS: Record<WorkoutType, string> = {
-  rest: '😌',
+const WORKOUT_ICONS: Record<string, string> = {
   recovery: '🧘',
   easy: '🏃',
   tempo: '⚡',
@@ -96,12 +94,12 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
             <div key={dayIndex} className="cosmic-day-column">
               <div
                 className={`cosmic-day-header ${isToday ? 'today' : ''}`}
-                style={{ '--day-color': isRestDay ? restColor : (day.workouts[0] ? WORKOUT_COLORS[day.workouts[0].type] ?? WORKOUT_COLORS.easy : restColor) } as React.CSSProperties}
+                style={{ '--day-color': isRestDay ? restColor : (WORKOUT_COLORS[day.workouts[0]?.type] || '#06B6D4') } as React.CSSProperties}
               >
                 {day.dayShort.charAt(0)}
               </div>
 
-              <div className="cosmic-day-line" style={{ background: `linear-gradient(to bottom, ${isRestDay ? restColor : (day.workouts[0] ? WORKOUT_COLORS[day.workouts[0].type] ?? WORKOUT_COLORS.easy : restColor)}40, ${isRestDay ? restColor : (day.workouts[0] ? WORKOUT_COLORS[day.workouts[0].type] ?? WORKOUT_COLORS.easy : restColor)}10)` }} />
+              <div className="cosmic-day-line" style={{ background: `linear-gradient(to bottom, ${isRestDay ? restColor : (WORKOUT_COLORS[day.workouts[0]?.type] || '#06B6D4')}40, ${isRestDay ? restColor : (WORKOUT_COLORS[day.workouts[0]?.type] || '#06B6D4')}10)` }} />
 
               {isRestDay ? (
                 <motion.div
@@ -119,22 +117,18 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
                 </motion.div>
               ) : (
                 day.workouts.map((workout, workoutIdx) => {
-                  const normalizedWorkout = {
-                    ...workout,
-                    type: workout.type || 'easy',
-                  };
-                  const isRace = isRaceWorkout(normalizedWorkout);
-                  const color = isRace ? '#F59E0B' : (WORKOUT_COLORS[normalizedWorkout.type] ?? WORKOUT_COLORS.easy);
-                  const icon = isRace ? '🏆' : (WORKOUT_ICONS[normalizedWorkout.type] ?? WORKOUT_ICONS.easy);
-                  const isHovered = hoveredWorkout === normalizedWorkout.id;
+                  const isRace = isRaceWorkout(workout);
+                  const color = isRace ? '#F59E0B' : (WORKOUT_COLORS[workout.type] || '#06B6D4');
+                  const icon = isRace ? '🏆' : (WORKOUT_ICONS[workout.type] || '🏃');
+                  const isHovered = hoveredWorkout === workout.id;
                   const isPrimaryWorkout = workoutIdx === 0;
 
                   console.log('[WorkoutCard] render', {
                     day: day.dayShort,
                     workoutIdx,
-                    id: normalizedWorkout.id,
-                    title: normalizedWorkout.title,
-                    type: normalizedWorkout.type,
+                    id: workout.id,
+                    title: workout.title,
+                    type: workout.type,
                     color,
                     icon,
                     isPrimaryWorkout
@@ -142,16 +136,16 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
 
                   return (
                     <motion.div
-                      key={normalizedWorkout.id}
-                      className={`cosmic-bubble ${isPrimaryWorkout ? '' : 'extra'} ${isToday && isPrimaryWorkout ? 'today' : ''} ${normalizedWorkout.completed ? 'completed' : ''} ${isRace ? 'race' : ''}`}
+                      key={workout.id}
+                      className={`cosmic-bubble ${isPrimaryWorkout ? '' : 'extra'} ${isToday && isPrimaryWorkout ? 'today' : ''} ${workout.completed ? 'completed' : ''} ${isRace ? 'race' : ''}`}
                       style={{ '--bubble-color': color } as React.CSSProperties}
                       initial={{ scale: 0, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       transition={{ delay: dayIndex * 0.08 + (isPrimaryWorkout ? 0.4 : 0.1 * (workoutIdx + 1)), duration: isPrimaryWorkout ? 0.4 : 0.3 }}
                       whileHover={isPrimaryWorkout ? { scale: 1.1 } : undefined}
-                      onMouseEnter={() => setHoveredWorkout(normalizedWorkout.id)}
+                      onMouseEnter={() => setHoveredWorkout(workout.id)}
                       onMouseLeave={() => setHoveredWorkout(null)}
-                      onClick={() => onWorkoutClick?.(normalizedWorkout, day.day)}
+                      onClick={() => onWorkoutClick?.(workout, day.day)}
                     >
                       <div className="bubble-glow-ring" />
 
@@ -163,7 +157,7 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
                       ) : isPrimaryWorkout ? (
                         <div className="bubble-icon-content">
                           <span className="bubble-icon">{icon}</span>
-                          {normalizedWorkout.completed && <span className="completed-check">✓</span>}
+                          {workout.completed && <span className="completed-check">✓</span>}
                         </div>
                       ) : (
                         <span className="bubble-icon small">{icon}</span>
@@ -175,8 +169,8 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                         >
-                          <div className="tooltip-title">{normalizedWorkout.title}</div>
-                          {normalizedWorkout.distance && <div className="tooltip-detail">{normalizedWorkout.distance}</div>}
+                          <div className="tooltip-title">{workout.title}</div>
+                          {workout.distance && <div className="tooltip-detail">{workout.distance}</div>}
                         </motion.div>
                       )}
                     </motion.div>
