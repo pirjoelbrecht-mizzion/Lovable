@@ -88,7 +88,6 @@ const WEATHER_ICONS: Record<string, string> = {
 };
 
 const SESSION_EMOJIS: Record<string, string> = {
-  rest: "😌",
   recovery: "🧘",
   easy: "🏃",
   tempo: "⚡",
@@ -109,9 +108,9 @@ function getMonday() {
 }
 
 function detectSessionType(title: string, notes?: string, explicitType?: string): string {
-  // If explicit type is provided, trust it
-  if (explicitType) {
-    const validTypes = ['strength', 'rest', 'recovery', 'easy', 'tempo', 'intervals', 'long', 'workout'];
+  // If explicit type is provided, trust it (except 'rest' which is not a valid workout type)
+  if (explicitType && explicitType !== 'rest') {
+    const validTypes = ['strength', 'recovery', 'easy', 'tempo', 'intervals', 'long', 'workout'];
     if (validTypes.includes(explicitType)) {
       return explicitType;
     }
@@ -120,8 +119,9 @@ function detectSessionType(title: string, notes?: string, explicitType?: string)
   const text = `${title} ${notes || ""}`.toLowerCase();
   // Check for strength training first (highest priority)
   if (/strength|gym|lift|weights|me session/i.test(text)) return "strength";
-  if (/rest|off|mobility|recover/i.test(text)) return "rest";
-  if (/recovery/i.test(text)) return "recovery";
+  // NOTE: 'rest' is NOT a valid workout type - rest is absence of workouts
+  // Map rest/off/mobility to recovery instead
+  if (/recovery|rest|off|mobility/i.test(text)) return "recovery";
   if (/tempo|quality|threshold/i.test(text)) return "tempo";
   if (/interval|speed|rep|hill/i.test(text)) return "intervals";
   if (/long|endurance/i.test(text)) return "long";
@@ -131,8 +131,8 @@ function detectSessionType(title: string, notes?: string, explicitType?: string)
 
 function estimateDuration(km?: number, type?: string): string {
   if (!km || km === 0) {
-    if (type === "rest") return "0 min";
     if (type === "strength") return "40 min";
+    if (type === "recovery") return "30 min";
     return "30 min";
   }
   const baseMinPerKm = type === "intervals" ? 5 : type === "tempo" ? 5.5 : 6;

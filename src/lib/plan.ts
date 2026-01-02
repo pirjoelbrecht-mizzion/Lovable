@@ -327,8 +327,8 @@ export function sessionToWorkout(session: Session): UIWorkout {
   let workoutType = adaptiveSession.type || session.type || 'easy';
 
   // CRITICAL: Map adaptive workout types to CosmicWeekView-compatible types
-  // CosmicWeekView expects: 'rest' | 'recovery' | 'easy' | 'tempo' | 'intervals' | 'long' | 'strength' | 'workout'
-  // OLD BUG: All types were mapped to 'run', causing UI render gate to hide them
+  // CosmicWeekView expects: 'recovery' | 'easy' | 'tempo' | 'intervals' | 'long' | 'strength' | 'workout'
+  // NOTE: 'rest' is NOT a valid workout type - rest is indicated by workouts.length === 0
   const typeMap: Record<string, string> = {
     'easy': 'easy',
     'aerobic': 'easy',
@@ -342,7 +342,6 @@ export function sessionToWorkout(session: Session): UIWorkout {
     'muscular_endurance': 'strength',
     'strength': 'strength',
     'cross_train': 'recovery',
-    'rest': 'rest',
     'shakeout': 'recovery',
     'race_pace': 'workout',
     'speed_play': 'workout',
@@ -397,7 +396,21 @@ export function normalizeAdaptivePlan(plan: WeekPlan): WeekPlan {
 
     // CRITICAL: UI renders from workouts, not sessions
     // Use adapter to convert sessions into UI-valid workouts
-    const workouts = (day as any).workouts ?? sessions.map(sessionToWorkout);
+    // FILTER OUT any sessions/workouts with type 'rest' - rest is absence of workouts, not a workout type
+    const isRestItem = (item: any): boolean => {
+      const itemType = (item?.type || '').toLowerCase();
+      const itemTitle = (item?.title || '').toLowerCase();
+      return itemType === 'rest' || itemTitle === 'rest day' || itemTitle === 'rest';
+    };
+
+    const nonRestSessions = sessions.filter((s: any) => !isRestItem(s));
+
+    let workouts: any[];
+    if ((day as any).workouts !== undefined) {
+      workouts = (day as any).workouts.filter((w: any) => !isRestItem(w));
+    } else {
+      workouts = nonRestSessions.map(sessionToWorkout);
+    }
 
     // Debug logging for each day
     const dayLabel = day.label || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][idx];
@@ -408,12 +421,13 @@ export function normalizeAdaptivePlan(plan: WeekPlan): WeekPlan {
       workoutsCount: workouts.length,
       sessionTypes: sessions.map((s: any) => s.type || 'unknown'),
       workoutTypes: workouts.map((w: any) => w.type || 'unknown'),
+      filteredRest: sessions.length - nonRestSessions.length,
     });
 
     return {
       ...day,
       sessions,      // Keep original sessions for adaptive logic
-      workouts,      // Add UI-valid workouts for rendering
+      workouts,      // Add UI-valid workouts for rendering (rest filtered out)
       label: dayLabel,
     } as any;
   });
