@@ -455,12 +455,12 @@ function selectWeekWorkouts(input: WorkoutSelectionInput): Workout[] {
   };
   workouts.push({ ...strengthWorkout, id: 'strength_wednesday' });
 
-  // 4. Calculate rest days needed based on daysPerWeek
+  // 4. Calculate how many training days we need (rest days handled by distribution)
   const daysPerWeek = constraints?.daysPerWeek || 6;
-  const restDaysNeeded = 7 - daysPerWeek;
+  const trainingDaysNeeded = daysPerWeek; // Total training days needed
 
-  // 5. Fill with easy runs (use variety)
-  const remainingDays = 7 - workouts.length - restDaysNeeded;
+  // 5. Fill with easy runs to reach target training days (use variety)
+  const remainingDays = trainingDaysNeeded - workouts.length;
 
   // Get different easy workout types for variety
   const easyWorkouts = [
@@ -498,15 +498,8 @@ function selectWeekWorkouts(input: WorkoutSelectionInput): Workout[] {
     }
   }
 
-  // 6. Add rest days (only as many as needed based on daysPerWeek)
-  const restEntry = getWorkoutById('rest');
-  if (restEntry) {
-    // Add rest days with unique IDs
-    const restDayNames = ['rest_monday', 'rest_friday', 'rest_wednesday'];
-    for (let i = 0; i < restDaysNeeded; i++) {
-      workouts.push({ ...restEntry.template, id: restDayNames[i] || `rest_${i}` });
-    }
-  }
+  // 6. DO NOT add explicit rest workouts - distribution will handle rest days
+  // Rest days are determined by distribution based on daysPerWeek constraint
 
   console.log('[MicrocycleGenerator] Total workouts selected:', workouts.length, workouts.map(w => w.id || w.type));
 
@@ -531,21 +524,45 @@ function distributeWorkouts(
   const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   /**
-   * CRITICAL RULE: Rest days are hard constraints.
-   * Auto-fill never places sessions on rest days.
-   * Rest days always win over time/volume targets.
+   * CRITICAL RULE: Rest days are hard constraints based on daysPerWeek.
+   * Calculate which days should be rest days:
+   * - Use constraints.restDays as the primary source
+   * - If more rest days needed, add Monday/Friday as standard rest days
    */
-  const blockedDays = new Set(constraints?.restDays ?? []);
+  const daysPerWeek = constraints?.daysPerWeek || 6;
+  const restDaysNeeded = 7 - daysPerWeek;
 
-  // Distribution pattern (hard/easy principle)
+  // Start with explicitly blocked days from constraints
+  const restDays = new Set(constraints?.restDays ?? []);
+
+  // If we need more rest days beyond what's explicitly blocked, add standard rest days
+  const standardRestDays = ['Mon', 'Fri', 'Wed', 'Thu', 'Tue'];
+  let addedRestDays = 0;
+  for (const day of standardRestDays) {
+    if (restDays.size >= restDaysNeeded) break;
+    if (!restDays.has(day as any)) {
+      restDays.add(day as any);
+      addedRestDays++;
+    }
+  }
+
+  console.log('[DistributeWorkouts] Rest days configuration:', {
+    daysPerWeek,
+    restDaysNeeded,
+    explicitRestDays: constraints?.restDays || [],
+    finalRestDays: Array.from(restDays),
+    addedRestDays
+  });
+
+  // Distribution pattern (hard/easy principle) - NO rest entries
   const pattern: { [key: string]: string } = {
-    Mon: 'rest_monday',
-    Tue: 'tuesday_vo2|tuesday_hills',
+    Mon: 'easy_0|easy_1|easy_2',
+    Tue: 'tuesday_vo2|tuesday_hills|tuesday_sharpener',
     Wed: 'strength_wednesday', // Strength Training / ME session
-    Thu: 'thursday_tempo|thursday_strides',
-    Fri: 'rest_friday',
+    Thu: 'thursday_tempo|thursday_strides|easy_0',
+    Fri: 'easy_0|easy_1|easy_2',
     Sat: 'saturday_long',
-    Sun: 'easy_0|easy_1',
+    Sun: 'easy_0|easy_1|easy_2',
   };
 
   // CRITICAL: Use local dates to avoid timezone shifts
@@ -640,7 +657,7 @@ function distributeWorkouts(
     }
 
     // CRITICAL: Check if this day is a rest day (hard constraint)
-    const isRestDay = blockedDays.has(dayName as any);
+    const isRestDay = restDays.has(dayName as any);
 
     if (isRestDay) {
       // Rest days have empty sessions array
@@ -715,7 +732,7 @@ function distributeWorkouts(
   const trainingDaysCreated = days.filter(d => d.sessions.length > 0).map(d => d.day);
 
   console.log('[DistributeWorkouts] Validation:', {
-    expectedRestDays: Array.from(blockedDays),
+    expectedRestDays: Array.from(restDays),
     actualRestDays: restDaysCreated,
     trainingDaysCount: trainingDaysCreated.length,
     expectedTrainingDays: constraints?.daysPerWeek || 'not specified'
@@ -726,7 +743,7 @@ function distributeWorkouts(
       expected: constraints.daysPerWeek,
       actual: trainingDaysCreated.length,
       trainingDays: trainingDaysCreated,
-      blockedRestDays: Array.from(blockedDays)
+      finalRestDays: Array.from(restDays)
     });
   }
 
