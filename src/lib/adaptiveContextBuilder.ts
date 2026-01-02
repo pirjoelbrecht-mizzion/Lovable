@@ -34,7 +34,7 @@
  */
 
 import type { AdaptiveContext, RaceInfo } from '@/engine';
-import type { AthleteProfile, WeeklyPlan as AdaptiveWeeklyPlan, DailyPlan, Workout } from '@/lib/adaptive-coach/types';
+import type { AthleteProfile as CoachAthleteProfile, WeeklyPlan as AdaptiveWeeklyPlan, DailyPlan, Workout, RaceEvent, MacrocycleWeek, TrainingPhase, RaceType } from '@/lib/adaptive-coach/types';
 import { assertNoDayWorkoutUsage } from '@/lib/architecture/invariants';
 import { calculateReadinessScore } from '@/utils/readiness';
 import { calculateTrainingLoad } from '@/lib/loadAnalysis';
@@ -51,6 +51,9 @@ import { sessionToWorkout } from '@/lib/plan';
 import { getCurrentUserId } from '@/lib/supabase';
 import { deriveRestDays } from '@/lib/adaptive-coach/restDays';
 import type { TrainingConstraints } from '@/lib/adaptive-coach/constraints';
+import { determinePhaseFromDaysToRace, isMaintenanceMode } from '@/lib/adaptive-coach/phaseUtils';
+import { generateMicrocycle, type MicrocycleInput } from '@/lib/adaptive-coach/microcycle';
+import { generateMaintenancePlan, type MaintenancePlanInput } from '@/lib/adaptive-coach/maintenancePlanGenerator';
 
 /**
  * Convert localStorage WeekPlan format to Adaptive Coach WeeklyPlan format
@@ -294,6 +297,102 @@ function buildAthleteProfile(): AthleteProfile {
       morningRunner: true,
       intensity: 'moderate',
     },
+  };
+}
+
+/**
+ * Convert context athlete profile to adaptive coach athlete profile
+ * The coach needs additional fields for proper plan generation
+ */
+function buildCoachAthleteProfile(contextAthlete: AthleteProfile): CoachAthleteProfile {
+  const userProfile = loadUserProfile();
+
+  // Calculate years of training experience from experience level
+  const yearsTraining =
+    userProfile.experienceLevel === 'beginner' ? 1 :
+    userProfile.experienceLevel === 'intermediate' ? 3 :
+    5;
+
+  // Calculate age (default to 35 if not available)
+  const age = userProfile.age || 35;
+
+  // Get training history for weekly mileage
+  const weeklyMileageHistory: number[] = [];
+  const averageMileage = contextAthlete.weeklyKmBase || userProfile.weeklyVolumeKm || 40;
+
+  // Get average vertical gain (estimate from terrain preference if not available)
+  const averageVertical = userProfile.preferredTerrain === 'trail' || userProfile.preferredTerrain === 'mountain'
+    ? averageMileage * 30  // 30m gain per km for trail runners
+    : averageMileage * 10; // 10m gain per km for road/mixed runners
+
+  return {
+    id: contextAthlete.id,
+    name: 'Current User',
+    age,
+    yearsTraining,
+    weeklyMileageHistory,
+    averageMileage,
+    averageVertical,
+    recentRaces: [],
+    longestRaceCompletedKm: userProfile.longestRaceKm || 0,
+    trainingConsistency: 80, // Default to 80%
+    surfacePreference: (userProfile.preferredTerrain as 'road' | 'trail' | 'treadmill' | 'mixed') || 'mixed',
+    strengthPreference: userProfile.strengthTraining ? 'base' : 'none',
+    category: averageMileage >= 60 ? 'Cat2' : 'Cat1',
+  };
+}
+
+/**
+ * Determine race type from distance and vertical gain
+ */
+function inferRaceType(distanceKm: number, verticalGain: number): RaceType {
+  // Check for marathon/half-marathon (low vertical gain)
+  if (verticalGain < 500) {
+    if (distanceKm >= 40 && distanceKm <= 45) return 'Marathon';
+    if (distanceKm >= 19 && distanceKm <= 23) return 'HalfMarathon';
+  }
+
+  // Ultra distances with significant vertical
+  if (distanceKm >= 155 && distanceKm <= 175) return '100M';
+  if (distanceKm >= 95 && distanceKm <= 110) return '100K';
+  if (distanceKm >= 75 && distanceKm <= 90) return '50M';
+  if (distanceKm >= 45 && distanceKm <= 60) return '50K';
+
+  return 'Custom';
+}
+
+/**
+ * Convert RaceInfo from context to RaceEvent for microcycle generator
+ */
+function convertRaceInfoToRaceEvent(raceInfo: RaceInfo): RaceEvent {
+  const raceType = inferRaceType(raceInfo.distanceKm, raceInfo.verticalGain);
+
+  return {
+    id: raceInfo.id,
+    name: raceInfo.name,
+    date: raceInfo.date,
+    distanceKm: raceInfo.distanceKm,
+    verticalGain: raceInfo.verticalGain,
+    raceType,
+    priority: raceInfo.priority,
+    climate: raceInfo.climate,
+    terrain: raceInfo.verticalGain > 1000 ? 'mountain' : raceInfo.verticalGain > 300 ? 'trail' : 'road',
+    expectedTimeMin: raceInfo.expectedTimeMin,
+  };
+}
+
+/**
+ * Build MacrocycleWeek structure for current week
+ */
+function buildMacrocycleWeek(phase: TrainingPhase, monday: Date): MacrocycleWeek {
+  const sunday = new Date(monday);
+  sunday.setDate(sunday.getDate() + 6);
+
+  return {
+    weekNumber: 1,
+    phase,
+    startDate: monday.toISOString().slice(0, 10),
+    endDate: sunday.toISOString().slice(0, 10),
   };
 }
 
@@ -616,104 +715,73 @@ export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | Adaptiv
                       (Array.isArray(plan) && plan.length === 0) ||
                       (Array.isArray(plan) && plan.every(day => !day.sessions || day.sessions.length === 0));
 
+  // Get race calendar data EARLY (needed for plan generation and context)
+  const races = await getRaceCalendarData();
+
   if (isEmptyPlan && !isAdaptiveAuthoritative) {
-    // CRITICAL FIX: Always generate a proper fallback plan with actual workouts
-    // The "adaptive pending" check was creating placeholder rest days that never got replaced
-    console.log('[buildAdaptiveContext] Generating default base plan (empty/missing plan detected)');
+    console.log('[buildAdaptiveContext] Generating proper training plan using adaptive coach generators');
 
     // Extract constraints to respect rest days during plan generation
-    // Pass Supabase profile to get user-defined rest days
     const constraints = extractTrainingConstraints(athlete, supabaseProfile || userProfile);
-    const restDaySet = new Set(constraints.restDays || []);
-
     console.log('[buildAdaptiveContext] Rest days from constraints:', constraints.restDays, 'daysPerWeek:', constraints.daysPerWeek);
 
-    // Generate a default 7-day base plan RESPECTING REST DAYS
+    const daysToRace = races.daysToMainRace;
+    const hasRace = races.mainRace !== null && daysToRace < 999;
+
+    // Build coach-compatible athlete profile
+    const coachAthlete = buildCoachAthleteProfile(athlete);
     const monday = getMondayOfWeek();
-    const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
-    const defaultPlan: LocalStorageWeekPlan = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date(monday);
-      date.setDate(date.getDate() + i);
-      const dayLabel = dayLabels[i];
-      const dateStr = date.toISOString().slice(0, 10);
 
-      // CRITICAL: Check if this day is a rest day
-      const isRestDay = restDaySet.has(dayLabel);
+    console.log('[buildAdaptiveContext] Race status:', hasRace ? `${races.mainRace?.name} in ${daysToRace} days` : 'No race goal');
 
-      if (isRestDay) {
-        // Rest days have no sessions
-        console.log(`[buildAdaptiveContext] ${dayLabel} is a rest day (from constraints)`);
-        return {
-          label: dayLabel,
-          dateISO: dateStr,
-          sessions: []
-        };
-      }
+    // OPTION A: Race exists - use microcycle generator
+    if (hasRace && races.mainRace) {
+      console.log('[buildAdaptiveContext] Generating microcycle plan for race training');
 
-      // Wednesday is easy run + strength training day
-      if (i === 2) {
-        return {
-          label: dayLabel,
-          dateISO: dateStr,
-          sessions: [
-            {
-              id: `default_${i}_run`,
-              title: 'Easy run',
-              type: 'easy',
-              notes: 'Recovery run',
-              km: 6,
-              distanceKm: 6,
-              durationMin: 36,
-              zones: ['Z2'],
-              elevationGain: 0,
-              source: 'coach' as const
-            },
-            {
-              id: `default_${i}_strength`,
-              title: 'Strength Training',
-              type: 'strength',
-              notes: 'ME session - terrain-based strength work',
-              km: 0,
-              distanceKm: 0,
-              durationMin: 40,
-              zones: [],
-              elevationGain: 0,
-              source: 'coach' as const
-            }
-          ]
-        };
-      }
+      const phase = determinePhaseFromDaysToRace(daysToRace);
+      const raceEvent = convertRaceInfoToRaceEvent(races.mainRace);
+      const macrocycleWeek = buildMacrocycleWeek(phase, monday);
 
-      return {
-        label: dayLabel,
-        dateISO: dateStr,
-        sessions: [{
-          id: `default_${i}`,
-          title: 'Easy Run',
-          type: 'easy',
-          notes: 'Base training',
-          km: 8,
-          distanceKm: 8,
-          durationMin: 48,
-          zones: ['Z2'],
-          elevationGain: 0,
-          source: 'coach' as const
-        }]
+      const microcycleInput: MicrocycleInput = {
+        weekNumber: 1,
+        macrocycleWeek,
+        athlete: coachAthlete,
+        race: raceEvent,
+        daysToRace,
+        constraints,
       };
-    });
 
-    // Validate training day count matches constraints
-    const trainingDays = defaultPlan.filter(d => d.sessions && d.sessions.length > 0);
-    if (trainingDays.length !== constraints.daysPerWeek) {
-      console.warn('[buildAdaptiveContext] Training day count mismatch!', {
-        expected: constraints.daysPerWeek,
-        actual: trainingDays.length,
-        trainingDays: trainingDays.map(d => d.label),
-        restDays: constraints.restDays
+      adaptivePlan = generateMicrocycle(microcycleInput);
+      console.log('[buildAdaptiveContext] Generated microcycle plan:', {
+        phase,
+        targetMileage: adaptivePlan.targetMileage,
+        targetVert: adaptivePlan.targetVert,
+        days: adaptivePlan.days.length
+      });
+    }
+    // OPTION B: No race - use maintenance plan generator
+    else {
+      console.log('[buildAdaptiveContext] Generating maintenance plan (no race goal)');
+
+      const maintenanceInput: MaintenancePlanInput = {
+        athlete: coachAthlete,
+        targetWeeklyVolume: coachAthlete.averageMileage,
+        includeWorkouts: true,
+        preferLongRunDay: 'sunday',
+      };
+
+      const result = generateMaintenancePlan(maintenanceInput);
+      adaptivePlan = result.plan;
+      console.log('[buildAdaptiveContext] Generated maintenance plan:', {
+        targetMileage: adaptivePlan.targetMileage,
+        targetVert: adaptivePlan.targetVert,
+        volumeBreakdown: result.volumeBreakdown
       });
     }
 
-    adaptivePlan = convertToAdaptiveWeekPlan(defaultPlan);
+    console.log('[buildAdaptiveContext] Final plan sessions per day:',
+      adaptivePlan.days.map(d => `${d.day}: ${d.sessions.length} sessions`)
+    );
   } else {
     adaptivePlan = convertToAdaptiveWeekPlan(plan);
   }
@@ -784,9 +852,6 @@ export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | Adaptiv
 
   // Get training history
   const history = await getTrainingHistory();
-
-  // Get race calendar
-  const races = await getRaceCalendarData();
 
   // Get location data
   const locationData = getLocationData();
