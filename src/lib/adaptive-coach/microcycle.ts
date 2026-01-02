@@ -616,22 +616,10 @@ function distributeWorkouts(
           restDate.setDate(restDate.getDate() + j);
           const restDateStr = toLocalDateString(restDate);
 
-          const restWorkout: Workout = {
-            type: 'rest',
-            title: 'Post-Race Rest',
-            description: 'Complete rest for recovery after A category race.',
-            distanceKm: 0,
-            durationMin: 0,
-            verticalGain: 0,
-            origin: 'BASE_PLAN',  // Post-race recovery is part of base plan
-            locked: false,
-            lockReason: undefined
-          };
-
           days.push({
             day: restDayName,
             date: restDateStr,
-            sessions: [restWorkout],
+            sessions: [],  // Empty array for post-race rest days
           });
         }
         // All remaining days added, break the loop
@@ -645,22 +633,17 @@ function distributeWorkouts(
     // CRITICAL: Check if this day is a rest day (hard constraint)
     const isRestDay = blockedDays.has(dayName as any);
 
-    let workout: Workout;
-
     if (isRestDay) {
-      // Rest days must have no training sessions
-      workout = {
-        type: 'rest',
-        title: 'Rest',
-        description: 'Configured rest day',
-        origin: 'BASE_PLAN',
-        locked: false,
-        lockReason: undefined
-      };
+      // Rest days have empty sessions array
+      days.push({
+        day: dayName,
+        date: dateStr,
+        sessions: [],  // Empty array for rest days
+      });
     } else {
       // Find matching workout for this day
       const expectedIds = pattern[dayName]?.split('|') || [];
-      workout = workouts.find(w => expectedIds.some(id => w.id?.includes(id)));
+      let workout = workouts.find(w => expectedIds.some(id => w.id?.includes(id)));
 
       if (!workout) {
         // Fallback to any remaining workout (check all sessions, not just first)
@@ -674,35 +657,33 @@ function distributeWorkouts(
           availableWorkouts: workouts.map(w => ({ id: w.id, type: w.type, title: w.title })),
           pattern: pattern[dayName]
         });
-        workout = {
-          type: 'rest',
-          title: 'Rest',
-          description: 'Recovery day',
-          origin: 'BASE_PLAN',
-          locked: false,
-          lockReason: undefined
-        };
+        // No workout found - create rest day
+        days.push({
+          day: dayName,
+          date: dateStr,
+          sessions: [],  // Empty array for rest/recovery days
+        });
       } else {
         // Add ownership metadata to workouts from library
-        workout = {
+        const workoutWithMeta: Workout = {
           ...workout,
           origin: 'BASE_PLAN',
           locked: false,
           lockReason: undefined
         };
+
+        days.push({
+          day: dayName,
+          date: dateStr,
+          sessions: [workoutWithMeta],
+        });
       }
     }
-
-    days.push({
-      day: dayName,
-      date: dateStr,
-      sessions: [workout],
-    });
   }
 
   // CRITICAL VALIDATION: Verify rest days were respected and training days match constraints
-  const restDaysCreated = days.filter(d => d.sessions[0]?.type === 'rest').map(d => d.day);
-  const trainingDaysCreated = days.filter(d => d.sessions[0]?.type !== 'rest').map(d => d.day);
+  const restDaysCreated = days.filter(d => d.sessions.length === 0).map(d => d.day);
+  const trainingDaysCreated = days.filter(d => d.sessions.length > 0).map(d => d.day);
 
   console.log('[DistributeWorkouts] Validation:', {
     expectedRestDays: Array.from(blockedDays),
