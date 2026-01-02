@@ -137,30 +137,18 @@ export function convertToLocalStoragePlan(
   if (!adaptivePlan.days || adaptivePlan.days.length === 0) {
     console.error('[convertToLocalStoragePlan] CRITICAL: Adaptive plan has 0 days! Creating empty week structure.');
 
-    // Create a valid 7-day structure with rest days
+    // Create a valid 7-day structure with empty days (no sessions)
     const monday = getMondayOfWeek();
     const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
 
     return Array.from({ length: 7 }, (_, i) => {
       const date = new Date(monday);
       date.setDate(date.getDate() + i);
-      const restSession = {
-        id: `rest_${i}`,
-        title: 'Rest Day',
-        type: 'rest',
-        notes: 'Recovery',
-        km: 0,
-        distanceKm: 0,
-        durationMin: 0,
-        zones: [],
-        elevationGain: 0,
-        source: 'coach' as const,
-      };
       return {
         label: dayLabels[i],
         dateISO: date.toISOString().slice(0, 10),
-        sessions: [restSession],
-        workouts: [sessionToWorkout(restSession)], // CRITICAL: Convert to workouts
+        sessions: [],
+        workouts: [],
       };
     });
   }
@@ -171,7 +159,7 @@ export function convertToLocalStoragePlan(
     const monday = getMondayOfWeek();
     const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-    // Fill missing days
+    // Fill missing days with empty session arrays (not rest sessions)
     while (adaptivePlan.days.length < 7) {
       const idx = adaptivePlan.days.length;
       const date = new Date(monday);
@@ -180,11 +168,7 @@ export function convertToLocalStoragePlan(
       adaptivePlan.days.push({
         day: dayNames[idx],
         date: date.toISOString().slice(0, 10),
-        sessions: [{
-          type: 'rest',
-          title: 'Rest Day',
-          description: 'Recovery',
-        }],
+        sessions: [],
         completed: false,
       });
     }
@@ -209,7 +193,8 @@ export function convertToLocalStoragePlan(
 
     // CRITICAL: Convert sessions to workouts for UI rendering
     // The UI exclusively renders from day.workouts, not day.sessions
-    const workouts = sessions.map(sessionToWorkout);
+    // Filter out null values from rest sessions (sessionToWorkout returns null for rest)
+    const workouts = sessions.map(sessionToWorkout).filter((w): w is NonNullable<typeof w> => w !== null);
 
     return {
       label: day.day.slice(0, 3), // Mon, Tue, etc.
@@ -233,14 +218,14 @@ export function convertToLocalStoragePlan(
     throw new Error(`Invariant violation: convertToLocalStoragePlan must return 7 days, got ${result.length}`);
   }
 
-  // CRITICAL INVARIANT: Every day must have workouts.length === sessions.length
-  const invalidDays = result.filter(day => day.workouts.length !== day.sessions.length);
+  // CRITICAL INVARIANT: workouts.length <= sessions.length (rest sessions don't become workouts)
+  const invalidDays = result.filter(day => day.workouts.length > day.sessions.length);
   if (invalidDays.length > 0) {
-    console.error('[convertToLocalStoragePlan] INVARIANT VIOLATION: Mismatch between sessions and workouts');
+    console.error('[convertToLocalStoragePlan] INVARIANT VIOLATION: More workouts than sessions');
     invalidDays.forEach(day => {
       console.error(`  ${day.label}: ${day.sessions.length} sessions but ${day.workouts.length} workouts`);
     });
-    throw new Error(`Invariant violation: workouts.length must equal sessions.length on all days`);
+    throw new Error(`Invariant violation: workouts.length cannot exceed sessions.length on any day`);
   }
 
   return result;
