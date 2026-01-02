@@ -536,26 +536,62 @@ function getMondayOfWeek(): string {
 }
 
 /**
+ * Shift plan dates to align with current week while preserving all session data
+ * CRITICAL: Preserves sessions, workouts, planSource, and all other metadata
+ */
+function shiftPlanDates(plan: LocalStorageWeekPlan, newMonday: string): LocalStorageWeekPlan {
+  const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+
+  return plan.map((day, idx) => {
+    const newDate = new Date(newMonday);
+    newDate.setDate(newDate.getDate() + idx);
+    const newDateISO = newDate.toISOString().slice(0, 10);
+
+    return {
+      ...day,
+      label: dayLabels[idx],
+      dateISO: newDateISO,
+    };
+  }) as LocalStorageWeekPlan;
+}
+
+/**
  * Build complete adaptive context for Module 4
  */
 export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | AdaptiveWeeklyPlan): Promise<AdaptiveContext> {
-  // Validate plan week alignment
+  // HARD GUARD: Protect adaptive plans with sessions from ANY clearing logic
   if (plan && Array.isArray(plan) && plan.length > 0) {
-    const expectedMonday = getMondayOfWeek();
-    const planMonday = plan[0].dateISO;
+    const totalSessions = plan.reduce((sum, day) => sum + (day.sessions?.length ?? 0), 0);
+    const planSource = plan[0]?.planSource;
 
-    if (planMonday !== expectedMonday) {
-      console.warn(`⚠️ [buildAdaptiveContext] Plan week misalignment detected!`);
-      console.warn(`   Expected Monday: ${expectedMonday}`);
-      console.warn(`   Plan starts on: ${planMonday}`);
-      console.warn(`   Clearing cached plan to regenerate with correct dates...`);
+    if (planSource === 'adaptive' && totalSessions > 0) {
+      console.log('[buildAdaptiveContext] HARD GUARD: Adaptive plan with', totalSessions, 'sessions - preserving plan');
 
-      // Clear the cached plan
-      localStorage.removeItem('weekPlan');
-      localStorage.removeItem('weekPlan_current');
+      // Handle week misalignment by DATE-SHIFTING, not clearing
+      const expectedMonday = getMondayOfWeek();
+      const planMonday = plan[0].dateISO;
 
-      // Return empty plan to force regeneration
-      plan = undefined;
+      if (planMonday !== expectedMonday) {
+        console.log('[buildAdaptiveContext] Shifting adaptive plan dates from', planMonday, 'to', expectedMonday);
+        plan = shiftPlanDates(plan, expectedMonday);
+      }
+
+      // Skip further checks - this plan is authoritative
+    } else {
+      // Non-adaptive or empty plan: apply legacy week alignment check
+      const expectedMonday = getMondayOfWeek();
+      const planMonday = plan[0].dateISO;
+
+      if (planMonday !== expectedMonday) {
+        console.warn(`[buildAdaptiveContext] Plan week misalignment detected (non-adaptive plan)`);
+        console.warn(`   Expected Monday: ${expectedMonday}`);
+        console.warn(`   Plan starts on: ${planMonday}`);
+        console.warn(`   Clearing non-adaptive plan to regenerate...`);
+
+        localStorage.removeItem('weekPlan');
+        localStorage.removeItem('weekPlan_current');
+        plan = undefined;
+      }
     }
   }
 
