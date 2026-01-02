@@ -1919,8 +1919,8 @@ export async function saveDerivedMetricsWeekly(
     user_id: userId,
   }));
 
-  // Batch upserts with very small batches due to RLS overhead
-  const BATCH_SIZE = 5;
+  // OPTIMIZED: Increased batch size from 5 to 50 for better performance
+  const BATCH_SIZE = 50;
   let successCount = 0;
   let errorCount = 0;
 
