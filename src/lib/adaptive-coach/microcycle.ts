@@ -672,10 +672,30 @@ function distributeWorkouts(
           lockReason: undefined
         };
 
+        // SPECIAL CASE: Wednesday strength day should have BOTH run + strength
+        const sessions: Workout[] = [workoutWithMeta];
+
+        if (dayName === 'Wed' && workout.id === 'strength_wednesday') {
+          // Add an easy run before strength training
+          const easyRunBeforeStrength: Workout = {
+            type: 'easy',
+            title: 'Easy Run',
+            description: 'Easy run before strength training',
+            distanceKm: 6,
+            durationMin: 36,
+            verticalGain: 0,
+            intensityZones: ['Z2'],
+            origin: 'BASE_PLAN',
+            locked: false,
+            lockReason: undefined
+          };
+          sessions.unshift(easyRunBeforeStrength); // Add run BEFORE strength
+        }
+
         days.push({
           day: dayName,
           date: dateStr,
-          sessions: [workoutWithMeta],
+          sessions,
         });
       }
     }
