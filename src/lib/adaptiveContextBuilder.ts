@@ -740,7 +740,7 @@ export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | Adaptiv
 
       const phase = determinePhaseFromDaysToRace(daysToRace);
       const raceEvent = convertRaceInfoToRaceEvent(races.mainRace);
-      const macrocycleWeek = buildMacrocycleWeek(phase, monday);
+      const macrocycleWeek = buildMacrocycleWeek(phase, new Date(monday + 'T00:00:00'));
 
       const microcycleInput: MicrocycleInput = {
         weekNumber: 1,
