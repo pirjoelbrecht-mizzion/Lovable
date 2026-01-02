@@ -1183,10 +1183,9 @@ export default function Quest() {
                         });
                       }
 
-                      // PHASE 5: Use ONLY what's in userSessions, no fallback
-                      let daySessions: any[] = userSessions.length > 0
-                        ? userSessions
-                        : [{ title: 'Rest', km: 0, notes: '', type: 'rest' }];
+                      // PHASE 5: Use ONLY what's in userSessions - NO SYNTHETIC REST DAYS
+                      // Rest is absence of workouts, not a workout type
+                      let daySessions: any[] = userSessions;
 
                       // Check if we need to split combined "run + strength" sessions
                       if (daySessions.length === 1) {
