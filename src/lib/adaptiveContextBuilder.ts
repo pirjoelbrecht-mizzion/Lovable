@@ -616,143 +616,104 @@ export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | Adaptiv
                       (Array.isArray(plan) && plan.length === 0) ||
                       (Array.isArray(plan) && plan.every(day => !day.sessions || day.sessions.length === 0));
 
-  // CRITICAL GUARD: Check if adaptive execution is pending
-  // If adaptive execution will run soon, don't generate fallback plan
-  const userId = await getCurrentUserId();
-  const { shouldTriggerAdaptiveExecution } = await import('@/lib/adaptiveExecutionLock');
-  const { should: adaptivePending } = shouldTriggerAdaptiveExecution(userId);
-
   if (isEmptyPlan && !isAdaptiveAuthoritative) {
-    // If adaptive execution is pending and we have user constraints, skip fallback
-    const hasUserConstraints = supabaseProfile?.restDays || supabaseProfile?.daysPerWeek;
+    // CRITICAL FIX: Always generate a proper fallback plan with actual workouts
+    // The "adaptive pending" check was creating placeholder rest days that never got replaced
+    console.log('[buildAdaptiveContext] Generating default base plan (empty/missing plan detected)');
 
-    if (adaptivePending && hasUserConstraints) {
-      console.log('[buildAdaptiveContext] ⏭️ Skipping fallback plan - adaptive execution pending with user constraints');
-      // Return minimal valid 7-day plan with all rest days
-      // CRITICAL: Must have 7 days to prevent downstream failures
-      const monday = getMondayOfWeek();
-      const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-      const emptyDays: DailyPlan[] = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date(monday);
-        date.setDate(date.getDate() + i);
-        return {
-          day: dayNames[i],
-          date: date.toISOString().slice(0, 10),
-          sessions: [{
-            type: 'rest',
-            title: 'Rest Day',
-            description: 'Recovery',
-          }],
-          completed: false,
-        };
-      });
+    // Extract constraints to respect rest days during plan generation
+    // Pass Supabase profile to get user-defined rest days
+    const constraints = extractTrainingConstraints(athlete, supabaseProfile || userProfile);
+    const restDaySet = new Set(constraints.restDays || []);
 
-      adaptivePlan = {
-        weekNumber: 1,
-        phase: 'base',
-        targetMileage: 0,
-        targetVert: 0,
-        days: emptyDays,
-        actualMileage: 0,
-        actualVert: 0,
-      };
-    } else {
-      console.log('[buildAdaptiveContext] Generating default base plan (empty/missing plan detected)');
+    console.log('[buildAdaptiveContext] Rest days from constraints:', constraints.restDays, 'daysPerWeek:', constraints.daysPerWeek);
 
-      // Extract constraints to respect rest days during plan generation
-      // Pass Supabase profile to get user-defined rest days
-      const constraints = extractTrainingConstraints(athlete, supabaseProfile || userProfile);
-      const restDaySet = new Set(constraints.restDays || []);
+    // Generate a default 7-day base plan RESPECTING REST DAYS
+    const monday = getMondayOfWeek();
+    const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+    const defaultPlan: LocalStorageWeekPlan = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(monday);
+      date.setDate(date.getDate() + i);
+      const dayLabel = dayLabels[i];
+      const dateStr = date.toISOString().slice(0, 10);
 
-      console.log('[buildAdaptiveContext] Rest days from constraints:', constraints.restDays, 'daysPerWeek:', constraints.daysPerWeek);
+      // CRITICAL: Check if this day is a rest day
+      const isRestDay = restDaySet.has(dayLabel);
 
-      // Generate a default 7-day base plan RESPECTING REST DAYS
-      const monday = getMondayOfWeek();
-      const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
-      const defaultPlan: LocalStorageWeekPlan = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date(monday);
-        date.setDate(date.getDate() + i);
-        const dayLabel = dayLabels[i];
-        const dateStr = date.toISOString().slice(0, 10);
-
-        // CRITICAL: Check if this day is a rest day
-        const isRestDay = restDaySet.has(dayLabel);
-
-        if (isRestDay) {
-          // Rest days have no sessions
-          console.log(`[buildAdaptiveContext] ${dayLabel} is a rest day (from constraints)`);
-          return {
-            label: dayLabel,
-            dateISO: dateStr,
-            sessions: []
-          };
-        }
-
-        // Wednesday is easy run + strength training day
-        if (i === 2) {
-          return {
-            label: dayLabel,
-            dateISO: dateStr,
-            sessions: [
-              {
-                id: `default_${i}_run`,
-                title: 'Easy run',
-                type: 'easy',
-                notes: 'Recovery run',
-                km: 6,
-                distanceKm: 6,
-                durationMin: 36,
-                zones: ['Z2'],
-                elevationGain: 0,
-                source: 'coach' as const
-              },
-              {
-                id: `default_${i}_strength`,
-                title: 'Strength Training',
-                type: 'strength',
-                notes: 'ME session - terrain-based strength work',
-                km: 0,
-                distanceKm: 0,
-                durationMin: 40,
-                zones: [],
-                elevationGain: 0,
-                source: 'coach' as const
-              }
-            ]
-          };
-        }
-
+      if (isRestDay) {
+        // Rest days have no sessions
+        console.log(`[buildAdaptiveContext] ${dayLabel} is a rest day (from constraints)`);
         return {
           label: dayLabel,
           dateISO: dateStr,
-          sessions: [{
-            id: `default_${i}`,
-            title: 'Easy Run',
-            type: 'easy',
-            notes: 'Base training',
-            km: 8,
-            distanceKm: 8,
-            durationMin: 48,
-            zones: ['Z2'],
-            elevationGain: 0,
-            source: 'coach' as const
-          }]
+          sessions: []
         };
-      });
-
-      // Validate training day count matches constraints
-      const trainingDays = defaultPlan.filter(d => d.sessions && d.sessions.length > 0);
-      if (trainingDays.length !== constraints.daysPerWeek) {
-        console.warn('[buildAdaptiveContext] Training day count mismatch!', {
-          expected: constraints.daysPerWeek,
-          actual: trainingDays.length,
-          trainingDays: trainingDays.map(d => d.label),
-          restDays: constraints.restDays
-        });
       }
 
-      adaptivePlan = convertToAdaptiveWeekPlan(defaultPlan);
+      // Wednesday is easy run + strength training day
+      if (i === 2) {
+        return {
+          label: dayLabel,
+          dateISO: dateStr,
+          sessions: [
+            {
+              id: `default_${i}_run`,
+              title: 'Easy run',
+              type: 'easy',
+              notes: 'Recovery run',
+              km: 6,
+              distanceKm: 6,
+              durationMin: 36,
+              zones: ['Z2'],
+              elevationGain: 0,
+              source: 'coach' as const
+            },
+            {
+              id: `default_${i}_strength`,
+              title: 'Strength Training',
+              type: 'strength',
+              notes: 'ME session - terrain-based strength work',
+              km: 0,
+              distanceKm: 0,
+              durationMin: 40,
+              zones: [],
+              elevationGain: 0,
+              source: 'coach' as const
+            }
+          ]
+        };
+      }
+
+      return {
+        label: dayLabel,
+        dateISO: dateStr,
+        sessions: [{
+          id: `default_${i}`,
+          title: 'Easy Run',
+          type: 'easy',
+          notes: 'Base training',
+          km: 8,
+          distanceKm: 8,
+          durationMin: 48,
+          zones: ['Z2'],
+          elevationGain: 0,
+          source: 'coach' as const
+        }]
+      };
+    });
+
+    // Validate training day count matches constraints
+    const trainingDays = defaultPlan.filter(d => d.sessions && d.sessions.length > 0);
+    if (trainingDays.length !== constraints.daysPerWeek) {
+      console.warn('[buildAdaptiveContext] Training day count mismatch!', {
+        expected: constraints.daysPerWeek,
+        actual: trainingDays.length,
+        trainingDays: trainingDays.map(d => d.label),
+        restDays: constraints.restDays
+      });
     }
+
+    adaptivePlan = convertToAdaptiveWeekPlan(defaultPlan);
   } else {
     adaptivePlan = convertToAdaptiveWeekPlan(plan);
   }
@@ -809,7 +770,8 @@ export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | Adaptiv
   const wbgt = calculateWBGT(weather.temp, weather.humidity);
   const climateLevel = calculateClimateLevel(weather);
 
-  // Reuse userId from earlier (already loaded)
+  // Get user ID for motivation detection
+  const userId = await getCurrentUserId();
   if (!userId) {
     console.warn('[Context Builder] No user ID found - returning fallback motivation data');
   }
