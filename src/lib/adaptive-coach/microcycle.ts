@@ -669,6 +669,11 @@ function distributeWorkouts(
 
       if (!workout) {
         // Default to rest (only on non-constrained days)
+        console.warn(`[Microcycle] No workout found for ${dayName}`, {
+          expectedIds,
+          availableWorkouts: workouts.map(w => ({ id: w.id, type: w.type, title: w.title })),
+          pattern: pattern[dayName]
+        });
         workout = {
           type: 'rest',
           title: 'Rest',

@@ -178,6 +178,16 @@ export function convertToLocalStoragePlan(
     // Convert all sessions from adaptive format to localStorage format
     const adaptiveSessions = day.sessions || [];
 
+    // DEBUG: Log what we're converting
+    if (adaptiveSessions.length > 0) {
+      console.log(`[convertToLocalStoragePlan] ${day.day} raw sessions:`, adaptiveSessions.map(s => ({
+        type: s.type,
+        title: s.title,
+        distanceKm: s.distanceKm,
+        durationMin: s.durationMin
+      })));
+    }
+
     const sessions = adaptiveSessions.map((session) => ({
       id: `s_${Math.random().toString(36).slice(2)}`,
       title: session.title || session.type,
