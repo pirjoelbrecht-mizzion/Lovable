@@ -163,17 +163,24 @@ export class StravaRichDataService {
         .delete()
         .eq('log_entry_id', logEntryId);
 
-      // Insert new photos
-      const photosToInsert = photos.map((photo, index) => ({
-        user_id: userId,
-        log_entry_id: logEntryId,
-        url_full: photo.urls['600'] || photo.urls['100'],
-        url_thumbnail: photo.urls['100'],
-        caption: photo.caption || null,
-        latitude: photo.location?.[0] || null,
-        longitude: photo.location?.[1] || null,
-        display_order: index
-      }));
+      // Insert new photos (filter out photos without valid URLs)
+      const photosToInsert = photos
+        .filter(photo => photo.urls && (photo.urls['600'] || photo.urls['100']))
+        .map((photo, index) => ({
+          user_id: userId,
+          log_entry_id: logEntryId,
+          url_full: photo.urls['600'] || photo.urls['100'],
+          url_thumbnail: photo.urls['100'],
+          caption: photo.caption || null,
+          latitude: photo.location?.[0] || null,
+          longitude: photo.location?.[1] || null,
+          display_order: index
+        }));
+
+      if (photosToInsert.length === 0) {
+        console.log(`No valid photos to store for activity ${activityId}`);
+        return;
+      }
 
       const { error } = await supabase
         .from('activity_photos')
