@@ -285,7 +285,15 @@ interface UIWorkout {
   zones?: string;
 }
 
-export function sessionToWorkout(session: Session): UIWorkout {
+export function sessionToWorkout(session: Session): UIWorkout | null {
+  // CRITICAL: Rest is absence of workouts, not a workout type
+  // Return null for rest/off sessions - they should NOT become workouts
+  const sessionType = ((session as any).type || '').toLowerCase();
+  const sessionTitle = (session.title || '').toLowerCase();
+  if (sessionType === 'rest' || sessionType === 'off' || sessionTitle === 'rest' || sessionTitle === 'rest day') {
+    return null;
+  }
+
   // Extract adaptive workout fields (may not all be present)
   const adaptiveSession = session as any;
 
@@ -393,41 +401,30 @@ export function normalizeAdaptivePlan(plan: WeekPlan): WeekPlan {
   const normalized = plan.map((day, idx) => {
     // Ensure sessions is always an array, even for rest days
     const sessions = Array.isArray(day.sessions) ? day.sessions : [];
+    const dayLabel = day.label || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][idx];
 
     // CRITICAL: UI renders from workouts, not sessions
-    // Use adapter to convert sessions into UI-valid workouts
-    // FILTER OUT any sessions/workouts with type 'rest' - rest is absence of workouts, not a workout type
-    const isRestItem = (item: any): boolean => {
-      const itemType = (item?.type || '').toLowerCase();
-      const itemTitle = (item?.title || '').toLowerCase();
-      return itemType === 'rest' || itemTitle === 'rest day' || itemTitle === 'rest';
-    };
-
-    const nonRestSessions = sessions.filter((s: any) => !isRestItem(s));
-
-    let workouts: any[];
-    if ((day as any).workouts !== undefined) {
-      workouts = (day as any).workouts.filter((w: any) => !isRestItem(w));
+    // sessionToWorkout returns null for rest sessions, filter(Boolean) removes them
+    // Rest days = sessions.length === 0 OR all sessions are rest type
+    let workouts: UIWorkout[];
+    if (sessions.length === 0) {
+      workouts = [];
     } else {
-      workouts = nonRestSessions.map(sessionToWorkout);
+      workouts = sessions.map(sessionToWorkout).filter(Boolean) as UIWorkout[];
     }
 
     // Debug logging for each day
-    const dayLabel = day.label || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][idx];
     console.log(`[Normalize] ${dayLabel}:`, {
-      hasSessions: sessions.length > 0,
       sessionsCount: sessions.length,
-      hasWorkouts: workouts.length > 0,
       workoutsCount: workouts.length,
       sessionTypes: sessions.map((s: any) => s.type || 'unknown'),
       workoutTypes: workouts.map((w: any) => w.type || 'unknown'),
-      filteredRest: sessions.length - nonRestSessions.length,
     });
 
     return {
       ...day,
-      sessions,      // Keep original sessions for adaptive logic
-      workouts,      // Add UI-valid workouts for rendering (rest filtered out)
+      sessions,
+      workouts,
       label: dayLabel,
     } as any;
   });
