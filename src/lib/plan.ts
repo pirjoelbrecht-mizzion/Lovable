@@ -286,11 +286,22 @@ interface UIWorkout {
 }
 
 export function sessionToWorkout(session: Session): UIWorkout | null {
+  // DEBUG: Log what we're receiving
+  console.log('[sessionToWorkout] Input session:', {
+    type: (session as any).type,
+    title: session.title,
+    distanceKm: (session as any).distanceKm,
+    durationMin: (session as any).durationMin,
+    km: session.km,
+    fullSession: session
+  });
+
   // CRITICAL: Rest is absence of workouts, not a workout type
   // Return null for rest/off sessions - they should NOT become workouts
   const sessionType = ((session as any).type || '').toLowerCase();
   const sessionTitle = (session.title || '').toLowerCase();
   if (sessionType === 'rest' || sessionType === 'off' || sessionTitle === 'rest' || sessionTitle === 'rest day') {
+    console.log('[sessionToWorkout] Filtering out REST session');
     return null;
   }
 
@@ -366,7 +377,7 @@ export function sessionToWorkout(session: Session): UIWorkout | null {
     workoutType = typeMap[workoutType];
   }
 
-  return {
+  const workout = {
     id: session.id || `w_${Math.random().toString(36).slice(2)}`,
     sessionId: session.id,
     type: workoutType,
@@ -377,6 +388,9 @@ export function sessionToWorkout(session: Session): UIWorkout | null {
     elevation,
     zones: zonesStr,
   };
+
+  console.log('[sessionToWorkout] Created workout:', workout);
+  return workout;
 }
 
 /**
