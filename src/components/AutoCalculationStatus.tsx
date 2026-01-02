@@ -36,8 +36,8 @@ export default function AutoCalculationStatus() {
     };
   }, []);
 
-  if (!status.processing && status.queueLength === 0 && !lastCompleted) {
-    return null; // Nothing to show
+  if (!status.processing && status.queueLength === 0) {
+    return null; // Hide when not processing
   }
 
   return (
