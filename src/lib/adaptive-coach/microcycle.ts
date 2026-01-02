@@ -98,6 +98,7 @@ export function generateMicrocycle(input: MicrocycleInput): WeeklyPlan {
     race,
     targetMileage,
     isRecoveryWeek: isRecoveryWeek || false,
+    constraints,
   });
 
   // Convert workout ranges to concrete values
@@ -301,10 +302,11 @@ interface WorkoutSelectionInput {
   race: RaceEvent;
   targetMileage: number;
   isRecoveryWeek: boolean;
+  constraints?: TrainingConstraints;
 }
 
 function selectWeekWorkouts(input: WorkoutSelectionInput): Workout[] {
-  const { phase, athlete, race, isRecoveryWeek } = input;
+  const { phase, athlete, race, isRecoveryWeek, constraints } = input;
 
   console.log('[MicrocycleGenerator] Selecting workouts for:', {
     phase,
@@ -453,8 +455,12 @@ function selectWeekWorkouts(input: WorkoutSelectionInput): Workout[] {
   };
   workouts.push({ ...strengthWorkout, id: 'strength_wednesday' });
 
-  // 4. Fill with easy runs (use variety)
-  const remainingDays = 7 - workouts.length - 2; // -2 for rest days
+  // 4. Calculate rest days needed based on daysPerWeek
+  const daysPerWeek = constraints?.daysPerWeek || 6;
+  const restDaysNeeded = 7 - daysPerWeek;
+
+  // 5. Fill with easy runs (use variety)
+  const remainingDays = 7 - workouts.length - restDaysNeeded;
 
   // Get different easy workout types for variety
   const easyWorkouts = [
@@ -492,11 +498,14 @@ function selectWeekWorkouts(input: WorkoutSelectionInput): Workout[] {
     }
   }
 
-  // 5. Rest days
+  // 6. Add rest days (only as many as needed based on daysPerWeek)
   const restEntry = getWorkoutById('rest');
   if (restEntry) {
-    workouts.push({ ...restEntry.template, id: 'rest_monday' });
-    workouts.push({ ...restEntry.template, id: 'rest_friday' });
+    // Add rest days with unique IDs
+    const restDayNames = ['rest_monday', 'rest_friday', 'rest_wednesday'];
+    for (let i = 0; i < restDaysNeeded; i++) {
+      workouts.push({ ...restEntry.template, id: restDayNames[i] || `rest_${i}` });
+    }
   }
 
   console.log('[MicrocycleGenerator] Total workouts selected:', workouts.length, workouts.map(w => w.id || w.type));
