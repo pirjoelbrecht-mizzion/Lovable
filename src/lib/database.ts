@@ -1,6 +1,7 @@
 import { getSupabase, getCurrentUserId } from './supabase';
 import type { LogEntry } from '@/types';
 import { load, save } from '@/utils/storage';
+import { mapSportType } from '@/utils/sportTypeMapping';
 
 // Request cache to prevent concurrent duplicate requests
 const requestCache = new Map<string, { promise: Promise<any>; timestamp: number }>();
@@ -143,6 +144,10 @@ function toDbLogEntry(entry: LogEntry): DbLogEntry {
 }
 
 function fromDbLogEntry(db: any): LogEntry {
+  // Determine sport type with fallback chain: sport_type -> type -> 'Run'
+  const sportType = db.sport_type || db.type || 'Run';
+  const sportMapping = mapSportType(sportType);
+
   return {
     id: db.id,
     title: db.title,
@@ -164,12 +169,15 @@ function fromDbLogEntry(db: any): LogEntry {
     location: db.location_name,
     humidity: db.humidity,
     // Rich Strava data fields
-    sportType: db.sport_type,
+    sportType: sportType,
     description: db.description,
     deviceName: db.device_name,
     gearId: db.gear_id,
     hasPhotos: db.has_photos,
     hasSegments: db.has_segments,
+    // Computed classification fields (computed at runtime for old records)
+    internalSportCategory: sportMapping.sportCategory,
+    countsForRunningLoad: sportMapping.countsForRunningLoad,
   };
 }
 

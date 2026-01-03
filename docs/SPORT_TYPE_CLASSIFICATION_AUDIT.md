@@ -177,10 +177,16 @@ WHERE sport_type IS NOT NULL;
 
 **Current Pattern Correctness:**
 - ✅ Import paths: Correctly using `sport_type || type`
-- ❌ Read path: Missing fallback and derived field computation
+- ✅ Read path: **FIXED** - Now includes fallback and runtime classification
 
-**Recommended Action:**
-1. Apply Fix 1 immediately (runtime fallback)
-2. Schedule Fix 2 as a database migration
-3. Monitor performance, add Fix 3 if needed
-4. Defer Fix 4 until Phase 2 (multi-sport full rollout)
+**Applied Fixes:**
+1. ✅ **Fix 1 Applied** - Added runtime fallback in `fromDbLogEntry()`:
+   - Uses `sport_type || type || 'Run'` fallback chain
+   - Computes `internalSportCategory` at runtime
+   - Computes `countsForRunningLoad` at runtime
+   - Zero breaking changes, backward compatible
+
+**Remaining Actions:**
+2. Schedule Fix 2 as a database migration (backfill sport_type from type)
+3. Monitor performance, add Fix 3 if needed (index optimization)
+4. Defer Fix 4 until Phase 2 (smart recalculation of counts_for_running_load)
