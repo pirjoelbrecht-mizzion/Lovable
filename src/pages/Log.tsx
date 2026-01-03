@@ -20,6 +20,7 @@ import RouteMap from "@/components/RouteMap";
 import { shouldPromptFeedback, detectDNF, determineAppropriateModal } from "@/utils/feedbackDetection";
 import { saveRaceFeedback, saveDNFFeedback } from "@/services/feedbackService";
 import type { RaceFeedback, DNFEvent } from "@/types/feedback";
+import { getSportCategoryLabel, getSportCategoryIcon } from "@/utils/sportTypeMapping";
 
 type EditState = { open: boolean; idx: number; draft: LogEntry | null };
 
@@ -33,6 +34,7 @@ export default function Log() {
   const [toSend, setToSend] = useState<{ title: string; km?: number; notes?: string }[]>([]);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [q, setQ] = useState("");
+  const [showAllActivities, setShowAllActivities] = useState(false);
 
   // Feedback modal state
   const [fbOpen, setFbOpen] = useState(false);
@@ -46,15 +48,22 @@ export default function Log() {
 
   const sums = useMemo(() => totals(entries), [entries]);
   const visible = useMemo(() => {
+    let filtered = entries;
+
+    if (!showAllActivities) {
+      filtered = filtered.filter(e => e.countsForRunningLoad !== false);
+    }
+
     const needle = q.trim().toLowerCase();
-    if (!needle) return entries;
-    return entries.filter(
+    if (!needle) return filtered;
+
+    return filtered.filter(
       (e) =>
         (e.title || "").toLowerCase().includes(needle) ||
         (e.source || "").toLowerCase().includes(needle) ||
         (e.dateISO || "").includes(needle)
     );
-  }, [entries, q]);
+  }, [entries, q, showAllActivities]);
 
   function persistAndMaybeAdapt(next: LogEntry[], cause: string) {
     save("logEntries", next);
@@ -280,6 +289,13 @@ export default function Log() {
               onChange={(e) => setQ(e.target.value)}
               style={{ minWidth: 220 }}
             />
+            <button
+              className={showAllActivities ? "btn primary" : "btn"}
+              onClick={() => setShowAllActivities(!showAllActivities)}
+              title={showAllActivities ? "Showing all activities" : "Showing running activities only"}
+            >
+              {showAllActivities ? "All Sports" : "Running Only"}
+            </button>
             <button className="btn" onClick={() => selectAllVisible(true)}>Select all</button>
             <button className="btn" onClick={() => selectAllVisible(false)}>Clear selection</button>
             <button className="btn primary" onClick={openSendForSelected}>
@@ -318,6 +334,20 @@ export default function Log() {
                   <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
                     <div className="row" style={{ gap: 8, alignItems: "center", flex: 1 }}>
                       <input type="checkbox" checked={checked} onChange={() => toggleSel(e, i)} />
+                      {e.internalSportCategory && (
+                        <span
+                          style={{
+                            fontSize: '1.2rem',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            backgroundColor: e.countsForRunningLoad ? 'var(--bolt-teal-opacity)' : 'var(--muted-opacity)',
+                            border: e.countsForRunningLoad ? '1px solid var(--bolt-teal)' : '1px solid var(--muted)'
+                          }}
+                          title={getSportCategoryLabel(e.internalSportCategory)}
+                        >
+                          {getSportCategoryIcon(e.internalSportCategory)}
+                        </span>
+                      )}
                       <div
                         className="h2"
                         onClick={() => e.id && navigate(`/activity/${e.id}`)}
@@ -335,6 +365,21 @@ export default function Log() {
                       >
                         {e.title || "Run"}
                       </div>
+                      {!e.countsForRunningLoad && (
+                        <span
+                          className="small"
+                          style={{
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            backgroundColor: 'var(--muted-opacity)',
+                            color: 'var(--muted)',
+                            fontSize: '0.75rem',
+                            fontWeight: 500
+                          }}
+                        >
+                          Cross-Training
+                        </span>
+                      )}
                     </div>
                     <div className="row" style={{ gap: 6, flexShrink: 0 }}>
                       {e.id && <button className="btn primary" onClick={() => navigate(`/activity/${e.id}`)}>View</button>}

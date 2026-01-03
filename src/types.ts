@@ -1,5 +1,7 @@
 // src/types.ts
 
+import type { InternalSportCategory } from './utils/sportTypeMapping';
+
 // ---- Race type ----
 export type Race = {
   id: string;
@@ -41,6 +43,9 @@ export type LogEntry = {
   gearId?: string;     // Reference to gear used
   hasPhotos?: boolean; // Quick flag for photo availability
   hasSegments?: boolean; // Quick flag for segment data
+  // Multi-sport support
+  internalSportCategory?: InternalSportCategory; // Normalized sport category
+  countsForRunningLoad?: boolean; // Whether activity counts toward running training load
 };
 
 // ---- Rich Strava Data Types ----

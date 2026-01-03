@@ -1,5 +1,6 @@
 import { updateUserProfile } from "@/state/userData";
 import { filterByImportDateLimit, logImportFilterStats, getImportLimitMessage } from "@/utils/importDateLimits";
+import { mapSportType } from "@/utils/sportTypeMapping";
 
 /* ✅ Töötab Strava CSV-ga – käsitsi parser jutumärkide ja komadega */
 function splitCSVLine(line: string): string[] {
@@ -122,28 +123,40 @@ export async function parseStravaCSV(file: File) {
     durationMin: number;
     date: string;
     name: string;
-    activityId?: string;       // NEW: Strava Activity ID from Column A
-    elevationGain?: number;    // Column U - Elevation Gain
-    elevationLoss?: number;    // NEW: Column V - Elevation Loss
-    elevationLow?: number;     // NEW: Column W - Elevation Low
+    activityId?: string;
+    elevationGain?: number;
+    elevationLoss?: number;
+    elevationLow?: number;
     temperature?: number;
     weather?: string;
     location?: string;
+    sportType?: string;
+    internalSportCategory?: string;
+    countsForRunningLoad?: boolean;
   }[] = [];
 
   let runCount = 0;
+  let totalActivities = 0;
   for (let i = 1; i < lines.length; i++) {
     const cols = splitCSVLine(lines[i]);
     if (cols.length === 0) continue;
 
-    const type = typeIdx !== -1 ? (cols[typeIdx] || "").toLowerCase() : "run";
+    totalActivities++;
+    const activityType = typeIdx !== -1 ? (cols[typeIdx] || "Run") : "Run";
+    const sportMapping = mapSportType(activityType);
 
     if (i <= 5) {
-      console.log(`Row ${i} type check:`, { type, isRun: type.includes("run"), raw: cols[typeIdx] });
+      console.log(`Row ${i} type check:`, {
+        activityType,
+        sportCategory: sportMapping.sportCategory,
+        countsForRunningLoad: sportMapping.countsForRunningLoad,
+        raw: cols[typeIdx]
+      });
     }
 
-    if (!type.includes("run")) continue;
-    runCount++;
+    if (sportMapping.countsForRunningLoad) {
+      runCount++;
+    }
 
     const distKm = toNumber(cols[distIdx]);
     const timeSec = timeToSeconds(cols[timeIdx]);
@@ -168,9 +181,11 @@ export async function parseStravaCSV(file: File) {
     const weather = weatherIdx !== -1 ? cols[weatherIdx] : undefined;
     const location = locationIdx !== -1 ? cols[locationIdx] : undefined;
 
-    if (runCount <= 3) {
-      console.log(`Run ${runCount} (row ${i}) debug:`, {
-        type,
+    if (runs.length <= 3) {
+      console.log(`Activity ${runs.length + 1} (row ${i}) debug:`, {
+        activityType,
+        sportCategory: sportMapping.sportCategory,
+        countsForRunningLoad: sportMapping.countsForRunningLoad,
         distKm,
         timeSec,
         hr,
@@ -179,15 +194,9 @@ export async function parseStravaCSV(file: File) {
         elevationGain,
         elevationLoss,
         elevationLow,
-        elevGainRaw: JSON.stringify(elevGainRaw),     // SHOW RAW VALUE
-        elevLossRaw: JSON.stringify(elevLossRaw),     // SHOW RAW VALUE
-        elevLowRaw: JSON.stringify(elevLowRaw),       // SHOW RAW VALUE
         temperature,
         weather,
-        location,
-        rawDist: JSON.stringify(cols[distIdx]),
-        rawTime: JSON.stringify(cols[timeIdx]),
-        rawHr: JSON.stringify(cols[hrIdx])
+        location
       });
     }
 
@@ -210,12 +219,10 @@ export async function parseStravaCSV(file: File) {
         name
       };
 
-      // CRITICAL FIX: Include Activity ID (Column A) if available
       if (activityId) {
         run.activityId = activityId.trim();
       }
 
-      // CRITICAL FIX: Include ALL elevation data (Columns U, V, W)
       if (elevationGain !== undefined) {
         run.elevationGain = elevationGain;
       }
@@ -226,7 +233,6 @@ export async function parseStravaCSV(file: File) {
         run.elevationLow = elevationLow;
       }
 
-      // Include environmental data
       if (temperature !== undefined && temperature !== 0) {
         run.temperature = temperature;
       }
@@ -237,11 +243,20 @@ export async function parseStravaCSV(file: File) {
         run.location = location;
       }
 
+      run.sportType = activityType;
+      run.internalSportCategory = sportMapping.sportCategory;
+      run.countsForRunningLoad = sportMapping.countsForRunningLoad;
+
       runs.push(run);
     }
   }
 
-  console.log(`Parsed ${runs.length} valid runs from ${runCount} run activities (${lines.length - 1} total activities)`);
+  const runningActivitiesCount = runs.filter(r => r.countsForRunningLoad).length;
+  const crossTrainingCount = runs.length - runningActivitiesCount;
+
+  console.log(`[CSV Import] Parsed ${runs.length} valid activities from ${totalActivities} total activities`);
+  console.log(`[CSV Import] Running activities: ${runningActivitiesCount}`);
+  console.log(`[CSV Import] Cross-training activities: ${crossTrainingCount}`);
 
   // CRITICAL: Apply 2-year import limitation
   const filterResult = filterByImportDateLimit(runs, (run) => run.date);

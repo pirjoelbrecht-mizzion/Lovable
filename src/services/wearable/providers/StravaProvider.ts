@@ -2,6 +2,7 @@ import { ProviderInterface, WearableMetric } from '../../../types/wearable';
 import { supabase } from '../../../lib/supabase';
 import { LogEntry } from '../../../types';
 import { getValidatedAPIDateRange, filterByImportDateLimit, logImportFilterStats } from '../../../utils/importDateLimits';
+import { mapSportType } from '../../../utils/sportTypeMapping';
 
 export class StravaProvider implements ProviderInterface {
   name = 'strava' as const;
@@ -80,8 +81,10 @@ export class StravaProvider implements ProviderInterface {
 
       const logEntries: LogEntry[] = await Promise.all(
         allActivities
-          .filter((act: any) => act.type === 'Run')
           .map(async (act: any) => {
+            const sportType = act.sport_type || act.type || 'Run';
+            const sportMapping = mapSportType(sportType);
+
             const paceSecsPerKm = act.distance > 0 ? (act.moving_time / (act.distance / 1000)) : 0;
             const paceMin = Math.floor(paceSecsPerKm / 60);
             const paceSec = Math.round(paceSecsPerKm % 60);
@@ -131,7 +134,7 @@ export class StravaProvider implements ProviderInterface {
             const location = act.location_city || undefined;
 
             return {
-              title: act.name || 'Run',
+              title: act.name || sportType,
               dateISO: act.start_date_local.split('T')[0],
               km: Math.round(act.distance / 1000 * 10) / 10,
               durationMin: Math.round(act.moving_time / 60),
@@ -146,18 +149,26 @@ export class StravaProvider implements ProviderInterface {
               temperature: act.average_temp || undefined,
               location: location || undefined,
               // Rich Strava data fields
-              sportType: act.sport_type || act.type || 'Run',
+              sportType: sportType,
               description: act.description || undefined,
               deviceName: act.device_name || undefined,
               gearId: act.gear_id || undefined,
               // Photo and segment flags
               hasPhotos: (act.total_photo_count || 0) > 0,
-              hasSegments: (act.segment_efforts?.length || 0) > 0
+              hasSegments: (act.segment_efforts?.length || 0) > 0,
+              // Multi-sport support
+              internalSportCategory: sportMapping.sportCategory,
+              countsForRunningLoad: sportMapping.countsForRunningLoad
             };
           })
       );
 
-      console.log(`Fetched ${logEntries.length} runs from Strava (from ${allActivities.length} total activities)`);
+      const runningActivities = logEntries.filter(e => e.countsForRunningLoad);
+      const crossTrainingActivities = logEntries.length - runningActivities.length;
+
+      console.log(`[Strava] Imported ${logEntries.length} total activities`);
+      console.log(`[Strava] Running activities: ${runningActivities.length}`);
+      console.log(`[Strava] Cross-training activities: ${crossTrainingActivities}`);
       console.log('Sample log entry:', logEntries[0]);
 
       // CRITICAL: Double-check with date filter (defense in depth)

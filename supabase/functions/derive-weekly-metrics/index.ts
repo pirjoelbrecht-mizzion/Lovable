@@ -99,6 +99,7 @@ Deno.serve(async (req: Request) => {
       .from('log_entries')
       .select('date, km, duration_min, hr_avg, elevation_gain')
       .eq('user_id', user.id)
+      .eq('counts_for_running_load', true)
       .order('date', { ascending: true });
 
     if (logError) throw logError;
