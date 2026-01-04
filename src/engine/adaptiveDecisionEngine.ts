@@ -145,6 +145,20 @@ export interface AdaptiveDecision {
 
 /**
  * Core decision engine - orchestrates all adjustment layers
+ *
+ * ⚠️ INTERNAL IMPLEMENTATION - DO NOT CALL DIRECTLY
+ *
+ * This function performs adaptive weekly plan adjustments by evaluating
+ * ACWR, climate, motivation, and race priority signals.
+ *
+ * 🎯 For new code, use the public facade instead:
+ *    `adjustWeeklyTrainingDecision()` from `/src/engine/decisionFacade.ts`
+ *
+ * This function remains exported only for backward compatibility with
+ * existing hooks and components during the migration period.
+ *
+ * 📚 See architectural boundary documentation:
+ *    `/docs/DECISION_BOUNDARY.md`
  */
 export function computeTrainingAdjustment(context: AdaptiveContext): AdaptiveDecision {
   const layers: AdjustmentLayer[] = [];
