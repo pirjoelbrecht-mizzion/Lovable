@@ -1055,8 +1055,28 @@ export default function Quest() {
     }
   };
 
+  // Track dependency changes to understand re-computation triggers
+  const completionStatusRef = useRef(completionStatus);
+  const todayRef = useRef(today);
+
+  useEffect(() => {
+    if (weekPlanRef.current !== weekPlan) {
+      console.log('[Quest] ⚠️ weekPlan dependency changed (reference changed)');
+      weekPlanRef.current = weekPlan;
+    }
+    if (completionStatusRef.current !== completionStatus) {
+      console.log('[Quest] ⚠️ completionStatus dependency changed (reference changed)');
+      completionStatusRef.current = completionStatus;
+    }
+    if (todayRef.current !== today) {
+      console.log('[Quest] ⚠️ today dependency changed');
+      todayRef.current = today;
+    }
+  }, [weekPlan, completionStatus, today]);
+
   // Memoize weekData to prevent unnecessary re-renders of CosmicWeekView
   const cosmicWeekData = useMemo(() => {
+    console.log('[Quest] cosmicWeekData recomputing due to dependency change');
     console.log('[Quest] Building weekData for CosmicWeekView - weekPlan:', {
       planLength: weekPlan?.length,
       planSource: weekPlan[0]?.planSource,

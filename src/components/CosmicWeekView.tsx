@@ -74,20 +74,42 @@ const areWorkoutsEqual = (prev: Workout[], next: Workout[]): boolean => {
 
 // Custom comparison function for React.memo
 const arePropsEqual = (prevProps: CosmicWeekViewProps, nextProps: CosmicWeekViewProps): boolean => {
+  // Check if callbacks changed (they shouldn't if properly memoized)
+  if (prevProps.onWorkoutClick !== nextProps.onWorkoutClick ||
+      prevProps.onAddClick !== nextProps.onAddClick) {
+    console.log('[CosmicWeekView] Callbacks changed, re-rendering');
+    return false;
+  }
+
   // Check if weekData arrays are the same length
   if (prevProps.weekData.length !== nextProps.weekData.length) {
+    console.log('[CosmicWeekView] WeekData length changed, re-rendering');
     return false;
   }
 
   // Check each day's data
-  return prevProps.weekData.every((prevDay, index) => {
+  const isEqual = prevProps.weekData.every((prevDay, index) => {
     const nextDay = nextProps.weekData[index];
-    return (
-      prevDay.day === nextDay.day &&
+    const dayEqual = prevDay.day === nextDay.day &&
       prevDay.isToday === nextDay.isToday &&
-      areWorkoutsEqual(prevDay.workouts, nextDay.workouts)
-    );
+      areWorkoutsEqual(prevDay.workouts, nextDay.workouts);
+
+    if (!dayEqual) {
+      console.log(`[CosmicWeekView] Day ${prevDay.day} changed:`, {
+        dayChanged: prevDay.day !== nextDay.day,
+        isTodayChanged: prevDay.isToday !== nextDay.isToday,
+        workoutsChanged: !areWorkoutsEqual(prevDay.workouts, nextDay.workouts)
+      });
+    }
+
+    return dayEqual;
   });
+
+  if (isEqual) {
+    console.log('[CosmicWeekView] Props equal, SKIPPING re-render ✓');
+  }
+
+  return isEqual;
 };
 
 const CosmicWeekViewComponent = ({ weekData, onWorkoutClick, onAddClick }: CosmicWeekViewProps) => {
