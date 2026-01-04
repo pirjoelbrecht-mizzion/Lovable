@@ -177,7 +177,7 @@ function fromDbLogEntry(db: any): LogEntry {
     hasSegments: db.has_segments,
     // Computed classification fields (computed at runtime for old records)
     internalSportCategory: sportMapping.sportCategory,
-    countsForRunningLoad: sportMapping.countsForRunningLoad,
+    countsForRunningLoad: db.counts_for_running_load ?? sportMapping.countsForRunningLoad,
   };
 }
 
@@ -553,7 +553,7 @@ export async function syncLogEntries(): Promise<LogEntry[]> {
       map_polyline, map_summary_polyline, elevation_gain,
       temperature, weather_conditions, location_name, humidity, altitude_m, terrain_type,
       weather_data, elevation_loss, elevation_low,
-      sport_type, description, device_name, gear_id, has_photos, has_segments
+      sport_type, description, device_name, gear_id, has_photos, has_segments, counts_for_running_load
     `)
     .eq('user_id', userId)
     .order('date', { ascending: false })
