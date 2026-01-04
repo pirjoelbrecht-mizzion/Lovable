@@ -1040,6 +1040,155 @@ export default function Quest() {
     }
   };
 
+  // Memoize weekData to prevent unnecessary re-renders of CosmicWeekView
+  const cosmicWeekData = useMemo(() => {
+    console.log('[Quest] Building weekData for CosmicWeekView - weekPlan:', {
+      planLength: weekPlan?.length,
+      planSource: weekPlan[0]?.planSource,
+      totalSessions: weekPlan.reduce((sum, d) => sum + (d.sessions?.length || 0), 0),
+      totalWorkouts: weekPlan.reduce((sum, d) => sum + (((d as any).workouts?.length || 0)), 0),
+    });
+
+    return DAYS.map((dayName, idx) => {
+      const dayData = weekPlan[idx];
+
+      console.log(`[Quest] Processing ${dayName}:`, {
+        hasWorkouts: !!(dayData as any)?.workouts,
+        workoutsIsArray: Array.isArray((dayData as any)?.workouts),
+        workoutsLength: ((dayData as any)?.workouts?.length || 0),
+        hasSessions: !!dayData?.sessions,
+        sessionsLength: dayData?.sessions?.length || 0,
+      });
+
+      const hasWorkouts = (dayData as any)?.workouts !== undefined;
+
+      if (hasWorkouts) {
+        const existingWorkouts = (dayData as any).workouts || [];
+        const workoutCount = existingWorkouts.length;
+
+        if (workoutCount > 0) {
+          console.log(`[Quest] ✨ ${dayName} - Using pre-transformed workouts:`, workoutCount);
+        } else {
+          console.log(`[Quest] 🌙 ${dayName} - Rest day (workouts: [])`);
+        }
+
+        return {
+          day: dayName,
+          dayShort: DAYS_SHORT[idx],
+          workouts: existingWorkouts.map((w: any) => ({
+            ...w,
+            completed: completionStatus[w.sessionId || w.id] || false,
+            isToday: idx === today,
+          })),
+          isToday: idx === today,
+        };
+      }
+
+      console.log(`[Quest] ⚠️ ${dayName} - workouts undefined, falling back to session transformation`);
+
+      const userSessions = dayData?.sessions || [];
+
+      if (idx === 2) {
+        console.log(`[Quest] 🔍 ${dayName} - User sessions count:`, userSessions.length);
+        userSessions.forEach((s, i) => {
+          console.log(`[Quest]   Session ${i}:`, s.title, 'km:', s.km, 'type:', (s as any).type, 'notes:', s.notes);
+        });
+      }
+
+      let daySessions: any[] = userSessions;
+
+      if (daySessions.length === 1) {
+        const sessionTitle = (daySessions[0].title || '').toLowerCase();
+        const hasRunAndStrength = (sessionTitle.includes('run') || sessionTitle.includes('easy')) &&
+                                   (sessionTitle.includes('strength') || sessionTitle.includes('me session') || sessionTitle.includes('+'));
+
+        if (hasRunAndStrength) {
+          const baseKm = daySessions[0].km || 6;
+          console.log(`[Quest] ⚡ ${dayName} BEFORE SPLIT:`, daySessions[0]);
+          daySessions = [
+            { title: 'Easy run', km: baseKm, type: 'easy', notes: '' },
+            { title: 'Strength', km: 0, notes: 'ME session', type: 'strength' }
+          ];
+          console.log(`[Quest] ⚡ ${dayName} AFTER SPLIT (${daySessions.length} sessions):`, daySessions);
+        }
+      }
+
+      const monday = getMonday();
+      const workoutDate = new Date(monday);
+      workoutDate.setDate(workoutDate.getDate() + idx);
+      const dateStr = workoutDate.toISOString().slice(0, 10);
+
+      const allWorkouts = daySessions.map((session: any, sessionIdx: number) => {
+        if (daySessions.length > 1) {
+          console.log(`[Quest] Day ${idx} Session ${sessionIdx}:`, {
+            title: session.title,
+            km: session.km,
+            type: session.type,
+            notes: session.notes,
+            id: session.id
+          });
+        }
+
+        const sessionType = detectSessionType(session.title || '', session.notes, session?.type);
+        const isStrength = sessionType === 'strength';
+        const displayTitle = isStrength ? 'Strength Training' : session.title || 'Workout';
+        const sessionId = session.id || `s_${idx}_${sessionIdx}_${Date.now()}`;
+
+        const workout = {
+          id: `${idx}-${sessionIdx}`,
+          sessionId,
+          type: sessionType as any,
+          title: displayTitle,
+          duration: isStrength
+            ? '40 min'
+            : session?.durationMin
+              ? `${Math.floor(session.durationMin / 60)}h ${Math.floor(session.durationMin % 60)}m`.replace(/0h /, '')
+              : session.km ? estimateDuration(session.km, sessionType) : '30 min',
+          distance: isStrength ? undefined : (session.km ? `${session.km}K` : undefined),
+          completed: completionStatus[sessionId] || false,
+          isToday: idx === today,
+          elevation: session?.elevationGain,
+          zones: session?.zones,
+        };
+
+        if (daySessions.length > 1) {
+          console.log(`[Quest] -> Workout ${sessionIdx}:`, workout);
+        }
+
+        return workout;
+      });
+
+      const dayResult = {
+        day: dayName,
+        dayShort: DAYS_SHORT[idx],
+        workouts: allWorkouts,
+        isToday: idx === today,
+      };
+
+      if (idx === 2) {
+        console.log(`[Quest] ✅ Final ${dayName} has ${allWorkouts.length} workouts:`);
+        allWorkouts.forEach((w, i) => {
+          console.log(`[Quest]   Workout ${i}:`, w.type, '|', w.title, '|', w.distance || 'no distance');
+        });
+      }
+
+      return dayResult;
+    });
+  }, [weekPlan, completionStatus, today]);
+
+  // Memoize callbacks to prevent re-renders
+  const handleCosmicWorkoutClick = useCallback((workout: any, day: string) => {
+    if (!workout.sessionId) {
+      console.error('[Quest] Workout missing sessionId:', workout);
+      return;
+    }
+    setSelectedSessionId(workout.sessionId);
+  }, []);
+
+  const handleCosmicAddClick = useCallback(() => {
+    console.log('[Quest] Add workout clicked');
+  }, []);
+
   return (
     <div className="quest-container">
       <div className="quest-bg-orbs">
@@ -1128,168 +1277,9 @@ export default function Quest() {
             {viewMode === "cosmic" ? (
               <>
                 <CosmicWeekView
-                  weekData={(() => {
-                    // PHASE 5: REMOVED defaultPlan loading
-                    // UI consumes ONLY weekPlan.days[].workouts
-
-                    console.log('[Quest] Building weekData for CosmicWeekView - weekPlan:', {
-                      planLength: weekPlan?.length,
-                      planSource: weekPlan[0]?.planSource,
-                      totalSessions: weekPlan.reduce((sum, d) => sum + (d.sessions?.length || 0), 0),
-                      totalWorkouts: weekPlan.reduce((sum, d) => sum + (((d as any).workouts?.length || 0)), 0),
-                    });
-
-                    return DAYS.map((dayName, idx) => {
-                      const dayData = weekPlan[idx];
-
-                      console.log(`[Quest] Processing ${dayName}:`, {
-                        hasWorkouts: !!(dayData as any)?.workouts,
-                        workoutsIsArray: Array.isArray((dayData as any)?.workouts),
-                        workoutsLength: ((dayData as any)?.workouts?.length || 0),
-                        hasSessions: !!dayData?.sessions,
-                        sessionsLength: dayData?.sessions?.length || 0,
-                      });
-
-                      // CRITICAL: Preserve day.workouts if it exists (even if empty array)
-                      // Only fall back to session transformation if workouts is undefined
-                      // Rule: const workouts = day.workouts ?? deriveFromSessions(day.sessions)
-                      const hasWorkouts = (dayData as any)?.workouts !== undefined;
-
-                      if (hasWorkouts) {
-                        const existingWorkouts = (dayData as any).workouts || [];
-                        const workoutCount = existingWorkouts.length;
-
-                        if (workoutCount > 0) {
-                          console.log(`[Quest] ✨ ${dayName} - Using pre-transformed workouts:`, workoutCount);
-                        } else {
-                          console.log(`[Quest] 🌙 ${dayName} - Rest day (workouts: [])`);
-                        }
-
-                        return {
-                          day: dayName,
-                          dayShort: DAYS_SHORT[idx],
-                          workouts: existingWorkouts.map((w: any) => ({
-                            ...w,
-                            completed: completionStatus[w.sessionId || w.id] || false,
-                            isToday: idx === today,
-                          })),
-                          isToday: idx === today,
-                        };
-                      }
-
-                      console.log(`[Quest] ⚠️ ${dayName} - workouts undefined, falling back to session transformation`);
-
-                      // PHASE 5: NO FALLBACK - use ONLY userSessions from weekPlan
-                      const userSessions = dayData?.sessions || [];
-
-                      if (idx === 2) {
-                        console.log(`[Quest] 🔍 ${dayName} - User sessions count:`, userSessions.length);
-                        userSessions.forEach((s, i) => {
-                          console.log(`[Quest]   Session ${i}:`, s.title, 'km:', s.km, 'type:', (s as any).type, 'notes:', s.notes);
-                        });
-                      }
-
-                      // PHASE 5: Use ONLY what's in userSessions - NO SYNTHETIC REST DAYS
-                      // Rest is absence of workouts, not a workout type
-                      let daySessions: any[] = userSessions;
-
-                      // Check if we need to split combined "run + strength" sessions
-                      if (daySessions.length === 1) {
-                        const sessionTitle = (daySessions[0].title || '').toLowerCase();
-                        const hasRunAndStrength = (sessionTitle.includes('run') || sessionTitle.includes('easy')) &&
-                                                   (sessionTitle.includes('strength') || sessionTitle.includes('me session') || sessionTitle.includes('+'));
-
-                        if (hasRunAndStrength) {
-                          const baseKm = daySessions[0].km || 6;
-                          console.log(`[Quest] ⚡ ${dayName} BEFORE SPLIT:`, daySessions[0]);
-                          daySessions = [
-                            { title: 'Easy run', km: baseKm, type: 'easy', notes: '' },
-                            { title: 'Strength', km: 0, notes: 'ME session', type: 'strength' }
-                          ];
-                          console.log(`[Quest] ⚡ ${dayName} AFTER SPLIT (${daySessions.length} sessions):`, daySessions);
-                        }
-                      }
-
-                      const monday = getMonday();
-                      const workoutDate = new Date(monday);
-                      workoutDate.setDate(workoutDate.getDate() + idx);
-                      const dateStr = workoutDate.toISOString().slice(0, 10);
-
-                      const allWorkouts = daySessions.map((session: any, sessionIdx: number) => {
-                        // Debug: log the raw session data
-                        if (daySessions.length > 1) {
-                          console.log(`[Quest] Day ${idx} Session ${sessionIdx}:`, {
-                            title: session.title,
-                            km: session.km,
-                            type: session.type,
-                            notes: session.notes,
-                            id: session.id
-                          });
-                        }
-
-                        const sessionType = detectSessionType(session.title || '', session.notes, session?.type);
-
-                        // For strength sessions, override display properties
-                        const isStrength = sessionType === 'strength';
-                        const displayTitle = isStrength
-                          ? 'Strength Training'
-                          : session.title || 'Workout';
-
-                        // CRITICAL: Use session.id as root identity (not day-based)
-                        const sessionId = session.id || `s_${idx}_${sessionIdx}_${Date.now()}`;
-
-                        const workout = {
-                          id: `${idx}-${sessionIdx}`,
-                          sessionId,
-                          type: sessionType as any,
-                          title: displayTitle,
-                          duration: isStrength
-                            ? '40 min'
-                            : session?.durationMin
-                              ? `${Math.floor(session.durationMin / 60)}h ${Math.floor(session.durationMin % 60)}m`.replace(/0h /, '')
-                              : session.km ? estimateDuration(session.km, sessionType) : '30 min',
-                          distance: isStrength ? undefined : (session.km ? `${session.km}K` : undefined),
-                          completed: completionStatus[sessionId] || false,
-                          isToday: idx === today,
-                          elevation: session?.elevationGain,
-                          zones: session?.zones,
-                        };
-
-                        if (daySessions.length > 1) {
-                          console.log(`[Quest] -> Workout ${sessionIdx}:`, workout);
-                        }
-
-                        return workout;
-                      });
-
-                      const dayResult = {
-                        day: dayName,
-                        dayShort: DAYS_SHORT[idx],
-                        workouts: allWorkouts,
-                        isToday: idx === today,
-                      };
-
-                      // Debug: Log final result for days with multiple workouts
-                      if (idx === 2) {
-                        console.log(`[Quest] ✅ Final ${dayName} has ${allWorkouts.length} workouts:`);
-                        allWorkouts.forEach((w, i) => {
-                          console.log(`[Quest]   Workout ${i}:`, w.type, '|', w.title, '|', w.distance || 'no distance');
-                        });
-                      }
-
-                      return dayResult;
-                    });
-                  })()}
-                  onWorkoutClick={(workout, day) => {
-                    if (!workout.sessionId) {
-                      console.error('[Quest] Workout missing sessionId:', workout);
-                      return;
-                    }
-                    setSelectedSessionId(workout.sessionId);
-                  }}
-                  onAddClick={() => {
-                    console.log('[Quest] Add workout clicked');
-                  }}
+                  weekData={cosmicWeekData}
+                  onWorkoutClick={handleCosmicWorkoutClick}
+                  onAddClick={handleCosmicAddClick}
                 />
               </>
             ) : viewMode === "mobile" ? (

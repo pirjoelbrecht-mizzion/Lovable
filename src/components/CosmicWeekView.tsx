@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { motion } from 'framer-motion';
 import './CosmicWeekView.css';
 
@@ -55,7 +55,7 @@ const isRaceWorkout = (workout: Workout): boolean => {
   return title.includes('race') || title.includes('event') || title.includes('bt2') || title.includes('marathon') || title.includes('ultra');
 };
 
-export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicWeekViewProps) {
+export const CosmicWeekView = memo(function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicWeekViewProps) {
   console.log(
     '[CosmicWeekView] RENDER',
     weekData.map(d => ({
@@ -66,6 +66,13 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
   );
 
   const [hoveredWorkout, setHoveredWorkout] = useState<string | null>(null);
+
+  // Memoize rest day style to prevent new object creation
+  const restColor = '#6B7280';
+  const restDayStyle = useMemo(() =>
+    ({ '--bubble-color': restColor } as React.CSSProperties),
+    []
+  );
 
   return (
     <div className="cosmic-week-container">
@@ -88,23 +95,27 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
           }
 
           const isToday = day.isToday;
-          const restColor = '#6B7280';
+          const dayColor = isRestDay ? restColor : (WORKOUT_COLORS[day.workouts[0]?.type] || '#06B6D4');
+
+          // Memoize styles per day (React will handle re-renders when dayColor changes)
+          const dayHeaderStyle = { '--day-color': dayColor } as React.CSSProperties;
+          const dayLineStyle = { background: `linear-gradient(to bottom, ${dayColor}40, ${dayColor}10)` };
 
           return (
             <div key={dayIndex} className="cosmic-day-column">
               <div
                 className={`cosmic-day-header ${isToday ? 'today' : ''}`}
-                style={{ '--day-color': isRestDay ? restColor : (WORKOUT_COLORS[day.workouts[0]?.type] || '#06B6D4') } as React.CSSProperties}
+                style={dayHeaderStyle}
               >
                 {day.dayShort.charAt(0)}
               </div>
 
-              <div className="cosmic-day-line" style={{ background: `linear-gradient(to bottom, ${isRestDay ? restColor : (WORKOUT_COLORS[day.workouts[0]?.type] || '#06B6D4')}40, ${isRestDay ? restColor : (WORKOUT_COLORS[day.workouts[0]?.type] || '#06B6D4')}10)` }} />
+              <div className="cosmic-day-line" style={dayLineStyle} />
 
               {isRestDay ? (
                 <motion.div
                   className="cosmic-bubble rest-day"
-                  style={{ '--bubble-color': restColor } as React.CSSProperties}
+                  style={restDayStyle}
                   initial={{ scale: 0, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: dayIndex * 0.08, duration: 0.4 }}
@@ -122,6 +133,7 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
                   const icon = isRace ? '🏆' : (WORKOUT_ICONS[workout.type] || '🏃');
                   const isHovered = hoveredWorkout === workout.id;
                   const isPrimaryWorkout = workoutIdx === 0;
+                  const bubbleStyle = { '--bubble-color': color } as React.CSSProperties;
 
                   console.log('[WorkoutCard] render', {
                     day: day.dayShort,
@@ -138,7 +150,7 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
                     <motion.div
                       key={workout.id}
                       className={`cosmic-bubble ${isPrimaryWorkout ? '' : 'extra'} ${isToday && isPrimaryWorkout ? 'today' : ''} ${workout.completed ? 'completed' : ''} ${isRace ? 'race' : ''}`}
-                      style={{ '--bubble-color': color } as React.CSSProperties}
+                      style={bubbleStyle}
                       initial={{ scale: 0, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       transition={{ delay: dayIndex * 0.08 + (isPrimaryWorkout ? 0.4 : 0.1 * (workoutIdx + 1)), duration: isPrimaryWorkout ? 0.4 : 0.3 }}
@@ -193,4 +205,4 @@ export function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicW
       </motion.button>
     </div>
   );
-}
+});
