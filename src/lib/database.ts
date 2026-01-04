@@ -599,14 +599,15 @@ export async function syncLogEntries(): Promise<LogEntry[]> {
   return merged;
 }
 
-export async function getLogEntriesByDateRange(startDate: string, endDate: string): Promise<LogEntry[]> {
+export async function getLogEntriesByDateRange(startDate: string, endDate: string, onlyRunningLoad: boolean = false): Promise<LogEntry[]> {
   const supabase = getSupabase();
-  console.log('[getLogEntriesByDateRange] Supabase available:', !!supabase);
+  console.log('[getLogEntriesByDateRange] Supabase available:', !!supabase, 'onlyRunningLoad:', onlyRunningLoad);
 
   if (!supabase) {
     const entries = load<LogEntry[]>('logEntries', []);
     console.log('[getLogEntriesByDateRange] No Supabase, returning', entries.length, 'entries from localStorage');
-    return entries.filter(e => e.dateISO >= startDate && e.dateISO <= endDate);
+    const filtered = entries.filter(e => e.dateISO >= startDate && e.dateISO <= endDate);
+    return onlyRunningLoad ? filtered.filter(e => e.countsForRunningLoad !== false) : filtered;
   }
 
   const userId = await getCurrentUserId();
@@ -615,10 +616,11 @@ export async function getLogEntriesByDateRange(startDate: string, endDate: strin
   if (!userId) {
     const entries = load<LogEntry[]>('logEntries', []);
     console.log('[getLogEntriesByDateRange] No user, returning', entries.length, 'entries from localStorage');
-    return entries.filter(e => e.dateISO >= startDate && e.dateISO <= endDate);
+    const filtered = entries.filter(e => e.dateISO >= startDate && e.dateISO <= endDate);
+    return onlyRunningLoad ? filtered.filter(e => e.countsForRunningLoad !== false) : filtered;
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('log_entries')
     .select(`
       id, user_id, date, type, title, duration_min, km, hr_avg,
@@ -626,11 +628,17 @@ export async function getLogEntriesByDateRange(startDate: string, endDate: strin
       map_polyline, map_summary_polyline, elevation_gain,
       temperature, weather_conditions, location_name, humidity, altitude_m, terrain_type,
       weather_data, elevation_loss, elevation_low,
-      sport_type, description, device_name, gear_id, has_photos, has_segments
+      sport_type, description, device_name, gear_id, has_photos, has_segments, counts_for_running_load
     `)
     .eq('user_id', userId)
     .gte('date', startDate)
-    .lte('date', endDate)
+    .lte('date', endDate);
+
+  if (onlyRunningLoad) {
+    query = query.eq('counts_for_running_load', true);
+  }
+
+  const { data, error } = await query
     .order('date', { ascending: false })
     .limit(1000);
 

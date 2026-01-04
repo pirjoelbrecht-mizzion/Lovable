@@ -417,10 +417,10 @@ class AutoCalculationService {
     const startDate = affectedRange?.start || twoYearsAgo.toISOString().split('T')[0];
     const endDate = affectedRange?.end || new Date().toISOString().split('T')[0];
 
-    // Use cached query
-    const cacheKey = `log_entries_${userId}_${startDate}_${endDate}`;
+    // Use cached query - CRITICAL: Only include activities that count for running load
+    const cacheKey = `log_entries_${userId}_${startDate}_${endDate}_running_load`;
     const entries = await this.getCachedQuery(cacheKey, () =>
-      getLogEntriesByDateRange(startDate, endDate)
+      getLogEntriesByDateRange(startDate, endDate, true)
     );
 
     // OPTIMIZATION: Early exit if no data
@@ -617,9 +617,9 @@ class AutoCalculationService {
     const startDate = oneYearAgo.toISOString().split('T')[0];
     const endDate = new Date().toISOString().split('T')[0];
 
-    const cacheKey = `fitness_${userId}_${startDate}`;
+    const cacheKey = `fitness_${userId}_${startDate}_running_load`;
     const entries = await this.getCachedQuery(cacheKey, () =>
-      getLogEntriesByDateRange(startDate, endDate)
+      getLogEntriesByDateRange(startDate, endDate, true)
     );
 
     // OPTIMIZATION: Early exit if no data
