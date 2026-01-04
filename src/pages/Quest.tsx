@@ -335,8 +335,12 @@ export default function Quest() {
           return entryDate >= currentWeekMonday && entryDate <= currentWeekSunday;
         });
 
-        const currentWeekKm = currentWeekEntries.reduce((sum, e) => sum + (e.km || 0), 0);
-        const currentWeekVertical = currentWeekEntries.reduce((sum, e) => sum + (e.elevationGain || 0), 0);
+        const currentWeekKm = currentWeekEntries
+          .filter(e => e.countsForRunningLoad)
+          .reduce((sum, e) => sum + (e.km || 0), 0);
+        const currentWeekVertical = currentWeekEntries
+          .filter(e => e.countsForRunningLoad)
+          .reduce((sum, e) => sum + (e.elevationGain || 0), 0);
 
         for (let i = 0; i < 8; i++) {
           const weekStart = new Date(now);
@@ -349,7 +353,9 @@ export default function Quest() {
             return entryDate >= weekStart && entryDate < weekEnd;
           });
 
-          const weeklyKm = weekEntries.reduce((sum, e) => sum + (e.km || 0), 0);
+          const weeklyKm = weekEntries
+            .filter(e => e.countsForRunningLoad)
+            .reduce((sum, e) => sum + (e.km || 0), 0);
           recentWeeklyKm.unshift(weeklyKm);
 
           const fatigueValues = weekEntries
