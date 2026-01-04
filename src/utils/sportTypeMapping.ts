@@ -165,27 +165,40 @@ export function getSportCategoryIcon(category: InternalSportCategory): string {
 /**
  * Query contribution factors from database (Phase 2 enhancement)
  * Falls back to hardcoded mapping if database query fails
+ * Respects phase_2_enabled governance flag via v_active_sport_factors view
  */
 export async function getSportContributionFactors(
   sportType: string
 ): Promise<ExtendedSportMapping> {
+  const startTime = performance.now();
+
   try {
     const { getSupabase } = await import('@/lib/supabase');
     const supabase = getSupabase();
 
     if (!supabase) {
+      await trackSportMappingFallback(sportType, 'supabase_not_available');
       return getDefaultExtendedMapping(sportType);
     }
 
     const { data, error } = await supabase
-      .from('sport_contribution_factors')
+      .from('v_active_sport_factors')
       .select('*')
       .eq('sport_type', sportType)
       .maybeSingle();
 
+    const executionTime = performance.now() - startTime;
+
     if (error || !data) {
+      await trackDatabaseLookup(sportType, false, executionTime);
+      await trackSportMappingFallback(
+        sportType,
+        error ? `database_error: ${error.message}` : 'no_data_found'
+      );
       return getDefaultExtendedMapping(sportType);
     }
+
+    await trackDatabaseLookup(sportType, true, executionTime);
 
     const baseMapping = mapSportType(sportType);
     return {
@@ -197,8 +210,33 @@ export async function getSportContributionFactors(
       runningSpecificity: Number(data.running_specificity)
     };
   } catch (err) {
+    const executionTime = performance.now() - startTime;
     console.error('Failed to query contribution factors:', err);
+    await trackDatabaseLookup(sportType, false, executionTime);
+    await trackSportMappingFallback(sportType, `exception: ${err}`);
     return getDefaultExtendedMapping(sportType);
+  }
+}
+
+async function trackSportMappingFallback(sportType: string, reason: string): Promise<void> {
+  try {
+    const { trackSportMappingFallback: track } = await import('@/lib/telemetry/systemTelemetry');
+    await track(sportType, reason);
+  } catch (err) {
+    console.error('Failed to track fallback:', err);
+  }
+}
+
+async function trackDatabaseLookup(
+  sportType: string,
+  success: boolean,
+  executionTimeMs: number
+): Promise<void> {
+  try {
+    const { trackDatabaseLookup: track } = await import('@/lib/telemetry/systemTelemetry');
+    await track(sportType, success, executionTimeMs);
+  } catch (err) {
+    console.error('Failed to track lookup:', err);
   }
 }
 
@@ -255,11 +293,13 @@ function getDefaultExtendedMapping(sportType: string): ExtendedSportMapping {
 /**
  * Batch query contribution factors for multiple sport types
  * Useful for analytics and bulk processing
+ * Uses governance-aware view to respect phase_2_enabled flag
  */
 export async function getBatchSportContributionFactors(
   sportTypes: string[]
 ): Promise<Map<string, ExtendedSportMapping>> {
   const results = new Map<string, ExtendedSportMapping>();
+  const startTime = performance.now();
 
   try {
     const { getSupabase } = await import('@/lib/supabase');
@@ -273,12 +313,16 @@ export async function getBatchSportContributionFactors(
     }
 
     const { data, error } = await supabase
-      .from('sport_contribution_factors')
+      .from('v_active_sport_factors')
       .select('*')
       .in('sport_type', sportTypes);
 
+    const executionTime = performance.now() - startTime;
+
     if (error) {
+      console.error('Batch query failed:', error);
       for (const sportType of sportTypes) {
+        await trackDatabaseLookup(sportType, false, executionTime / sportTypes.length);
         results.set(sportType, getDefaultExtendedMapping(sportType));
       }
       return results;
@@ -290,6 +334,7 @@ export async function getBatchSportContributionFactors(
       const dbData = dbFactors.get(sportType);
 
       if (dbData) {
+        await trackDatabaseLookup(sportType, true, executionTime / sportTypes.length);
         const baseMapping = mapSportType(sportType);
         results.set(sportType, {
           ...baseMapping,
@@ -300,16 +345,55 @@ export async function getBatchSportContributionFactors(
           runningSpecificity: Number(dbData.running_specificity)
         });
       } else {
+        await trackDatabaseLookup(sportType, false, executionTime / sportTypes.length);
+        await trackSportMappingFallback(sportType, 'not_in_batch_result');
         results.set(sportType, getDefaultExtendedMapping(sportType));
       }
     }
 
     return results;
   } catch (err) {
+    const executionTime = performance.now() - startTime;
     console.error('Failed to batch query contribution factors:', err);
     for (const sportType of sportTypes) {
+      await trackDatabaseLookup(sportType, false, executionTime / sportTypes.length);
       results.set(sportType, getDefaultExtendedMapping(sportType));
     }
     return results;
+  }
+}
+
+/**
+ * Check if Phase 2 multi-sport system is enabled
+ * Returns false if database is unavailable (safe default)
+ */
+export async function checkPhase2Enabled(): Promise<boolean> {
+  try {
+    const { getSupabase } = await import('@/lib/supabase');
+    const supabase = getSupabase();
+
+    if (!supabase) {
+      return false;
+    }
+
+    const { data, error } = await supabase
+      .from('system_config')
+      .select('config_value')
+      .eq('config_key', 'phase_2_enabled')
+      .maybeSingle();
+
+    if (error || !data) {
+      return false;
+    }
+
+    const enabled = data.config_value as boolean;
+
+    const { trackPhase2Check } = await import('@/lib/telemetry/systemTelemetry');
+    await trackPhase2Check(enabled);
+
+    return enabled;
+  } catch (err) {
+    console.error('Failed to check phase_2_enabled flag:', err);
+    return false;
   }
 }

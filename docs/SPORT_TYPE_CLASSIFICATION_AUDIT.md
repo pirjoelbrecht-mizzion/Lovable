@@ -1,5 +1,9 @@
 # Sport Type Classification Audit
 
+**Related Architecture Decision:** [ADR-001: Multi-Sport Load Normalization & Contribution Model](./architecture/decisions/ADR-001-multi-sport-load-normalization.md)
+
+This document describes the legacy classification system. For the current multi-sport contribution model with Phase 2 governance, see the ADR above.
+
 ## Current State: Partially Correct
 
 ### ✅ What's Working
