@@ -756,7 +756,6 @@ export function adaptWorkoutToSurface(
       break;
 
     case 'vo2':
-    case 'threshold':
       if (surfacePreference === 'trail') {
         adapted.notes = `${adapted.notes || ''}\n\nTrail: Consider using a smoother fire road or groomed trail for intervals. Technical trails may limit intensity control.`.trim();
       }
