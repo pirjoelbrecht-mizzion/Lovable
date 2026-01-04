@@ -140,6 +140,8 @@ Deno.serve(async (req: Request) => {
       const entriesWithPace = entries.filter(e => e.duration_min && e.km > 0);
       const avgPace = entriesWithPace.length > 0
         ? entriesWithPace.reduce((sum, e) => sum + (e.duration_min! / e.km), 0) / entriesWithPace.length
+        )
+        )
         : null;
 
       const longRunKm = Math.max(...entries.map(e => e.km), 0);
@@ -161,6 +163,7 @@ Deno.serve(async (req: Request) => {
       const fatigueIndex = calculateFatigueIndex(totalKm, avgHr, entries.length, acwr);
 
       const paces = entriesWithPace.map(e => e.duration_min! / e.km);
+      )
       const monotony = calculateMonotony(paces);
       const strain = totalKm * monotony;
 
