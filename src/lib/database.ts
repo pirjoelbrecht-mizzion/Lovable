@@ -526,136 +526,142 @@ export async function getLogEntries(limit = 100): Promise<LogEntry[]> {
 }
 
 export async function syncLogEntries(): Promise<LogEntry[]> {
-  const { mergeDedup, cleanupDuplicates } = await import('@/utils/log');
-  const supabase = getSupabase();
-  const localEntries = load<LogEntry[]>('logEntries', []);
+  return getCachedRequest('syncLogEntries', async () => {
+    const { mergeDedup, cleanupDuplicates } = await import('@/utils/log');
+    const supabase = getSupabase();
+    const localEntries = load<LogEntry[]>('logEntries', []);
 
-  if (!supabase) {
-    const cleaned = cleanupDuplicates(localEntries);
-    save('logEntries', cleaned);
-    return cleaned;
-  }
+    if (!supabase) {
+      const cleaned = cleanupDuplicates(localEntries);
+      save('logEntries', cleaned);
+      return cleaned;
+    }
 
-  const userId = await getCurrentUserId();
-  if (!userId) {
-    const cleaned = cleanupDuplicates(localEntries);
-    save('logEntries', cleaned);
-    return cleaned;
-  }
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      const cleaned = cleanupDuplicates(localEntries);
+      save('logEntries', cleaned);
+      return cleaned;
+    }
 
-  // Select only essential fields to avoid JSON size limits and timeouts
-  // Exclude elevation_stream and distance_stream as they can be very large
-  const { data, error} = await supabase
-    .from('log_entries')
-    .select(`
-      id, user_id, date, type, title, duration_min, km, hr_avg,
-      source, created_at, updated_at, external_id, data_source,
-      map_polyline, map_summary_polyline, elevation_gain,
-      temperature, weather_conditions, location_name, humidity, altitude_m, terrain_type,
-      weather_data, elevation_loss, elevation_low,
-      sport_type, description, device_name, gear_id, has_photos, has_segments, counts_for_running_load
-    `)
-    .eq('user_id', userId)
-    .order('date', { ascending: false })
-    .limit(500);
+    // Select only essential fields to avoid JSON size limits and timeouts
+    // Exclude elevation_stream and distance_stream as they can be very large
+    const { data, error} = await supabase
+      .from('log_entries')
+      .select(`
+        id, user_id, date, type, title, duration_min, km, hr_avg,
+        source, created_at, updated_at, external_id, data_source,
+        map_polyline, map_summary_polyline, elevation_gain,
+        temperature, weather_conditions, location_name, humidity, altitude_m, terrain_type,
+        weather_data, elevation_loss, elevation_low,
+        sport_type, description, device_name, gear_id, has_photos, has_segments, counts_for_running_load
+      `)
+      .eq('user_id', userId)
+      .order('date', { ascending: false })
+      .limit(500);
 
-  if (error) {
-    console.error('Failed to sync log entries:', error);
-    const cleaned = cleanupDuplicates(localEntries);
-    save('logEntries', cleaned);
-    return cleaned;
-  }
+    if (error) {
+      console.error('Failed to sync log entries:', error);
+      const cleaned = cleanupDuplicates(localEntries);
+      save('logEntries', cleaned);
+      return cleaned;
+    }
 
-  let dbEntries: LogEntry[] = [];
-  try {
-    dbEntries = (data || []).map(fromDbLogEntry);
-  } catch (parseError) {
-    console.error('Failed to parse log entries:', parseError);
-    const cleaned = cleanupDuplicates(localEntries);
-    save('logEntries', cleaned);
-    return cleaned;
-  }
-  console.log('[syncLogEntries] Local entries:', localEntries.length);
-  console.log('[syncLogEntries] DB entries:', dbEntries.length);
+    let dbEntries: LogEntry[] = [];
+    try {
+      dbEntries = (data || []).map(fromDbLogEntry);
+    } catch (parseError) {
+      console.error('Failed to parse log entries:', parseError);
+      const cleaned = cleanupDuplicates(localEntries);
+      save('logEntries', cleaned);
+      return cleaned;
+    }
+    console.log('[syncLogEntries] Local entries:', localEntries.length);
+    console.log('[syncLogEntries] DB entries:', dbEntries.length);
 
-  // DEBUG: Check elevation data
-  const entriesWithElevation = dbEntries.filter(e => e.elevationGain && e.elevationGain > 0);
-  const totalElevation = dbEntries.reduce((sum, e) => sum + (e.elevationGain || 0), 0);
-  console.log('[syncLogEntries] Entries with elevation:', entriesWithElevation.length);
-  console.log('[syncLogEntries] Total elevation gain:', totalElevation, 'm');
-  console.log('[syncLogEntries] Sample entry with elevation:', entriesWithElevation[0]);
-  const dbWithMap = dbEntries.find(e => e.mapSummaryPolyline || e.mapPolyline);
-  console.log('[syncLogEntries] Sample DB entry with map:', dbWithMap);
-  console.log('[syncLogEntries] DB entry map fields:', {
-    hasMapPolyline: !!dbWithMap?.mapPolyline,
-    hasSummaryPolyline: !!dbWithMap?.mapSummaryPolyline,
-    mapPolylineLength: dbWithMap?.mapPolyline?.length,
-    summaryPolylineLength: dbWithMap?.mapSummaryPolyline?.length
+    // DEBUG: Check elevation data
+    const entriesWithElevation = dbEntries.filter(e => e.elevationGain && e.elevationGain > 0);
+    const totalElevation = dbEntries.reduce((sum, e) => sum + (e.elevationGain || 0), 0);
+    console.log('[syncLogEntries] Entries with elevation:', entriesWithElevation.length);
+    console.log('[syncLogEntries] Total elevation gain:', totalElevation, 'm');
+    console.log('[syncLogEntries] Sample entry with elevation:', entriesWithElevation[0]);
+    const dbWithMap = dbEntries.find(e => e.mapSummaryPolyline || e.mapPolyline);
+    console.log('[syncLogEntries] Sample DB entry with map:', dbWithMap);
+    console.log('[syncLogEntries] DB entry map fields:', {
+      hasMapPolyline: !!dbWithMap?.mapPolyline,
+      hasSummaryPolyline: !!dbWithMap?.mapSummaryPolyline,
+      mapPolylineLength: dbWithMap?.mapPolyline?.length,
+      summaryPolylineLength: dbWithMap?.mapSummaryPolyline?.length
+    });
+    const merged = mergeDedup(localEntries, dbEntries);
+    console.log('[syncLogEntries] Merged entries:', merged.length);
+    console.log('[syncLogEntries] Sample merged entry with map:', merged.find(e => e.mapSummaryPolyline || e.mapPolyline));
+    save('logEntries', merged);
+    return merged;
   });
-  const merged = mergeDedup(localEntries, dbEntries);
-  console.log('[syncLogEntries] Merged entries:', merged.length);
-  console.log('[syncLogEntries] Sample merged entry with map:', merged.find(e => e.mapSummaryPolyline || e.mapPolyline));
-  save('logEntries', merged);
-  return merged;
 }
 
 export async function getLogEntriesByDateRange(startDate: string, endDate: string, onlyRunningLoad: boolean = false): Promise<LogEntry[]> {
-  const supabase = getSupabase();
-  console.log('[getLogEntriesByDateRange] Supabase available:', !!supabase, 'onlyRunningLoad:', onlyRunningLoad);
+  const cacheKey = `getLogEntriesByDateRange:${startDate}:${endDate}:${onlyRunningLoad}`;
 
-  if (!supabase) {
-    const entries = load<LogEntry[]>('logEntries', []);
-    console.log('[getLogEntriesByDateRange] No Supabase, returning', entries.length, 'entries from localStorage');
-    const filtered = entries.filter(e => e.dateISO >= startDate && e.dateISO <= endDate);
-    return onlyRunningLoad ? filtered.filter(e => e.countsForRunningLoad !== false) : filtered;
-  }
+  return getCachedRequest(cacheKey, async () => {
+    const supabase = getSupabase();
+    console.log('[getLogEntriesByDateRange] Supabase available:', !!supabase, 'onlyRunningLoad:', onlyRunningLoad);
 
-  const userId = await getCurrentUserId();
-  console.log('[getLogEntriesByDateRange] User ID:', userId);
+    if (!supabase) {
+      const entries = load<LogEntry[]>('logEntries', []);
+      console.log('[getLogEntriesByDateRange] No Supabase, returning', entries.length, 'entries from localStorage');
+      const filtered = entries.filter(e => e.dateISO >= startDate && e.dateISO <= endDate);
+      return onlyRunningLoad ? filtered.filter(e => e.countsForRunningLoad !== false) : filtered;
+    }
 
-  if (!userId) {
-    const entries = load<LogEntry[]>('logEntries', []);
-    console.log('[getLogEntriesByDateRange] No user, returning', entries.length, 'entries from localStorage');
-    const filtered = entries.filter(e => e.dateISO >= startDate && e.dateISO <= endDate);
-    return onlyRunningLoad ? filtered.filter(e => e.countsForRunningLoad !== false) : filtered;
-  }
+    const userId = await getCurrentUserId();
+    console.log('[getLogEntriesByDateRange] User ID:', userId);
 
-  let query = supabase
-    .from('log_entries')
-    .select(`
-      id, user_id, date, type, title, duration_min, km, hr_avg,
-      source, created_at, updated_at, external_id, data_source,
-      map_polyline, map_summary_polyline, elevation_gain,
-      temperature, weather_conditions, location_name, humidity, altitude_m, terrain_type,
-      weather_data, elevation_loss, elevation_low,
-      sport_type, description, device_name, gear_id, has_photos, has_segments, counts_for_running_load
-    `)
-    .eq('user_id', userId)
-    .gte('date', startDate)
-    .lte('date', endDate);
+    if (!userId) {
+      const entries = load<LogEntry[]>('logEntries', []);
+      console.log('[getLogEntriesByDateRange] No user, returning', entries.length, 'entries from localStorage');
+      const filtered = entries.filter(e => e.dateISO >= startDate && e.dateISO <= endDate);
+      return onlyRunningLoad ? filtered.filter(e => e.countsForRunningLoad !== false) : filtered;
+    }
 
-  if (onlyRunningLoad) {
-    query = query.eq('counts_for_running_load', true);
-  }
+    let query = supabase
+      .from('log_entries')
+      .select(`
+        id, user_id, date, type, title, duration_min, km, hr_avg,
+        source, created_at, updated_at, external_id, data_source,
+        map_polyline, map_summary_polyline, elevation_gain,
+        temperature, weather_conditions, location_name, humidity, altitude_m, terrain_type,
+        weather_data, elevation_loss, elevation_low,
+        sport_type, description, device_name, gear_id, has_photos, has_segments, counts_for_running_load
+      `)
+      .eq('user_id', userId)
+      .gte('date', startDate)
+      .lte('date', endDate);
 
-  const { data, error } = await query
-    .order('date', { ascending: false })
-    .limit(1000);
+    if (onlyRunningLoad) {
+      query = query.eq('counts_for_running_load', true);
+    }
 
-  if (error) {
-    console.error('Failed to fetch log entries by date range:', error);
-    const entries = load<LogEntry[]>('logEntries', []);
-    return entries.filter(e => e.dateISO >= startDate && e.dateISO <= endDate);
-  }
+    const { data, error } = await query
+      .order('date', { ascending: false })
+      .limit(1000);
 
-  console.log('[getLogEntriesByDateRange] Fetched', data?.length || 0, 'entries from database');
-  try {
-    return (data || []).map(fromDbLogEntry);
-  } catch (parseError) {
-    console.error('Failed to parse log entries:', parseError);
-    const entries = load<LogEntry[]>('logEntries', []);
-    return entries.filter(e => e.dateISO >= startDate && e.dateISO <= endDate);
-  }
+    if (error) {
+      console.error('Failed to fetch log entries by date range:', error);
+      const entries = load<LogEntry[]>('logEntries', []);
+      return entries.filter(e => e.dateISO >= startDate && e.dateISO <= endDate);
+    }
+
+    console.log('[getLogEntriesByDateRange] Fetched', data?.length || 0, 'entries from database');
+    try {
+      return (data || []).map(fromDbLogEntry);
+    } catch (parseError) {
+      console.error('Failed to parse log entries:', parseError);
+      const entries = load<LogEntry[]>('logEntries', []);
+      return entries.filter(e => e.dateISO >= startDate && e.dateISO <= endDate);
+    }
+  });
 }
 
 export async function getActivityStreams(activityId: string): Promise<{ elevationStream?: number[]; distanceStream?: number[] } | null> {

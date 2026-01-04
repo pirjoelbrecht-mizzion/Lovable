@@ -1,4 +1,4 @@
-import { useState, useMemo, memo } from 'react';
+import { useState, useMemo, memo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import './CosmicWeekView.css';
 
@@ -55,7 +55,42 @@ const isRaceWorkout = (workout: Workout): boolean => {
   return title.includes('race') || title.includes('event') || title.includes('bt2') || title.includes('marathon') || title.includes('ultra');
 };
 
-export const CosmicWeekView = memo(function CosmicWeekView({ weekData, onWorkoutClick, onAddClick }: CosmicWeekViewProps) {
+// Deep equality check for workout arrays to prevent unnecessary re-renders
+const areWorkoutsEqual = (prev: Workout[], next: Workout[]): boolean => {
+  if (prev.length !== next.length) return false;
+
+  return prev.every((workout, index) => {
+    const nextWorkout = next[index];
+    return (
+      workout.id === nextWorkout.id &&
+      workout.title === nextWorkout.title &&
+      workout.type === nextWorkout.type &&
+      workout.completed === nextWorkout.completed &&
+      workout.distance === nextWorkout.distance &&
+      workout.duration === nextWorkout.duration
+    );
+  });
+};
+
+// Custom comparison function for React.memo
+const arePropsEqual = (prevProps: CosmicWeekViewProps, nextProps: CosmicWeekViewProps): boolean => {
+  // Check if weekData arrays are the same length
+  if (prevProps.weekData.length !== nextProps.weekData.length) {
+    return false;
+  }
+
+  // Check each day's data
+  return prevProps.weekData.every((prevDay, index) => {
+    const nextDay = nextProps.weekData[index];
+    return (
+      prevDay.day === nextDay.day &&
+      prevDay.isToday === nextDay.isToday &&
+      areWorkoutsEqual(prevDay.workouts, nextDay.workouts)
+    );
+  });
+};
+
+const CosmicWeekViewComponent = ({ weekData, onWorkoutClick, onAddClick }: CosmicWeekViewProps) => {
   console.log(
     '[CosmicWeekView] RENDER',
     weekData.map(d => ({
@@ -205,4 +240,7 @@ export const CosmicWeekView = memo(function CosmicWeekView({ weekData, onWorkout
       </motion.button>
     </div>
   );
-});
+};
+
+// Export with custom comparison function
+export const CosmicWeekView = memo(CosmicWeekViewComponent, arePropsEqual);

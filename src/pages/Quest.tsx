@@ -574,7 +574,22 @@ export default function Quest() {
         }
       });
 
-      setCompletionStatus(statusMap);
+      // Only update state if values actually changed (deep equality check)
+      setCompletionStatus((prev) => {
+        const keys = Object.keys(statusMap);
+        const prevKeys = Object.keys(prev);
+
+        // Quick check: different number of keys = definitely changed
+        if (keys.length !== prevKeys.length) {
+          return statusMap;
+        }
+
+        // Check if any values changed
+        const hasChanges = keys.some(key => prev[key] !== statusMap[key]);
+
+        // Return same reference if no changes (prevents re-render)
+        return hasChanges ? statusMap : prev;
+      });
     } catch (error) {
       console.error('Failed to load completion status:', error);
     }
