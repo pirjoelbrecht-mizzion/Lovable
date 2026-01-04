@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  computeTrainingAdjustment,
+  adjustWeeklyTrainingDecision,
   logAdaptiveDecision,
   getLatestAdaptiveDecision,
   getAdaptiveDecisionHistory,
@@ -68,7 +68,7 @@ export function useAdaptiveDecisionEngine(): UseAdaptiveDecisionEngineResult {
       setError(null);
 
       // Compute decision using the engine
-      const newDecision = computeTrainingAdjustment(context);
+      const newDecision = adjustWeeklyTrainingDecision(context);
 
       // Get user ID
       const userId = await getCurrentUserId();
