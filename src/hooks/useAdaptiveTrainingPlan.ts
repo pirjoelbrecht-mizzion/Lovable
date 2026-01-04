@@ -14,7 +14,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { computeTrainingAdjustment, logAdaptiveDecision, type AdaptiveDecision } from '@/engine';
+import { adjustWeeklyTrainingDecision, logAdaptiveDecision, type AdaptiveDecision } from '@/engine';
 import { buildAdaptiveContext, shouldRefreshContext, markContextRefreshed, convertToLocalStoragePlan } from '@/lib/adaptiveContextBuilder';
 import { getCurrentUserId } from '@/lib/supabase';
 import { load, save } from '@/utils/storage';
@@ -160,7 +160,7 @@ export function useAdaptiveTrainingPlan(
 
       // Run Module 4 decision engine
       console.log('[Module 4] Computing training adjustment...');
-      const newDecision = computeTrainingAdjustment(context);
+      const newDecision = adjustWeeklyTrainingDecision(context);
 
       // Log to Supabase if authenticated
       if (userId) {
