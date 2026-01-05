@@ -1,4 +1,4 @@
-import { useState, useMemo, memo, useCallback } from 'react';
+import { useState, useMemo, memo, useCallback, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import './CosmicWeekView.css';
 
@@ -74,10 +74,12 @@ const areWorkoutsEqual = (prev: Workout[], next: Workout[]): boolean => {
 
 // Custom comparison function for React.memo
 const arePropsEqual = (prevProps: CosmicWeekViewProps, nextProps: CosmicWeekViewProps): boolean => {
+  console.log('[CosmicWeekView] 🔍 arePropsEqual called - comparison running');
+
   // Check if callbacks changed (they shouldn't if properly memoized)
   if (prevProps.onWorkoutClick !== nextProps.onWorkoutClick ||
       prevProps.onAddClick !== nextProps.onAddClick) {
-    console.log('[CosmicWeekView] Callbacks changed, re-rendering');
+    console.log('[CosmicWeekView] ❌ Callbacks changed, re-rendering');
     return false;
   }
 
@@ -113,8 +115,19 @@ const arePropsEqual = (prevProps: CosmicWeekViewProps, nextProps: CosmicWeekView
 };
 
 const CosmicWeekViewComponent = ({ weekData, onWorkoutClick, onAddClick }: CosmicWeekViewProps) => {
+  const renderCount = useRef(0);
+  const componentId = useRef(`cosmic-${Math.random().toString(36).slice(2, 9)}`);
+
+  useEffect(() => {
+    console.log(`[CosmicWeekView] ✅ MOUNTED (id: ${componentId.current})`);
+    return () => {
+      console.log(`[CosmicWeekView] ❌ UNMOUNTED (id: ${componentId.current})`);
+    };
+  }, []);
+
+  renderCount.current++;
   console.log(
-    '[CosmicWeekView] RENDER',
+    `[CosmicWeekView] 🎨 RENDER #${renderCount.current} (id: ${componentId.current})`,
     weekData.map(d => ({
       day: d.day,
       workouts: d.workouts?.length ?? 0,
