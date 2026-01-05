@@ -1,10 +1,16 @@
-# ME Scheduling Conflict Fix - Complete
+# ME and Core Training Scheduling Fix - Complete
 
-## Problem Identified
+## Problems Identified
+
+### 1. ME Scheduling Conflict (CRITICAL)
 
 **Critical scheduling error**: Hill ME (Muscular Endurance) training was being scheduled on **both Monday AND Wednesday**, violating fundamental recovery principles.
 
-### Why This Is Wrong
+### 2. Missing Core Training Sessions
+
+**Core sessions not appearing**: Only ME sessions were being generated. Core training (lighter stability work) was completely absent from weekly plans, despite being a separate requirement with different frequency rules.
+
+### Why ME Conflict Was Wrong
 
 1. **Insufficient Recovery Window**
    - Monday to Wednesday = only 48 hours
@@ -25,13 +31,38 @@
    - Should be treated like interval training (not easy runs)
    - Requires same recovery consideration as VO2max work
 
+### Why Missing Core Sessions Was Wrong
+
+1. **Core ≠ ME (They're Different!)**
+   - **Core training** = Anti-rotation, anti-extension, stability (lighter work)
+   - **ME training** = Hill repeats, weighted carries, leg circuits (heavy work)
+   - Both are needed but serve different purposes
+
+2. **Missing Essential Injury Prevention**
+   - Core work provides stabilization for running
+   - Prevents compensatory movement patterns
+   - Reduces injury risk from accumulated fatigue
+   - Should occur 2-3x per week in base phase
+
+3. **Incomplete Training System**
+   - `useCoreTraining` hook existed but wasn't connected
+   - Core exercises in database but never scheduled
+   - Users couldn't complete the full strength training program
+
 ## The Fix
 
 ### Code Changes
 
 **File: `src/lib/adaptive-coach/microcycle.ts`**
 
-1. **Added Clear Comments** (Lines 446-449)
+**Part 1: Fixed ME Scheduling**
+
+1. **Changed ME Session Type** (Lines 446-459)
+   - Changed from `type: 'strength'` to `type: 'muscular_endurance'` for clarity
+   - Changed ID from `strength_wednesday` to `me_wednesday`
+   - Added comments explaining 72-96 hour recovery requirement
+
+2. **Added Core Training Sessions** (Lines 461-500)
    ```typescript
    // 3. Add Strength Training (Wednesday ONLY - not Monday)
    // CRITICAL: ME sessions require 72-96 hours recovery between identical sessions
@@ -202,24 +233,28 @@ The new `validateMEScheduling()` function checks:
 
 **Before Fix:**
 ```
-Mon: Hill ME (❌ WRONG)
+Mon: Hill ME (❌ WRONG - conflict with Wednesday)
 Tue: Intervals
-Wed: Hill ME (❌ CONFLICT - only 48hr from Monday)
+Wed: Hill ME (❌ WRONG - only 48hr recovery)
 Thu: Easy
 Fri: Easy
 Sat: Long Run
 Sun: Easy
+
+Missing: No core training sessions scheduled
 ```
 
-**After Fix:**
+**After Fix (Base Phase):**
 ```
-Mon: Easy Run (✅ CORRECT)
+Mon: Easy Run + Core Training (✅ 25min core work)
 Tue: Intervals
-Wed: Easy Run + ME Session (✅ CORRECT - only ME day)
-Thu: Easy
+Wed: Easy Run + ME Session (✅ 45min heavy work)
+Thu: Easy + Core Training (✅ 25min core work)
 Fri: Easy
 Sat: Long Run
 Sun: Easy
+
+Strength: 1 ME (45min) + 2 Core (25min each) ✅
 ```
 
 ## Scientific Rationale
@@ -269,19 +304,31 @@ Hill ME targets **Type IIa frontier fibers**:
 ## Summary
 
 **What Changed:**
-- Monday now gets easy run only (NO ME)
-- Wednesday remains the ONLY ME day per week
-- Added validation to prevent future conflicts
-- Comprehensive documentation of scheduling rules
+1. **ME Scheduling Fixed:**
+   - Monday now gets easy run only (NO ME)
+   - Wednesday remains the ONLY ME day per week
+   - Added validation to prevent future conflicts
+
+2. **Core Training Added:**
+   - Core sessions now appear as separate bubbles
+   - 2-3 sessions per week (phase-dependent)
+   - Scheduled on easy days (Monday, Thursday, Friday)
+   - Duration adjusts by phase (20-25 min)
+
+3. **Complete Strength System:**
+   - Both ME and Core training now fully functional
+   - Proper separation of heavy vs light work
+   - Comprehensive documentation of all rules
 
 **Why It Matters:**
-- Proper recovery = better adaptation
-- Single weekly ME session = optimal stimulus
-- Prevents overtraining and injury
-- Maximizes training efficiency
+- **ME fix**: Proper recovery = better adaptation, prevents overtraining
+- **Core addition**: Injury prevention, running efficiency, stability
+- **Complete system**: Users get full strength training program
+- **Better results**: Balanced load distribution, optimal stimulus
 
 **Action Required:**
 - Users should regenerate their training plans
-- Any existing Monday ME sessions will be replaced with easy runs
-- Wednesday ME sessions remain unchanged
-- Validation will prevent future scheduling errors
+- Monday ME will be removed, Core may be added
+- Wednesday ME remains unchanged
+- Additional Core sessions will appear on easy days
+- Both ME and Core sessions will show as separate bubbles in Quest view

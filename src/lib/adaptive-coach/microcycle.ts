@@ -443,26 +443,67 @@ function selectWeekWorkouts(input: WorkoutSelectionInput): Workout[] {
     }
   }
 
-  // 3. Add Strength Training (Wednesday ONLY - not Monday)
+  // 3. Add ME Session (Wednesday ONLY - not Monday)
   // CRITICAL: ME sessions require 72-96 hours recovery between identical sessions
   // Hill ME targets frontier muscle fibers and should occur ONCE per week max
   // Wednesday is optimal: allows recovery from Tuesday's key workout + rest before Saturday long run
-  const strengthWorkout: Workout = {
-    type: 'strength',
-    title: 'Strength Training',
+  const meWorkout: Workout = {
+    type: 'muscular_endurance',
+    title: 'ME Training',
     description: 'Muscular Endurance (ME) session. Focus on terrain-specific strength work.',
     distanceKm: 0,
     durationMin: 45,
     verticalGain: 0,
     intensityZones: [],
   };
-  workouts.push({ ...strengthWorkout, id: 'strength_wednesday' });
+  workouts.push({ ...meWorkout, id: 'me_wednesday' });
 
-  // 4. Calculate how many training days we need (rest days handled by distribution)
+  // 4. Add Core Training Sessions (separate from ME)
+  // Core = lighter stability work (anti-rotation, anti-extension, planks, carries)
+  // Frequency varies by phase:
+  // - Transition: 3x/week (20min each)
+  // - Base: 2x/week (25min each)
+  // - Intensity: 2x/week (15min each)
+  // - Taper: 1x/week (10min activation)
+  const coreFrequencyByPhase: Record<TrainingPhase, number> = {
+    transition: 3,
+    base: 2,
+    intensity: 2,
+    specificity: 2,
+    taper: 1,
+    goal: 0, // Race week - no core
+  };
+
+  const coreDurationByPhase: Record<TrainingPhase, number> = {
+    transition: 20,
+    base: 25,
+    intensity: 15,
+    specificity: 15,
+    taper: 10,
+    goal: 0,
+  };
+
+  const coreSessionsNeeded = isRecoveryWeek ? 1 : (coreFrequencyByPhase[phase] || 2);
+  const coreDuration = coreDurationByPhase[phase] || 20;
+
+  for (let i = 0; i < coreSessionsNeeded; i++) {
+    const coreWorkout: Workout = {
+      type: 'strength', // Use 'strength' type for core sessions
+      title: 'Core Training',
+      description: 'Anti-rotation, anti-extension, and stability exercises. Focus on control and quality.',
+      distanceKm: 0,
+      durationMin: coreDuration,
+      verticalGain: 0,
+      intensityZones: [],
+    };
+    workouts.push({ ...coreWorkout, id: `core_${i + 1}` });
+  }
+
+  // 5. Calculate how many training days we need (rest days handled by distribution)
   const daysPerWeek = constraints?.daysPerWeek || 6;
   const trainingDaysNeeded = daysPerWeek; // Total training days needed
 
-  // 5. Fill with easy runs to reach target training days (use variety)
+  // 6. Fill with easy runs to reach target training days (use variety)
   const remainingDays = trainingDaysNeeded - workouts.length;
 
   // Get different easy workout types for variety
@@ -501,7 +542,7 @@ function selectWeekWorkouts(input: WorkoutSelectionInput): Workout[] {
     }
   }
 
-  // 6. DO NOT add explicit rest workouts - distribution will handle rest days
+  // 7. DO NOT add explicit rest workouts - distribution will handle rest days
   // Rest days are determined by distribution based on daysPerWeek constraint
 
   console.log('[MicrocycleGenerator] Total workouts selected:', workouts.length, workouts.map(w => w.id || w.type));
@@ -558,17 +599,19 @@ function distributeWorkouts(
   });
 
   // Distribution pattern (hard/easy principle) - NO rest entries
-  // CRITICAL ME SCHEDULING RULE: Only Wednesday gets ME/Strength
-  // Monday = Easy run only (NO ME - insufficient recovery to Wednesday)
-  // Wednesday = Strength/ME session (72+ hours to Saturday long run)
+  // CRITICAL ME SCHEDULING RULE: Only Wednesday gets ME
+  // Core training sessions (lighter work) distributed on easy days
+  // Monday = Easy run + optional Core (post-rest, good for stability work)
+  // Wednesday = ME session ONLY (heavy strength work)
+  // Thursday/Friday = Easy run + optional Core (recovery days)
   const pattern: { [key: string]: string } = {
-    Mon: 'easy_0|easy_1|easy_2', // Easy recovery only (NO strength/ME)
+    Mon: 'easy_0|easy_1|easy_2|core_1', // Easy recovery + possible core session
     Tue: 'tuesday_vo2|tuesday_hills|tuesday_sharpener', // Key workout (intervals/hills)
-    Wed: 'strength_wednesday', // ONLY day for ME/Strength (once per week)
-    Thu: 'thursday_tempo|thursday_strides|easy_0', // Moderate effort or recovery
-    Fri: 'easy_0|easy_1|easy_2', // Easy run (prep for long run)
+    Wed: 'me_wednesday', // ONLY day for ME training (heavy work)
+    Thu: 'thursday_tempo|thursday_strides|easy_0|core_2', // Moderate effort or core
+    Fri: 'easy_0|easy_1|easy_2|core_3', // Easy run or core (prep for long run)
     Sat: 'saturday_long', // Long run (key workout)
-    Sun: 'easy_0|easy_1|easy_2', // Recovery run
+    Sun: 'easy_0|easy_1|easy_2', // Recovery run (no core - pre-Monday rest)
   };
 
   // CRITICAL: Use local dates to avoid timezone shifts
@@ -704,15 +747,15 @@ function distributeWorkouts(
           lockReason: undefined
         };
 
-        // SPECIAL CASE: Wednesday strength day should have BOTH run + strength
+        // SPECIAL CASE: Wednesday ME day should have BOTH run + ME session
         const sessions: Workout[] = [workoutWithMeta];
 
-        if (dayName === 'Wed' && workout.id === 'strength_wednesday') {
-          // Add an easy run before strength training
-          const easyRunBeforeStrength: Workout = {
+        if (dayName === 'Wed' && workout.id === 'me_wednesday') {
+          // Add an easy run before ME training
+          const easyRunBeforeME: Workout = {
             type: 'easy',
             title: 'Easy Run',
-            description: 'Easy run before strength training',
+            description: 'Easy run before ME training',
             distanceKm: 6,
             durationMin: 36,
             verticalGain: 0,
@@ -721,7 +764,7 @@ function distributeWorkouts(
             locked: false,
             lockReason: undefined
           };
-          sessions.unshift(easyRunBeforeStrength); // Add run BEFORE strength
+          sessions.unshift(easyRunBeforeME); // Add run BEFORE ME
         }
 
         days.push({
