@@ -33,13 +33,4 @@ export function runDailyAdaptation() {
   if (ai.adjustments.volumeBoostPct)
     toast("📈 Added quality work this week", "success");
 }
-Then in src/App.tsx, call it once when the app mounts:
-import { useEffect } from "react";
-import { runDailyAdaptation } from "@/lib/scheduler";
 
-export default function App() {
-  useEffect(() => {
-    runDailyAdaptation();
-  }, []);
-  ...
-}
