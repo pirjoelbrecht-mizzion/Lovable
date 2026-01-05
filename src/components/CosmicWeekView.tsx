@@ -1,4 +1,4 @@
-import { useState, useMemo, memo, useCallback, useRef, useEffect } from 'react';
+import { useState, useMemo, memo, useCallback, FC } from 'react';
 import { motion } from 'framer-motion';
 import './CosmicWeekView.css';
 
@@ -55,6 +55,102 @@ const isRaceWorkout = (workout: Workout): boolean => {
   return title.includes('race') || title.includes('event') || title.includes('bt2') || title.includes('marathon') || title.includes('ultra');
 };
 
+interface WorkoutBubbleProps {
+  workout: Workout;
+  workoutIdx: number;
+  dayIndex: number;
+  dayShort: string;
+  isToday: boolean;
+  isHovered: boolean;
+  onHoverStart: (id: string) => void;
+  onHoverEnd: () => void;
+  onClick: (workout: Workout, day: string) => void;
+}
+
+const WorkoutBubble: FC<WorkoutBubbleProps> = memo(({
+  workout,
+  workoutIdx,
+  dayIndex,
+  dayShort,
+  isToday,
+  isHovered,
+  onHoverStart,
+  onHoverEnd,
+  onClick
+}) => {
+  const isRace = isRaceWorkout(workout);
+  const color = isRace ? '#F59E0B' : (WORKOUT_COLORS[workout.type] || '#06B6D4');
+  const icon = isRace ? '🏆' : (WORKOUT_ICONS[workout.type] || '🏃');
+  const isPrimaryWorkout = workoutIdx === 0;
+  const bubbleStyle = useMemo(
+    () => ({ '--bubble-color': color } as React.CSSProperties),
+    [color]
+  );
+
+  const handleMouseEnter = useCallback(() => {
+    onHoverStart(workout.id);
+  }, [onHoverStart, workout.id]);
+
+  const handleMouseLeave = useCallback(() => {
+    onHoverEnd();
+  }, [onHoverEnd]);
+
+  const handleClick = useCallback(() => {
+    onClick(workout, dayShort);
+  }, [onClick, workout, dayShort]);
+
+  return (
+    <motion.div
+      key={workout.id}
+      className={`cosmic-bubble ${isPrimaryWorkout ? '' : 'extra'} ${isToday && isPrimaryWorkout ? 'today' : ''} ${workout.completed ? 'completed' : ''} ${isRace ? 'race' : ''}`}
+      style={bubbleStyle}
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ delay: dayIndex * 0.08 + (isPrimaryWorkout ? 0.4 : 0.1 * (workoutIdx + 1)), duration: isPrimaryWorkout ? 0.4 : 0.3 }}
+      whileHover={isPrimaryWorkout ? { scale: 1.1 } : undefined}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onClick={handleClick}
+    >
+      <div className="bubble-glow-ring" />
+
+      {isToday && isPrimaryWorkout ? (
+        <div className="bubble-today-content">
+          <span className="now-label">NOW</span>
+          <span className="bubble-icon">{icon}</span>
+        </div>
+      ) : isPrimaryWorkout ? (
+        <div className="bubble-icon-content">
+          <span className="bubble-icon">{icon}</span>
+          {workout.completed && <span className="completed-check">✓</span>}
+        </div>
+      ) : (
+        <span className="bubble-icon small">{icon}</span>
+      )}
+
+      {isHovered && isPrimaryWorkout && (
+        <motion.div
+          className="bubble-tooltip"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="tooltip-title">{workout.title}</div>
+          {workout.distance && <div className="tooltip-detail">{workout.distance}</div>}
+        </motion.div>
+      )}
+    </motion.div>
+  );
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.workout.id === nextProps.workout.id &&
+    prevProps.isHovered === nextProps.isHovered &&
+    prevProps.workout.completed === nextProps.workout.completed &&
+    prevProps.isToday === nextProps.isToday
+  );
+});
+
+WorkoutBubble.displayName = 'WorkoutBubble';
+
 // Deep equality check for workout arrays to prevent unnecessary re-renders
 const areWorkoutsEqual = (prev: Workout[], next: Workout[]): boolean => {
   if (prev.length !== next.length) return false;
@@ -74,68 +170,38 @@ const areWorkoutsEqual = (prev: Workout[], next: Workout[]): boolean => {
 
 // Custom comparison function for React.memo
 const arePropsEqual = (prevProps: CosmicWeekViewProps, nextProps: CosmicWeekViewProps): boolean => {
-  console.log('[CosmicWeekView] 🔍 arePropsEqual called - comparison running');
-
   // Check if callbacks changed (they shouldn't if properly memoized)
   if (prevProps.onWorkoutClick !== nextProps.onWorkoutClick ||
       prevProps.onAddClick !== nextProps.onAddClick) {
-    console.log('[CosmicWeekView] ❌ Callbacks changed, re-rendering');
     return false;
   }
 
   // Check if weekData arrays are the same length
   if (prevProps.weekData.length !== nextProps.weekData.length) {
-    console.log('[CosmicWeekView] WeekData length changed, re-rendering');
     return false;
   }
 
   // Check each day's data
-  const isEqual = prevProps.weekData.every((prevDay, index) => {
+  return prevProps.weekData.every((prevDay, index) => {
     const nextDay = nextProps.weekData[index];
-    const dayEqual = prevDay.day === nextDay.day &&
+    return prevDay.day === nextDay.day &&
       prevDay.isToday === nextDay.isToday &&
       areWorkoutsEqual(prevDay.workouts, nextDay.workouts);
-
-    if (!dayEqual) {
-      console.log(`[CosmicWeekView] Day ${prevDay.day} changed:`, {
-        dayChanged: prevDay.day !== nextDay.day,
-        isTodayChanged: prevDay.isToday !== nextDay.isToday,
-        workoutsChanged: !areWorkoutsEqual(prevDay.workouts, nextDay.workouts)
-      });
-    }
-
-    return dayEqual;
   });
-
-  if (isEqual) {
-    console.log('[CosmicWeekView] Props equal, SKIPPING re-render ✓');
-  }
-
-  return isEqual;
 };
 
 const CosmicWeekViewComponent = ({ weekData, onWorkoutClick, onAddClick }: CosmicWeekViewProps) => {
-  const renderCount = useRef(0);
-  const componentId = useRef(`cosmic-${Math.random().toString(36).slice(2, 9)}`);
-
-  useEffect(() => {
-    console.log(`[CosmicWeekView] ✅ MOUNTED (id: ${componentId.current})`);
-    return () => {
-      console.log(`[CosmicWeekView] ❌ UNMOUNTED (id: ${componentId.current})`);
-    };
-  }, []);
-
-  renderCount.current++;
-  console.log(
-    `[CosmicWeekView] 🎨 RENDER #${renderCount.current} (id: ${componentId.current})`,
-    weekData.map(d => ({
-      day: d.day,
-      workouts: d.workouts?.length ?? 0,
-      workoutTypes: d.workouts?.map(w => w.type) ?? []
-    }))
-  );
 
   const [hoveredWorkout, setHoveredWorkout] = useState<string | null>(null);
+
+  // Stable hover handlers to prevent WorkoutBubble re-renders
+  const handleHoverStart = useCallback((id: string) => {
+    setHoveredWorkout(id);
+  }, []);
+
+  const handleHoverEnd = useCallback(() => {
+    setHoveredWorkout(null);
+  }, []);
 
   // Memoize rest day style to prevent new object creation
   const restColor = '#6B7280';
@@ -197,67 +263,20 @@ const CosmicWeekViewComponent = ({ weekData, onWorkoutClick, onAddClick }: Cosmi
                   </div>
                 </motion.div>
               ) : (
-                day.workouts.map((workout, workoutIdx) => {
-                  const isRace = isRaceWorkout(workout);
-                  const color = isRace ? '#F59E0B' : (WORKOUT_COLORS[workout.type] || '#06B6D4');
-                  const icon = isRace ? '🏆' : (WORKOUT_ICONS[workout.type] || '🏃');
-                  const isHovered = hoveredWorkout === workout.id;
-                  const isPrimaryWorkout = workoutIdx === 0;
-                  const bubbleStyle = { '--bubble-color': color } as React.CSSProperties;
-
-                  console.log('[WorkoutCard] render', {
-                    day: day.dayShort,
-                    workoutIdx,
-                    id: workout.id,
-                    title: workout.title,
-                    type: workout.type,
-                    color,
-                    icon,
-                    isPrimaryWorkout
-                  });
-
-                  return (
-                    <motion.div
-                      key={workout.id}
-                      className={`cosmic-bubble ${isPrimaryWorkout ? '' : 'extra'} ${isToday && isPrimaryWorkout ? 'today' : ''} ${workout.completed ? 'completed' : ''} ${isRace ? 'race' : ''}`}
-                      style={bubbleStyle}
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: dayIndex * 0.08 + (isPrimaryWorkout ? 0.4 : 0.1 * (workoutIdx + 1)), duration: isPrimaryWorkout ? 0.4 : 0.3 }}
-                      whileHover={isPrimaryWorkout ? { scale: 1.1 } : undefined}
-                      onMouseEnter={() => setHoveredWorkout(workout.id)}
-                      onMouseLeave={() => setHoveredWorkout(null)}
-                      onClick={() => onWorkoutClick?.(workout, day.day)}
-                    >
-                      <div className="bubble-glow-ring" />
-
-                      {isToday && isPrimaryWorkout ? (
-                        <div className="bubble-today-content">
-                          <span className="now-label">NOW</span>
-                          <span className="bubble-icon">{icon}</span>
-                        </div>
-                      ) : isPrimaryWorkout ? (
-                        <div className="bubble-icon-content">
-                          <span className="bubble-icon">{icon}</span>
-                          {workout.completed && <span className="completed-check">✓</span>}
-                        </div>
-                      ) : (
-                        <span className="bubble-icon small">{icon}</span>
-                      )}
-
-                      {isHovered && isPrimaryWorkout && (
-                        <motion.div
-                          className="bubble-tooltip"
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                        >
-                          <div className="tooltip-title">{workout.title}</div>
-                          {workout.distance && <div className="tooltip-detail">{workout.distance}</div>}
-                        </motion.div>
-                      )}
-                    </motion.div>
-                  );
-                })
+                day.workouts.map((workout, workoutIdx) => (
+                  <WorkoutBubble
+                    key={workout.id}
+                    workout={workout}
+                    workoutIdx={workoutIdx}
+                    dayIndex={dayIndex}
+                    dayShort={day.dayShort}
+                    isToday={isToday}
+                    isHovered={hoveredWorkout === workout.id}
+                    onHoverStart={handleHoverStart}
+                    onHoverEnd={handleHoverEnd}
+                    onClick={onWorkoutClick!}
+                  />
+                ))
               )}
             </div>
           );
