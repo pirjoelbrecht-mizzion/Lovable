@@ -26,6 +26,8 @@ export default [
       // Turn off JS rule, use TS version instead
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": ["warn"],
+      
+  "react-hooks/exhaustive-deps": "warn"
 
       // Hooks rules (critical)
       "react-hooks/rules-of-hooks": "error",
@@ -33,3 +35,4 @@ export default [
     },
   },
 ];
+
