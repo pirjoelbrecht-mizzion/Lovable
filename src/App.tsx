@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
+import { runDailyAdaptation } from "@/lib/scheduler";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ToastHost from "@/components/ToastHost";
 import DebugBanner from "@/components/DebugBanner";
