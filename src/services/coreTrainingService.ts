@@ -26,6 +26,28 @@ const RACE_TYPE_CORE_EMPHASIS: Record<RaceType, { primary: CoreCategory; seconda
   marathon: { primary: 'anti_extension', secondary: 'hip_core_linkage', tertiary: 'lateral_stability' },
 };
 
+/**
+ * CORE TRAINING FREQUENCY BY TRAINING PERIOD
+ *
+ * Core exercises are SEPARATE from ME (Muscular Endurance) sessions:
+ * - Core = Anti-rotation, anti-extension, stability work (lighter, more frequent)
+ * - ME = Hill repeats, weighted carries, leg strength circuits (heavier, less frequent)
+ *
+ * CORE FREQUENCY RULES:
+ * - Transition: 3x/week (focus on movement quality, low intensity)
+ * - Base: 2x/week (build strength foundation)
+ * - Intensity: 2x/week (maintenance only, reduced volume)
+ * - Recovery: 1x/week (light activation)
+ * - Taper: 1x/week (nervous system activation, minimal fatigue)
+ * - Goal/Race: 0x (optional mobility only)
+ *
+ * ME (MUSCULAR ENDURANCE) FREQUENCY RULES:
+ * - Base/Build: 1-2x/week maximum (Wednesday primary, optional Sunday if 2x)
+ * - Peak: 1x/week (Wednesday only)
+ * - Taper/Race: 0x/week
+ * - CRITICAL: Minimum 72-96 hours between identical ME sessions
+ * - NEVER schedule same ME type on Monday AND Wednesday (only 48hr recovery)
+ */
 const PERIOD_CORE_CONFIG: Record<TrainingPeriod, CoreFrequencyConfig> = {
   transition: { frequency: 3, durationMinutes: 20, intensity: 'low' },
   base: { frequency: 2, durationMinutes: 25, intensity: 'moderate' },

@@ -443,7 +443,10 @@ function selectWeekWorkouts(input: WorkoutSelectionInput): Workout[] {
     }
   }
 
-  // 3. Add Strength Training (Wednesday)
+  // 3. Add Strength Training (Wednesday ONLY - not Monday)
+  // CRITICAL: ME sessions require 72-96 hours recovery between identical sessions
+  // Hill ME targets frontier muscle fibers and should occur ONCE per week max
+  // Wednesday is optimal: allows recovery from Tuesday's key workout + rest before Saturday long run
   const strengthWorkout: Workout = {
     type: 'strength',
     title: 'Strength Training',
@@ -555,14 +558,17 @@ function distributeWorkouts(
   });
 
   // Distribution pattern (hard/easy principle) - NO rest entries
+  // CRITICAL ME SCHEDULING RULE: Only Wednesday gets ME/Strength
+  // Monday = Easy run only (NO ME - insufficient recovery to Wednesday)
+  // Wednesday = Strength/ME session (72+ hours to Saturday long run)
   const pattern: { [key: string]: string } = {
-    Mon: 'easy_0|easy_1|easy_2',
-    Tue: 'tuesday_vo2|tuesday_hills|tuesday_sharpener',
-    Wed: 'strength_wednesday', // Strength Training / ME session
-    Thu: 'thursday_tempo|thursday_strides|easy_0',
-    Fri: 'easy_0|easy_1|easy_2',
-    Sat: 'saturday_long',
-    Sun: 'easy_0|easy_1|easy_2',
+    Mon: 'easy_0|easy_1|easy_2', // Easy recovery only (NO strength/ME)
+    Tue: 'tuesday_vo2|tuesday_hills|tuesday_sharpener', // Key workout (intervals/hills)
+    Wed: 'strength_wednesday', // ONLY day for ME/Strength (once per week)
+    Thu: 'thursday_tempo|thursday_strides|easy_0', // Moderate effort or recovery
+    Fri: 'easy_0|easy_1|easy_2', // Easy run (prep for long run)
+    Sat: 'saturday_long', // Long run (key workout)
+    Sun: 'easy_0|easy_1|easy_2', // Recovery run
   };
 
   // CRITICAL: Use local dates to avoid timezone shifts
@@ -812,4 +818,75 @@ export function personalizeWorkout(
   }
 
   return personalized;
+}
+
+//
+// ─────────────────────────────────────────────────────────────
+//   ME SCHEDULING VALIDATION
+// ─────────────────────────────────────────────────────────────
+//
+
+/**
+ * Validate that ME/Strength sessions are properly spaced in weekly plan
+ * Enforces minimum 72-hour recovery between identical ME sessions
+ */
+export function validateMEScheduling(weeklyPlan: WeeklyPlan): {
+  isValid: boolean;
+  conflicts: string[];
+  warnings: string[];
+} {
+  const conflicts: string[] = [];
+  const warnings: string[] = [];
+
+  const meSessionDays: { day: string; dayIndex: number; type: string }[] = [];
+
+  // Collect all ME/Strength sessions
+  weeklyPlan.days.forEach((day, index) => {
+    const meSession = day.sessions.find(
+      s => s.type === 'strength' || s.type === 'muscular_endurance'
+    );
+    if (meSession) {
+      meSessionDays.push({
+        day: day.day,
+        dayIndex: index,
+        type: meSession.title || meSession.type || 'ME',
+      });
+    }
+  });
+
+  // Check for conflicts
+  if (meSessionDays.length > 2) {
+    warnings.push(`More than 2 ME sessions per week detected (${meSessionDays.length}). Risk of overtraining.`);
+  }
+
+  // Check spacing between ME sessions
+  for (let i = 0; i < meSessionDays.length - 1; i++) {
+    const current = meSessionDays[i];
+    const next = meSessionDays[i + 1];
+    const daysBetween = next.dayIndex - current.dayIndex;
+
+    if (daysBetween < 3) {
+      conflicts.push(
+        `ME sessions on ${current.day} and ${next.day} are only ${daysBetween} days apart. ` +
+        `Minimum 72 hours (3 days) required between identical ME sessions.`
+      );
+    }
+  }
+
+  // Specific check for Monday-Wednesday conflict (most common error)
+  const mondayME = meSessionDays.find(s => s.day === 'Mon');
+  const wednesdayME = meSessionDays.find(s => s.day === 'Wed');
+
+  if (mondayME && wednesdayME) {
+    conflicts.push(
+      'CRITICAL: Hill ME scheduled on both Monday and Wednesday. ' +
+      'This violates recovery principles. ME should occur ONCE per week on Wednesday only.'
+    );
+  }
+
+  return {
+    isValid: conflicts.length === 0,
+    conflicts,
+    warnings,
+  };
 }
