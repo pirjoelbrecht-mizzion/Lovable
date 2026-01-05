@@ -32,7 +32,7 @@ export default function MirrorInsights() {
   const t = useT();
   const [tab, setTab] = useState<TabKey>("weekly");
   const [showCustomModal, setShowCustomModal] = useState(false);
-  const [allEntries, setAllEntries] = useState<LogEntry[]>(() => load<LogEntry[]>("logEntries", []));
+  const [allEntries, setAllEntries] = useState<LogEntry[]>([]);
   const [userProfile, setUserProfile] = useState<Partial<UserProfile> | null>(null);
   const { globalTimeFrame, setGlobalTimeFrame, getDateRange } = useTimeFrame();
 
