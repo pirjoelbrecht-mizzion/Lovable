@@ -46,8 +46,6 @@ function loadImage(url: string) {
     img.src = url;
   });
 }
-//How to use (Planner example):
-//Ensure your planner’s main wrapper has an id, e.g. <section id="planner-root" className="card">…
 
 
 
