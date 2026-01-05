@@ -4,8 +4,7 @@ import { runDailyAdaptation } from "@/lib/scheduler";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ToastHost from "@/components/ToastHost";
 import DebugBanner from "@/components/DebugBanner";
-import LangSwitch from "@/components/LangSwitch";
-import ConnectionsBadge from "@/components/ConnectionsBadge";
+
 import FloatingCoach from "@/components/FloatingCoach";
 import CoachBubble from "@/components/CoachBubble";
 import AutoCalculationStatus from "@/components/AutoCalculationStatus";
