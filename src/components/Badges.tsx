@@ -20,11 +20,4 @@ export default function Badges({ streak }: { streak: number }) {
     </div>
   );
 }
-Update src/pages/Home.tsx to render badges (add import + one card).
-Find your imports at the top and add:
-import Badges from "@/components/Badges";
-Then somewhere in your Home JSX (e.g., after the “Streak & Coins” card), insert this:
-{/* Badges */}
-<div className="card">
-  <Badges streak={streak} />
-</div>
+
