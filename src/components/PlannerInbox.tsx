@@ -1,6 +1,3 @@
-
-B) Planner Inbox banner UI
-src/components/PlannerInbox.tsx
 // src/components/PlannerInbox.tsx
 import { useEffect, useState } from "react";
 import { getSuggestions, popSuggestion, clearSuggestions, type InboxSession } from "@/utils/inbox";
