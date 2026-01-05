@@ -149,8 +149,25 @@ useCoreTraining() → selectedCoreSession
 4. **Proper IDs**: Each session gets a unique ID for proper React key handling
 5. **Type Safety**: Sessions are properly typed with `type: 'strength'` for correct rendering
 
+## Bug Fixes Applied
+
+### Initial Crash: Variable Initialization Order
+**Error**: `ReferenceError: Cannot access 'today' before initialization`
+
+**Cause**: The useEffect hook was trying to use the `today` variable before it was declared later in the component.
+
+**Fix**: Calculate `todayIdx` inside the useEffect using `todayDayIndex()` function directly, rather than relying on a variable defined later in the component.
+
+### Infinite Loop Prevention
+**Issue**: Adding `weekPlan` to the dependency array could cause the effect to run infinitely since it modifies `weekPlan`.
+
+**Fix**: Added `coreTrainingInjectedRef` to track whether core training has already been injected, preventing duplicate additions and infinite loops.
+
 ## Files Modified
-- `/src/pages/Quest.tsx` (Lines 197-235, 669-680)
+- `/src/pages/Quest.tsx` (Lines 197-249, 669-680)
+  - Added core training integration useEffect with proper guards
+  - Added `coreTrainingInjectedRef` to prevent infinite loops
+  - Enhanced diagnostic logging for multi-session days
 
 ## Related Systems
 - `useCoreTraining()` hook - Provides core training data

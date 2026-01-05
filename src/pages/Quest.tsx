@@ -195,27 +195,41 @@ export default function Quest() {
   });
 
   // Integrate core training into weekPlan when scheduled
+  const coreTrainingInjectedRef = useRef(false);
+
   useEffect(() => {
     if (!selectedCoreSession.length || !coreEmphasis || coreFrequency.frequency === 0) {
+      coreTrainingInjectedRef.current = false;
       return; // No core training scheduled
     }
 
-    console.log('[Quest] Core training scheduled, checking if needs to be added to plan');
+    // Calculate today's day index
+    const todayIdx = todayDayIndex();
 
     // Check if today already has a strength session
-    const todayDay = weekPlan[today];
-    const hasStrengthSession = todayDay?.sessions?.some(s => {
+    const todayDay = weekPlan[todayIdx];
+    if (!todayDay) return;
+
+    const hasStrengthSession = todayDay.sessions?.some(s => {
       const sessionType = detectSessionType(s.title || '', s.notes, (s as any).type);
       return sessionType === 'strength';
     });
 
     if (hasStrengthSession) {
-      console.log('[Quest] Today already has strength session, skipping core training injection');
+      // Core training already injected or another strength session exists
+      coreTrainingInjectedRef.current = true;
+      return;
+    }
+
+    // Prevent duplicate injection
+    if (coreTrainingInjectedRef.current) {
       return;
     }
 
     // Add core training as a separate session for today
     console.log('[Quest] Adding core training as separate session for today');
+    coreTrainingInjectedRef.current = true;
+
     const updatedPlan = [...weekPlan];
     const coreSession: Session = {
       id: `core-${Date.now()}`,
@@ -226,13 +240,13 @@ export default function Quest() {
       source: 'coach',
     };
 
-    updatedPlan[today] = {
-      ...updatedPlan[today],
-      sessions: [...(updatedPlan[today].sessions || []), coreSession],
+    updatedPlan[todayIdx] = {
+      ...updatedPlan[todayIdx],
+      sessions: [...(updatedPlan[todayIdx].sessions || []), coreSession],
     };
 
     setWeekPlan(normalizeAdaptivePlan(updatedPlan));
-  }, [selectedCoreSession.length, coreEmphasis, coreFrequency.frequency, today]);
+  }, [selectedCoreSession.length, coreEmphasis, coreFrequency.frequency, weekPlan]);
   const weekPlanRef = useRef(weekPlan);
   const [weatherData, setWeatherData] = useState<DailyWeather[]>([]);
   const [draggingId, setDraggingId] = useState<string | null>(null);
