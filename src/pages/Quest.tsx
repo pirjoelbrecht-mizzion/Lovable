@@ -193,6 +193,46 @@ export default function Quest() {
     // CRITICAL: Normalize plan to convert sessions → workouts for UI rendering
     return normalizeAdaptivePlan(plan);
   });
+
+  // Integrate core training into weekPlan when scheduled
+  useEffect(() => {
+    if (!selectedCoreSession.length || !coreEmphasis || coreFrequency.frequency === 0) {
+      return; // No core training scheduled
+    }
+
+    console.log('[Quest] Core training scheduled, checking if needs to be added to plan');
+
+    // Check if today already has a strength session
+    const todayDay = weekPlan[today];
+    const hasStrengthSession = todayDay?.sessions?.some(s => {
+      const sessionType = detectSessionType(s.title || '', s.notes, (s as any).type);
+      return sessionType === 'strength';
+    });
+
+    if (hasStrengthSession) {
+      console.log('[Quest] Today already has strength session, skipping core training injection');
+      return;
+    }
+
+    // Add core training as a separate session for today
+    console.log('[Quest] Adding core training as separate session for today');
+    const updatedPlan = [...weekPlan];
+    const coreSession: Session = {
+      id: `core-${Date.now()}`,
+      title: 'Core Training',
+      km: 0,
+      notes: `${selectedCoreSession.length} exercises • ${coreEmphasis} focus`,
+      type: 'strength' as any,
+      source: 'coach',
+    };
+
+    updatedPlan[today] = {
+      ...updatedPlan[today],
+      sessions: [...(updatedPlan[today].sessions || []), coreSession],
+    };
+
+    setWeekPlan(normalizeAdaptivePlan(updatedPlan));
+  }, [selectedCoreSession.length, coreEmphasis, coreFrequency.frequency, today]);
   const weekPlanRef = useRef(weekPlan);
   const [weatherData, setWeatherData] = useState<DailyWeather[]>([]);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -625,6 +665,19 @@ export default function Quest() {
     return weekPlan.flatMap((day, idx) => {
       const daySessions = day.sessions.length > 0 ? day.sessions : [null];
       const pos = BUBBLE_POSITIONS[idx];
+
+      // DIAGNOSTIC: Log multi-session days
+      if (daySessions.length > 1) {
+        console.log(`[Quest] 🎯 Multi-session day: ${DAYS[idx]}`, {
+          sessionCount: daySessions.length,
+          sessions: daySessions.map(s => ({
+            id: s?.id,
+            type: (s as any)?.type,
+            title: s?.title || 'Rest',
+            km: s?.km,
+          })),
+        });
+      }
 
       if (daySessions.length > 1) {
         // STEP 10: Dev diagnostic for multi-session days
