@@ -27,6 +27,7 @@ export default function App() {
 
   useEffect(() => {
     initializeApp();
+    runDailyAdaptation();
     loadUnityBadge();
     const interval = setInterval(loadUnityBadge, 60000);
     return () => clearInterval(interval);
