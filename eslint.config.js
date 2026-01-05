@@ -4,9 +4,19 @@ import tsParser from "@typescript-eslint/parser";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
 
 export default [
+  // 🔒 Global ignores (ESLint v9 REQUIRED)
+  {
+    ignores: [
+      "node_modules/**",
+      ".next/**",
+      "dist/**",
+      "build/**",
+      "supabase/**", // 👈 critical (Edge Functions)
+    ],
+  },
+
   {
     files: ["**/*.{ts,tsx}"],
-    ignores: ["node_modules", ".next", "dist", "build"],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -22,17 +32,22 @@ export default [
       react,
       "react-hooks": hooks,
     },
+    settings: {
+      react: {
+        version: "detect",
+      },
+    },
     rules: {
-      // Turn off JS rule, use TS version instead
+      // Prefer TS version
       "no-unused-vars": "off",
-      "@typescript-eslint/no-unused-vars": ["warn"],
-      
-  "react-hooks/exhaustive-deps": "warn"
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
 
-      // Hooks rules (critical)
+      // React Hooks (important)
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
     },
   },
 ];
-
