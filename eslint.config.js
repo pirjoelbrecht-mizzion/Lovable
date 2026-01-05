@@ -11,7 +11,7 @@ export default [
       ".next/**",
       "dist/**",
       "build/**",
-      "supabase/**", // 👈 critical (Edge Functions)
+      "supabase/**", // Edge Functions (Deno)
     ],
   },
 
@@ -27,25 +27,42 @@ export default [
         },
       },
     },
+
     plugins: {
       "@typescript-eslint": tsPlugin,
       react,
       "react-hooks": hooks,
     },
+
     settings: {
       react: {
         version: "detect",
       },
     },
+
     rules: {
-      // Prefer TS version
+      /* ------------------------------
+       * TypeScript
+       * ------------------------------ */
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": [
         "warn",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          ignoreRestSiblings: true,
+        },
       ],
 
-      // React Hooks (important)
+      /* ------------------------------
+       * React
+       * ------------------------------ */
+      "react/react-in-jsx-scope": "off", // React 17+
+      "react/jsx-uses-react": "off",
+
+      /* ------------------------------
+       * Hooks (CRITICAL)
+       * ------------------------------ */
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
     },
