@@ -155,8 +155,8 @@ export function useAdaptiveTrainingPlan(
       }
 
       // Build adaptive context
-      console.log('[Module 4] Building adaptive context...');
-      const context = await buildAdaptiveContext(plan);
+      console.log('[Module 4] Building adaptive context...', { bypassLock });
+      const context = await buildAdaptiveContext(plan, bypassLock);
 
       // Run Module 4 decision engine
       console.log('[Module 4] Computing training adjustment...');
@@ -269,7 +269,10 @@ export function useAdaptiveTrainingPlan(
    * Allows user to manually trigger a new adaptive run even if it already ran this week
    */
   const refresh = useCallback(async () => {
-    console.log('[Module 4] Refresh requested by user');
+    console.log('[Module 4] Refresh requested by user - clearing cached plan');
+    // Clear stored plan and execution lock
+    clearStoredWeekPlan();
+    clearAdaptiveExecutionLock();
     // User-initiated refresh bypasses the weekly lock
     await execute(undefined, true);
   }, [execute]);

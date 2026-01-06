@@ -652,7 +652,7 @@ function shiftPlanDates(plan: LocalStorageWeekPlan, newMonday: string): LocalSto
 /**
  * Build complete adaptive context for Module 4
  */
-export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | AdaptiveWeeklyPlan): Promise<AdaptiveContext> {
+export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | AdaptiveWeeklyPlan, forceRegenerate?: boolean): Promise<AdaptiveContext> {
   // HARD GUARD: Protect adaptive plans with sessions from ANY clearing logic
   if (plan && Array.isArray(plan) && plan.length > 0) {
     const totalSessions = plan.reduce((sum, day) => sum + (day.sessions?.length ?? 0), 0);
@@ -718,8 +718,8 @@ export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | Adaptiv
   // Get race calendar data EARLY (needed for plan generation and context)
   const races = await getRaceCalendarData();
 
-  if (isEmptyPlan && !isAdaptiveAuthoritative) {
-    console.log('[buildAdaptiveContext] Generating proper training plan using adaptive coach generators');
+  if ((isEmptyPlan || forceRegenerate) && !isAdaptiveAuthoritative) {
+    console.log('[buildAdaptiveContext] Generating proper training plan using adaptive coach generators', { forceRegenerate });
 
     // Extract constraints to respect rest days during plan generation
     const constraints = extractTrainingConstraints(athlete, supabaseProfile || userProfile);
