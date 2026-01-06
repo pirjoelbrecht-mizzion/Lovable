@@ -1,14 +1,23 @@
 import { getLogEntriesByDateRange, getEvents } from './database';
 import type { LogEntry } from '@/types';
+import { isACWREligible, calculateACWRLoad } from './acwrActivityClassification';
 
 export type TrainingLoad = {
-  acuteLoad: number;
-  chronicLoad: number;
-  progressionRatio: number;
-  last7DaysKm: number;
-  last28DaysKm: number;
+  acuteLoad: number;         // ACWR-eligible minutes (cardio only)
+  chronicLoad: number;        // ACWR-eligible minutes (cardio only)
+  progressionRatio: number;   // ACWR ratio (acute / chronic)
+  last7DaysKm: number;        // Total km (all activities) for display
+  last28DaysKm: number;       // Total km (all activities) for display
+  last7DaysMinutes: number;   // ACWR-eligible minutes
+  last28DaysMinutes: number;  // ACWR-eligible minutes
   eventLoadLast7Days: number;
   eventLoadLast28Days: number;
+  breakdown: {                // Activity type breakdown
+    cardio: number;
+    strength: number;
+    skill: number;
+    excluded: number;
+  };
   recommendation: 'increase' | 'maintain' | 'reduce' | 'taper';
 };
 
@@ -72,13 +81,48 @@ export async function calculateTrainingLoad(referenceDate?: Date): Promise<Train
   // Get training activities
   const entries = await getLogEntriesByDateRange(last28Start, todayStr);
 
+  // Calculate total km for ALL activities (for display/legacy compatibility)
   const last7DaysKm = entries
     .filter(e => e.dateISO >= last7Start)
     .reduce((sum, e) => sum + (e.km || 0), 0);
 
   const last28DaysKm = entries.reduce((sum, e) => sum + (e.km || 0), 0);
 
-  // Get calendar events and calculate their workload
+  // Calculate ACWR-eligible load (CARDIO ONLY, in minutes)
+  const activitiesLast7Days = entries
+    .filter(e => e.dateISO >= last7Start)
+    .map(e => ({
+      type: e.type || 'Run',  // Default to Run if no type
+      durationMinutes: e.duration || 0,
+      hasHeartRate: !!e.hrAvg,
+      averageHeartRate: e.hrAvg,
+      isEnduranceMode: false,  // TODO: Add endurance mode detection
+    }));
+
+  const activitiesLast28Days = entries.map(e => ({
+    type: e.type || 'Run',
+    durationMinutes: e.duration || 0,
+    hasHeartRate: !!e.hrAvg,
+    averageHeartRate: e.hrAvg,
+    isEnduranceMode: false,
+  }));
+
+  const acwrDataLast7Days = calculateACWRLoad(activitiesLast7Days);
+  const acwrDataLast28Days = calculateACWRLoad(activitiesLast28Days);
+
+  const last7DaysMinutes = acwrDataLast7Days.totalACWRMinutes;
+  const last28DaysMinutes = acwrDataLast28Days.totalACWRMinutes;
+
+  // Log ACWR breakdown for transparency
+  console.log('[ACWR Load Analysis] Last 28 days:', {
+    totalACWRMinutes: last28DaysMinutes,
+    includedActivities: acwrDataLast28Days.includedActivities,
+    excludedActivities: acwrDataLast28Days.excludedActivities,
+    breakdown: acwrDataLast28Days.breakdown,
+    note: 'ACWR includes cardio only - strength/skill activities excluded',
+  });
+
+  // Get calendar events and calculate their workload (events are always cardio)
   const events = await getEvents(100);
 
   const eventLoadLast7Days = events
@@ -89,9 +133,11 @@ export async function calculateTrainingLoad(referenceDate?: Date): Promise<Train
     .filter(e => e.date >= last28Start && e.date <= todayStr)
     .reduce((sum, e) => sum + calculateEventWorkload(e), 0);
 
-  // Combine training and event load
-  const acuteLoad = last7DaysKm + eventLoadLast7Days;
-  const chronicLoad = (last28DaysKm + eventLoadLast28Days) / 4;
+  // ACWR = Acute Load (7 days) / Chronic Load (28 days average)
+  // Acute = last 7 days of ACWR-eligible minutes
+  // Chronic = average of last 28 days of ACWR-eligible minutes
+  const acuteLoad = last7DaysMinutes;
+  const chronicLoad = last28DaysMinutes / 4;  // 4-week average
   const progressionRatio = chronicLoad > 0 ? acuteLoad / chronicLoad : 1.0;
 
   let recommendation: TrainingLoad['recommendation'] = 'maintain';
@@ -106,13 +152,16 @@ export async function calculateTrainingLoad(referenceDate?: Date): Promise<Train
   }
 
   return {
-    acuteLoad,
-    chronicLoad,
-    progressionRatio,
-    last7DaysKm,
-    last28DaysKm,
-    eventLoadLast7Days,
-    eventLoadLast28Days,
+    acuteLoad,           // ACWR-eligible minutes (cardio only)
+    chronicLoad,         // ACWR-eligible minutes (cardio only)
+    progressionRatio,    // ACWR ratio
+    last7DaysKm,         // Total km (all activities)
+    last28DaysKm,        // Total km (all activities)
+    last7DaysMinutes,    // ACWR-eligible minutes
+    last28DaysMinutes,   // ACWR-eligible minutes
+    eventLoadLast7Days,  // Event load (km-equivalent)
+    eventLoadLast28Days, // Event load (km-equivalent)
+    breakdown: acwrDataLast28Days.breakdown,  // Activity breakdown
     recommendation,
   };
 }
