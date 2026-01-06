@@ -7,38 +7,49 @@ export default function Welcome() {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
+    console.log('Welcome component mounted');
     checkAuth();
   }, []);
 
   const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      const { data: profile, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('onboarding_completed')
-        .eq('user_id', session.user.id)
-        .maybeSingle();
-
-      console.log('Welcome checkAuth - Profile:', profile, 'Error:', profileError);
-
-      if (!profile || !profile.onboarding_completed) {
-        console.log('Redirecting to onboarding from Welcome');
-        navigate('/onboarding', { replace: true });
-      } else {
-        console.log('Redirecting to quest from Welcome');
-        navigate('/quest', { replace: true });
+    try {
+      if (!supabase) {
+        setChecking(false);
+        return;
       }
-    } else {
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data: profile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('onboarding_completed')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+
+        console.log('Welcome checkAuth - Profile:', profile, 'Error:', profileError);
+
+        if (!profile || !profile.onboarding_completed) {
+          console.log('Redirecting to onboarding from Welcome');
+          navigate('/onboarding', { replace: true });
+        } else {
+          console.log('Redirecting to quest from Welcome');
+          navigate('/quest', { replace: true });
+        }
+      } else {
+        setChecking(false);
+      }
+    } catch (error) {
+      console.error('Welcome checkAuth error:', error);
       setChecking(false);
     }
   };
 
   if (checking) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🏃</div>
-          <p className="small">Loading...</p>
+          <p style={{ fontSize: 16, color: 'var(--text)' }}>Loading...</p>
         </div>
       </div>
     );

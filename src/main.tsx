@@ -2,9 +2,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-//import "./styles.css";
+import "./styles.css";
 import App from "./App";
-import './styles/layout.css';
 
 // Legacy pages (still accessible)
 import Log from "./pages/Log";
