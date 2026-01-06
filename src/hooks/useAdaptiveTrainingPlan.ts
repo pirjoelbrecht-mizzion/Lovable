@@ -163,8 +163,15 @@ export function useAdaptiveTrainingPlan(
       }
 
       // Build adaptive context
-      console.log('[Module 4] Building adaptive context...', { bypassLock });
-      const context = await buildAdaptiveContext(plan, bypassLock);
+      // Check for force regenerate flag (used after bug fixes)
+      const forceRegenFlag = localStorage.getItem('forceRegeneratePlan') === 'true';
+      if (forceRegenFlag) {
+        console.log('[Module 4] 🔧 Force regenerate flag detected - bypassing hard guard');
+        localStorage.removeItem('forceRegeneratePlan'); // One-time use
+      }
+      const shouldForceRegen = bypassLock || forceRegenFlag;
+      console.log('[Module 4] Building adaptive context...', { bypassLock, forceRegenFlag, shouldForceRegen });
+      const context = await buildAdaptiveContext(plan, shouldForceRegen);
 
       // Run Module 4 decision engine
       console.log('[Module 4] Computing training adjustment...');

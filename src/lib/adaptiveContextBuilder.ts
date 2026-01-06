@@ -654,7 +654,8 @@ function shiftPlanDates(plan: LocalStorageWeekPlan, newMonday: string): LocalSto
  */
 export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | AdaptiveWeeklyPlan, forceRegenerate?: boolean): Promise<AdaptiveContext> {
   // HARD GUARD: Protect adaptive plans with sessions from ANY clearing logic
-  if (plan && Array.isArray(plan) && plan.length > 0) {
+  // UNLESS forceRegenerate is explicitly set (e.g., after fixing plan generation bugs)
+  if (plan && Array.isArray(plan) && plan.length > 0 && !forceRegenerate) {
     const totalSessions = plan.reduce((sum, day) => sum + (day.sessions?.length ?? 0), 0);
     const planSource = plan[0]?.planSource;
 
