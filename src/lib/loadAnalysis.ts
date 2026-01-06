@@ -92,16 +92,16 @@ export async function calculateTrainingLoad(referenceDate?: Date): Promise<Train
   const activitiesLast7Days = entries
     .filter(e => e.dateISO >= last7Start)
     .map(e => ({
-      type: e.type || 'Run',  // Default to Run if no type
-      durationMinutes: e.duration || 0,
+      type: e.sportType || 'Run',  // Use sportType field
+      durationMinutes: e.durationMin || 0,  // Use durationMin field
       hasHeartRate: !!e.hrAvg,
       averageHeartRate: e.hrAvg,
       isEnduranceMode: false,  // TODO: Add endurance mode detection
     }));
 
   const activitiesLast28Days = entries.map(e => ({
-    type: e.type || 'Run',
-    durationMinutes: e.duration || 0,
+    type: e.sportType || 'Run',  // Use sportType field
+    durationMinutes: e.durationMin || 0,  // Use durationMin field
     hasHeartRate: !!e.hrAvg,
     averageHeartRate: e.hrAvg,
     isEnduranceMode: false,
