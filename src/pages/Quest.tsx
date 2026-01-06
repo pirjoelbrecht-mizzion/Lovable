@@ -94,6 +94,7 @@ const SESSION_EMOJIS: Record<string, string> = {
   intervals: "🔥",
   long: "🏔️",
   strength: "💪",
+  muscular_endurance: "🏋️",
   workout: "🔥",
 };
 
@@ -110,7 +111,7 @@ function getMonday() {
 function detectSessionType(title: string, notes?: string, explicitType?: string): string {
   // If explicit type is provided, trust it (except 'rest' which is not a valid workout type)
   if (explicitType && explicitType !== 'rest') {
-    const validTypes = ['strength', 'recovery', 'easy', 'tempo', 'intervals', 'long', 'workout'];
+    const validTypes = ['strength', 'muscular_endurance', 'recovery', 'easy', 'tempo', 'intervals', 'long', 'workout'];
     if (validTypes.includes(explicitType)) {
       return explicitType;
     }
@@ -678,16 +679,18 @@ export default function Quest() {
 
         let emoji = SESSION_EMOJIS[sessionType] || "🏃";
 
-        if (sessionType === 'strength') {
+        // Only apply ME assignment details to actual ME sessions, not Core sessions
+        if (sessionType === 'muscular_endurance') {
           if (meAssignment) {
             title = `ME ${meAssignment.meType.replace('_', ' ').toUpperCase()}`;
             const loadInfo = loadRegulation?.shouldAdjust
               ? ` • Load ${loadRegulation.adjustmentType === 'reduce' ? 'Reduced' : 'Adjusted'}`
               : '';
             notes = `${meAssignment.reason}${loadInfo ? '\n\n' + loadRegulation.reason : ''}${coachingMessage ? '\n\n' + coachingMessage : ''}`;
-            emoji = loadRegulation?.shouldAdjust ? "⚠️" : "💪";
+            emoji = loadRegulation?.shouldAdjust ? "⚠️" : "🏋️";
           }
-          sessionType = 'strength';
+        } else if (sessionType === 'strength') {
+          // Core Training sessions keep their original title and emoji
           emoji = emoji || "💪";
         }
 
@@ -720,7 +723,7 @@ export default function Quest() {
         let pace = km && km > 0 ? `${(profile.paceBase - 0.5).toFixed(1)} - ${profile.paceBase.toFixed(1)} min/km` : undefined;
 
         let finalDistance = km && km > 0 ? `${km}K` : undefined;
-        if (sessionType === 'strength') {
+        if (sessionType === 'strength' || sessionType === 'muscular_endurance') {
           finalDistance = undefined;
           pace = undefined;
         }
@@ -732,7 +735,7 @@ export default function Quest() {
         const isCompleted = completionStatus[dateStr] || false;
 
         let description = notes || `${title} session as planned.`;
-        if (sessionType === 'strength' && notes) {
+        if ((sessionType === 'strength' || sessionType === 'muscular_endurance') && notes) {
           description = notes;
         } else if (elevation && elevation > 0) {
           description = `${km && km > 0 ? `${km}km` : ''} ${elevation ? `• ${Math.round(elevation)}m↑` : ''} ${duration ? `• ${duration}` : ''}`.trim();
@@ -760,7 +763,7 @@ export default function Quest() {
           completed: isCompleted,
           isToday,
           isAdapted,
-          isMESession: sessionType === 'strength',
+          isMESession: sessionType === 'muscular_endurance',
           x: pos.x + xOffset,
           y: pos.y + yOffset,
           size: isToday ? 94 : pos.size,
@@ -805,26 +808,28 @@ export default function Quest() {
 
     // Reconstruct SessionNode for compatibility with modal UI
     const sessionType = detectSessionType(matchedSession.title || '', matchedSession.notes, (matchedSession as any).type);
-    const isStrength = sessionType === 'strength';
+    const isMESession = sessionType === 'muscular_endurance';
+    const isCoreSession = sessionType === 'strength';
+    const isStrengthType = isMESession || isCoreSession;
 
     const reconstructed: SessionNode = {
       id: matchedSession.id!,
       day: DAYS_SHORT[dayIndex],
       dayFull: DAYS[dayIndex],
-      type: isStrength ? 'Strength Training' : matchedSession.title || 'Workout',
+      type: isStrengthType ? matchedSession.title || 'Training' : matchedSession.title || 'Workout',
       emoji: SESSION_EMOJIS[sessionType] || '🏃',
-      duration: isStrength
-        ? '40 min'
+      duration: isStrengthType
+        ? ((matchedSession as any)?.durationMin ? `${(matchedSession as any).durationMin} min` : '40 min')
         : (matchedSession as any)?.durationMin
           ? `${Math.floor((matchedSession as any).durationMin / 60)}h ${Math.floor((matchedSession as any).durationMin % 60)}m`.replace(/0h /, '')
           : matchedSession.km ? estimateDuration(matchedSession.km, sessionType) : '30 min',
-      distance: isStrength ? undefined : (matchedSession.km ? `${matchedSession.km}K` : undefined),
+      distance: isStrengthType ? undefined : (matchedSession.km ? `${matchedSession.km}K` : undefined),
       elevation: (matchedSession as any).elevationGain,
       zones: (matchedSession as any).zones,
       completed: completionStatus[selectedSessionId] || false,
       isToday: dayIndex === today,
       isAdapted: matchedSession.source === 'coach',
-      isMESession: isStrength,
+      isMESession: isMESession,
       x: BUBBLE_POSITIONS[dayIndex]?.x || 0,
       y: BUBBLE_POSITIONS[dayIndex]?.y || 0,
       size: BUBBLE_POSITIONS[dayIndex]?.size || 80,
