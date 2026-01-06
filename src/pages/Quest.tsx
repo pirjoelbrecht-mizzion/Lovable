@@ -197,56 +197,11 @@ export default function Quest() {
   // Integrate core training into weekPlan when scheduled
   const coreTrainingInjectedRef = useRef(false);
 
-  useEffect(() => {
-    if (!selectedCoreSession.length || !coreEmphasis || coreFrequency.frequency === 0) {
-      coreTrainingInjectedRef.current = false;
-      return; // No core training scheduled
-    }
-
-    // Calculate today's day index
-    const todayIdx = todayDayIndex();
-
-    // Check if today already has a strength session
-    const todayDay = weekPlan[todayIdx];
-    if (!todayDay) return;
-
-    const hasStrengthSession = todayDay.sessions?.some(s => {
-      const sessionType = detectSessionType(s.title || '', s.notes, (s as any).type);
-      return sessionType === 'strength';
-    });
-
-    if (hasStrengthSession) {
-      // Core training already injected or another strength session exists
-      coreTrainingInjectedRef.current = true;
-      return;
-    }
-
-    // Prevent duplicate injection
-    if (coreTrainingInjectedRef.current) {
-      return;
-    }
-
-    // Add core training as a separate session for today
-    console.log('[Quest] Adding core training as separate session for today');
-    coreTrainingInjectedRef.current = true;
-
-    const updatedPlan = [...weekPlan];
-    const coreSession: Session = {
-      id: `core-${Date.now()}`,
-      title: 'Core Training',
-      km: 0,
-      notes: `${selectedCoreSession.length} exercises • ${coreEmphasis} focus`,
-      type: 'strength' as any,
-      source: 'coach',
-    };
-
-    updatedPlan[todayIdx] = {
-      ...updatedPlan[todayIdx],
-      sessions: [...(updatedPlan[todayIdx].sessions || []), coreSession],
-    };
-
-    setWeekPlan(normalizeAdaptivePlan(updatedPlan));
-  }, [selectedCoreSession.length, coreEmphasis, coreFrequency.frequency, weekPlan]);
+  // DISABLED: Core training is now scheduled properly by the adaptive plan generator
+  // This legacy injection logic was overriding the adaptive plan and adding core to wrong days
+  // useEffect(() => {
+  //   ... (legacy core injection code removed)
+  // }, [selectedCoreSession.length, coreEmphasis, coreFrequency.frequency, weekPlan]);
   const weekPlanRef = useRef(weekPlan);
   const [weatherData, setWeatherData] = useState<DailyWeather[]>([]);
   const [draggingId, setDraggingId] = useState<string | null>(null);
