@@ -40,6 +40,8 @@ import Onboarding from "./pages/Onboarding";
 
 import { TProvider } from "@/i18n";
 
+console.log('🚀 main.tsx executing...');
+
 // Install console filter to hide StackBlitz infrastructure noise
 if (import.meta.env.DEV) {
   import('./utils/consoleFilter').then(({ installConsoleFilter, showErrorSummary }) => {
@@ -107,10 +109,23 @@ const router = createBrowserRouter([
   },
 ]);
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <TProvider>
-      <RouterProvider router={router} />
-    </TProvider>
-  </StrictMode>
-);
+console.log('🎯 About to render React app...');
+const rootElement = document.getElementById("root");
+console.log('📍 Root element:', rootElement);
+
+if (!rootElement) {
+  console.error('❌ Root element not found!');
+} else {
+  try {
+    createRoot(rootElement).render(
+      <StrictMode>
+        <TProvider>
+          <RouterProvider router={router} />
+        </TProvider>
+      </StrictMode>
+    );
+    console.log('✅ React app rendered successfully');
+  } catch (error) {
+    console.error('❌ Error rendering React app:', error);
+  }
+}
