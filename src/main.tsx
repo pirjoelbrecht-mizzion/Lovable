@@ -41,18 +41,19 @@ import Onboarding from "./pages/Onboarding";
 import { TProvider } from "@/i18n";
 
 console.log('🚀 main.tsx executing...');
+console.log('Environment:', import.meta.env.MODE);
 
-// Install console filter to hide StackBlitz infrastructure noise
-if (import.meta.env.DEV) {
-  import('./utils/consoleFilter').then(({ installConsoleFilter, showErrorSummary }) => {
-    if (!localStorage.getItem('showAllErrors')) {
-      installConsoleFilter();
-      setTimeout(() => showErrorSummary(), 1000);
-    }
-  }).catch(() => {
-    // Console filter optional - continue if import fails
-  });
-}
+// TEMPORARILY DISABLED console filter to see all errors
+// if (import.meta.env.DEV) {
+//   import('./utils/consoleFilter').then(({ installConsoleFilter, showErrorSummary }) => {
+//     if (!localStorage.getItem('showAllErrors')) {
+//       installConsoleFilter();
+//       setTimeout(() => showErrorSummary(), 1000);
+//     }
+//   }).catch(() => {
+//     // Console filter optional - continue if import fails
+//   });
+// }
 
 const router = createBrowserRouter([
   {
