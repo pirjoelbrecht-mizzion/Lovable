@@ -104,7 +104,9 @@ export function generateMicrocycle(input: MicrocycleInput): WeeklyPlan {
   // Convert workout ranges to concrete values
   const concreteWorkouts = workouts.map(w => concretizeWorkout(w, targetMileage, workouts.length));
 
+  console.log('[MicrocycleGenerator] Workouts selected:', workouts.map(w => ({ id: w.id, type: w.type, title: w.title })));
   console.log('[MicrocycleGenerator] Concrete workouts:', concreteWorkouts.map(w => ({
+    id: w.id,
     type: w.type,
     title: w.title,
     km: w.distanceKm,
@@ -736,6 +738,8 @@ function distributeWorkouts(
         !usedWorkoutIds.has(w.id)
       );
 
+      console.log(`[DistributeWorkouts] ${dayName} - expectedIds: ${expectedIds.join(', ')} | keyWorkout: ${keyWorkout?.id || 'none'}`);
+
       // Step 2: Find easy run if needed
       let easyRun: Workout | undefined;
       if (needsEasyRun) {
@@ -825,6 +829,8 @@ function distributeWorkouts(
           pattern: pattern[dayName]
         });
       }
+
+      console.log(`[DistributeWorkouts] ${dayName} - final sessions: ${sessions.map(s => `${s.id}(${s.type})`).join(', ')}`);
 
       days.push({
         day: dayName,
