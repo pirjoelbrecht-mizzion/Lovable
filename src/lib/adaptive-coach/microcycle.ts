@@ -570,6 +570,12 @@ function distributeWorkouts(
   const days: DailyPlan[] = [];
   const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+  console.log('[DistributeWorkouts] Starting distribution with workouts:', workouts.map(w => ({
+    id: w.id,
+    type: w.type,
+    title: w.title
+  })));
+
   /**
    * CRITICAL RULE: Rest days are hard constraints based on daysPerWeek.
    * Calculate which days should be rest days:
@@ -783,16 +789,33 @@ function distributeWorkouts(
       }
 
       // Step 5: Assemble sessions for the day (order matters)
+      // CRITICAL FIX: Multi-session days need BOTH easy run AND other sessions
+      // Use separate conditionals, not else-if
+
+      console.log(`[DistributeWorkouts] ${dayName} - Assembly phase:`, {
+        hasKeyWorkout: !!keyWorkout,
+        needsEasyRun,
+        hasEasyRun: !!easyRun,
+        needsCore,
+        hasCoreWorkout: !!coreWorkout,
+        needsME,
+        hasMEWorkout: !!meWorkout
+      });
+
+      // Add key workout if available (Tue, Thu, Sat)
       if (keyWorkout) {
-        // Key workout days (Tue, Thu, Sat)
+        console.log(`[DistributeWorkouts] ${dayName} - Adding key workout: ${keyWorkout.id}`);
         sessions.push({
           ...keyWorkout,
           origin: 'BASE_PLAN',
           locked: false,
           lockReason: undefined
         });
-      } else if (easyRun) {
-        // Easy run first
+      }
+
+      // Add easy run if needed (Mon, Wed, Fri, Sun) - INDEPENDENT of key workout
+      if (needsEasyRun && easyRun) {
+        console.log(`[DistributeWorkouts] ${dayName} - Adding easy run: ${easyRun.id}`);
         sessions.push({
           ...easyRun,
           origin: 'BASE_PLAN',
@@ -803,6 +826,7 @@ function distributeWorkouts(
 
       // Add ME session if Wednesday
       if (meWorkout) {
+        console.log(`[DistributeWorkouts] ${dayName} - Adding ME workout: ${meWorkout.id}`);
         sessions.push({
           ...meWorkout,
           origin: 'BASE_PLAN',
@@ -812,7 +836,8 @@ function distributeWorkouts(
       }
 
       // Add core session if day supports it
-      if (coreWorkout && sessions.length > 0) {
+      if (coreWorkout) {
+        console.log(`[DistributeWorkouts] ${dayName} - Adding core workout: ${coreWorkout.id}`);
         sessions.push({
           ...coreWorkout,
           origin: 'BASE_PLAN',

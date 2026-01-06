@@ -660,18 +660,47 @@ export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | Adaptiv
     const planSource = plan[0]?.planSource;
 
     if (planSource === 'adaptive' && totalSessions > 0) {
-      console.log('[buildAdaptiveContext] HARD GUARD: Adaptive plan with', totalSessions, 'sessions - preserving plan');
+      // VALIDATION: Check for structural issues that indicate a broken plan
+      const monday = plan.find(d => d.day === 'Mon');
+      const friday = plan.find(d => d.day === 'Fri');
+      const saturday = plan.find(d => d.day === 'Sat');
 
-      // Handle week misalignment by DATE-SHIFTING, not clearing
-      const expectedMonday = getMondayOfWeek();
-      const planMonday = plan[0].dateISO;
+      const mondayHasEasyRun = monday?.sessions?.some(s => s.type === 'easy');
+      const fridayHasLongRun = friday?.sessions?.some(s => s.type === 'long');
+      const saturdayHasLongRun = saturday?.sessions?.some(s => s.type === 'long');
 
-      if (planMonday !== expectedMonday) {
-        console.log('[buildAdaptiveContext] Shifting adaptive plan dates from', planMonday, 'to', expectedMonday);
-        plan = shiftPlanDates(plan, expectedMonday);
+      const hasBrokenStructure =
+        !mondayHasEasyRun || // Monday should have easy run
+        (fridayHasLongRun && saturdayHasLongRun); // Both Fri/Sat shouldn't have long runs
+
+      if (hasBrokenStructure) {
+        console.warn('[buildAdaptiveContext] ⚠️ BROKEN PLAN DETECTED - forcing regeneration', {
+          mondayHasEasyRun,
+          fridayHasLongRun,
+          saturdayHasLongRun,
+          mondaySessions: monday?.sessions?.map(s => s.type),
+          fridaySessions: friday?.sessions?.map(s => s.type),
+          saturdaySessions: saturday?.sessions?.map(s => s.type)
+        });
+        // Fall through to regenerate by clearing plan
+        localStorage.removeItem('weekPlan');
+        localStorage.removeItem('weekPlan_current');
+        plan = undefined;
+      } else {
+        console.log('[buildAdaptiveContext] HARD GUARD: Adaptive plan with', totalSessions, 'sessions - preserving plan');
+
+        // Handle week misalignment by DATE-SHIFTING, not clearing
+        const expectedMonday = getMondayOfWeek();
+        const planMonday = plan[0].dateISO;
+
+        if (planMonday !== expectedMonday) {
+          console.log('[buildAdaptiveContext] Shifting adaptive plan dates from', planMonday, 'to', expectedMonday);
+          plan = shiftPlanDates(plan, expectedMonday);
+        }
+
+        // Skip further checks - this plan is authoritative and valid
+        return convertToAdaptiveWeekPlan(plan);
       }
-
-      // Skip further checks - this plan is authoritative
     } else {
       // Non-adaptive or empty plan: apply legacy week alignment check
       const expectedMonday = getMondayOfWeek();
