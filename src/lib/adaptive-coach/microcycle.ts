@@ -35,6 +35,7 @@ import {
   meetsPrerequisites
 } from './workout-library';
 import type { TrainingConstraints } from './constraints';
+import { calculateProgressionConstraints, type ProgressionContext } from './progressionRules';
 
 //
 // ─────────────────────────────────────────────────────────────
@@ -49,6 +50,10 @@ export interface MicrocycleInput {
   race: RaceEvent;
   isRecoveryWeek?: boolean;
   previousWeekMileage?: number;
+  previousWeekVertical?: number;  // NEW: Track vertical progression
+  twoWeeksAgoMileage?: number;    // NEW: For progression rules
+  twoWeeksAgoVertical?: number;   // NEW: For vertical progression
+  weeksInBuildCycle?: number;     // NEW: Track build cycle position
   daysToRace?: number; // CRITICAL: Pass days to race for race week detection
   constraints?: TrainingConstraints; // CRITICAL: v1.1 Rest days from onboarding
 }
@@ -78,7 +83,43 @@ const PROGRESSION_RULES = {
  * Generate a complete weekly training plan
  */
 export function generateMicrocycle(input: MicrocycleInput): WeeklyPlan {
-  const { weekNumber, macrocycleWeek, athlete, race, isRecoveryWeek, previousWeekMileage, constraints } = input;
+  const {
+    weekNumber,
+    macrocycleWeek,
+    athlete,
+    race,
+    isRecoveryWeek,
+    previousWeekMileage,
+    previousWeekVertical,
+    twoWeeksAgoMileage,
+    twoWeeksAgoVertical,
+    weeksInBuildCycle,
+    constraints
+  } = input;
+
+  // Calculate progression constraints (distance + vertical)
+  let progressionConstraints;
+  if (previousWeekMileage) {
+    const context: ProgressionContext = {
+      currentWeekLoad: previousWeekMileage,
+      previousWeekLoad: twoWeeksAgoMileage,
+      twoWeeksAgoLoad: twoWeeksAgoMileage,
+      currentWeekVertical: previousWeekVertical,
+      previousWeekVertical: twoWeeksAgoVertical,
+      twoWeeksAgoVertical: twoWeeksAgoVertical,
+      weeksInBuildCycle: weeksInBuildCycle || 0,
+      recoveryRatio: athlete.recoveryRatio || '3:1',
+    };
+    progressionConstraints = calculateProgressionConstraints(context);
+
+    console.log('[MicrocycleGenerator] Progression constraints:', {
+      maxDistanceIncrease: progressionConstraints.maxIncrease,
+      maxVerticalIncrease: progressionConstraints.maxVerticalIncrease,
+      canIncreaseDistance: progressionConstraints.canIncreaseDistance,
+      canIncreaseVertical: progressionConstraints.canIncreaseVertical,
+      reasoning: progressionConstraints.reasoning
+    });
+  }
 
   // Calculate target volume
   const targetMileage = calculateTargetMileage({
@@ -89,7 +130,25 @@ export function generateMicrocycle(input: MicrocycleInput): WeeklyPlan {
     isRecoveryWeek,
   });
 
-  const targetVert = calculateTargetVert(race, macrocycleWeek.phase, targetMileage);
+  // Apply distance constraints if available
+  let constrainedMileage = targetMileage;
+  if (progressionConstraints && !progressionConstraints.canIncreaseDistance && previousWeekMileage) {
+    constrainedMileage = Math.min(targetMileage, previousWeekMileage);
+    console.log('[MicrocycleGenerator] Distance limited by progression rules:', {
+      target: targetMileage,
+      constrained: constrainedMileage,
+      reason: 'Cannot increase distance this week'
+    });
+  }
+
+  const targetVert = calculateTargetVert(
+    race,
+    macrocycleWeek.phase,
+    constrainedMileage,
+    previousWeekVertical,
+    isRecoveryWeek,
+    progressionConstraints
+  );
 
   // Select workouts for the week
   const workouts = selectWeekWorkouts({
@@ -272,7 +331,10 @@ function calculateTargetMileage(params: {
 function calculateTargetVert(
   race: RaceEvent,
   phase: TrainingPhase,
-  mileage: number
+  mileage: number,
+  previousWeekVert?: number,
+  isRecoveryWeek?: boolean,
+  progressionConstraints?: { maxVerticalIncrease?: number; canIncreaseVertical: boolean }
 ): number {
   // Vert per km varies by race type
   const vertPerKm = race.verticalGain > 1000 ? 40 : 20;
@@ -284,6 +346,26 @@ function calculateTargetVert(
     targetVert *= 1.3; // Peak vert in specificity
   } else if (phase === 'taper') {
     targetVert *= 0.5;
+  }
+
+  // Recovery week reduction
+  if (isRecoveryWeek && previousWeekVert) {
+    targetVert = previousWeekVert * 0.5; // 50% drop on recovery
+  }
+
+  // Apply progression constraints
+  if (previousWeekVert && progressionConstraints) {
+    if (!progressionConstraints.canIncreaseVertical) {
+      // Can't increase vertical this week - hold at previous or reduce
+      targetVert = Math.min(targetVert, previousWeekVert);
+    } else if (progressionConstraints.maxVerticalIncrease !== undefined) {
+      // Cap at max allowed increase
+      targetVert = Math.min(targetVert, progressionConstraints.maxVerticalIncrease);
+    } else {
+      // Standard 10% rule
+      const maxIncrease = previousWeekVert * 1.10;
+      targetVert = Math.min(targetVert, maxIncrease);
+    }
   }
 
   return Math.round(targetVert);
