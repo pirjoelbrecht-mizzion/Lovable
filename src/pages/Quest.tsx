@@ -1351,21 +1351,6 @@ export default function Quest() {
                 <button
                   className="quest-list-btn"
                   onClick={() => {
-                    if (confirm('Reset this week\'s plan? This will clear the plan and regenerate from your goals.')) {
-                      // 4️⃣ Harden reset: Clear all plan state including adaptive lock
-                      clearStoredWeekPlan();
-                      clearAdaptiveExecutionLock();
-                      console.log('[Quest] Plan reset: cleared stored plan and execution lock');
-                      window.location.reload();
-                    }
-                  }}
-                  style={{ fontSize: '12px', padding: '6px 12px' }}
-                >
-                  🔄 Reset Plan
-                </button>
-                <button
-                  className="quest-list-btn"
-                  onClick={() => {
                     const modes: Array<"cosmic" | "bubbles" | "list" | "mobile"> = ["cosmic", "bubbles", "list", "mobile"];
                     const currentIndex = modes.indexOf(viewMode);
                     const nextIndex = (currentIndex + 1) % modes.length;

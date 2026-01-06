@@ -716,41 +716,53 @@ function distributeWorkouts(
         sessions: [],  // Empty array for rest days
       });
     } else {
-      // Find matching workout for this day
+      // Find matching workouts for this day (can be multiple for multi-session days)
       const expectedIds = pattern[dayName]?.split('|') || [];
-      let workout = workouts.find(w => expectedIds.some(id => w.id?.includes(id)));
+      const sessions: Workout[] = [];
 
-      if (!workout) {
-        // Fallback to any remaining workout (check all sessions, not just first)
-        workout = workouts.find(w => !days.some(d => d.sessions.some(s => s.id === w.id)));
+      // CRITICAL: Check if this day should have BOTH running + core
+      // Mon/Thu/Fri can have core sessions in addition to running
+      const hasCoreInPattern = expectedIds.some(id => id.startsWith('core_'));
+      const hasRunInPattern = expectedIds.some(id => !id.startsWith('core_') && !id.startsWith('me_'));
+
+      // First, find the primary workout (running or ME)
+      let primaryWorkout = workouts.find(w => expectedIds.some(id => w.id?.includes(id)));
+
+      if (!primaryWorkout) {
+        // Fallback: If this day expected an easy run or core but none found, create an easy run
+        const expectedEasyOrCore = expectedIds.some(id =>
+          id.startsWith('easy_') || id.startsWith('core_')
+        );
+
+        if (expectedEasyOrCore) {
+          // Create an easy run for this day
+          primaryWorkout = {
+            type: 'easy',
+            title: 'Easy Run',
+            description: 'Easy recovery run',
+            distanceKm: 8,
+            durationMin: 48,
+            verticalGain: 100,
+            intensityZones: ['Z2'],
+            id: `easy_${dayName.toLowerCase()}`,
+          };
+        } else {
+          // Last resort: find any remaining unused workout
+          primaryWorkout = workouts.find(w => !days.some(d => d.sessions.some(s => s.id === w.id)));
+        }
       }
 
-      if (!workout) {
-        // Default to rest (only on non-constrained days)
-        console.warn(`[Microcycle] No workout found for ${dayName}`, {
-          expectedIds,
-          availableWorkouts: workouts.map(w => ({ id: w.id, type: w.type, title: w.title })),
-          pattern: pattern[dayName]
-        });
-        // No workout found - create rest day
-        days.push({
-          day: dayName,
-          date: dateStr,
-          sessions: [],  // Empty array for rest/recovery days
-        });
-      } else {
-        // Add ownership metadata to workouts from library
+      if (primaryWorkout) {
+        // Add ownership metadata
         const workoutWithMeta: Workout = {
-          ...workout,
+          ...primaryWorkout,
           origin: 'BASE_PLAN',
           locked: false,
           lockReason: undefined
         };
 
         // SPECIAL CASE: Wednesday ME day should have BOTH run + ME session
-        const sessions: Workout[] = [workoutWithMeta];
-
-        if (dayName === 'Wed' && workout.id === 'me_wednesday') {
+        if (dayName === 'Wed' && primaryWorkout.id === 'me_wednesday') {
           // Add an easy run before ME training
           const easyRunBeforeME: Workout = {
             type: 'easy',
@@ -764,15 +776,65 @@ function distributeWorkouts(
             locked: false,
             lockReason: undefined
           };
-          sessions.unshift(easyRunBeforeME); // Add run BEFORE ME
+          sessions.push(easyRunBeforeME, workoutWithMeta);
         }
+        // MULTI-SESSION: If this is a core workout, also add an easy run
+        else if (primaryWorkout.id?.startsWith('core_')) {
+          // Add easy run FIRST, then core
+          const easyRunBeforeCore: Workout = {
+            type: 'easy',
+            title: 'Easy Run',
+            description: 'Easy recovery run',
+            distanceKm: 6,
+            durationMin: 36,
+            verticalGain: 0,
+            intensityZones: ['Z2'],
+            origin: 'BASE_PLAN',
+            locked: false,
+            lockReason: undefined
+          };
+          sessions.push(easyRunBeforeCore, workoutWithMeta);
+        }
+        // MULTI-SESSION: If pattern has core but we selected a run, add core session
+        else if (hasCoreInPattern && hasRunInPattern && primaryWorkout.type !== 'strength') {
+          // We have a run, now find the matching core session
+          const coreWorkout = workouts.find(w =>
+            expectedIds.some(id => id.startsWith('core_') && w.id?.includes(id))
+          );
 
-        days.push({
-          day: dayName,
-          date: dateStr,
-          sessions,
+          if (coreWorkout) {
+            const coreWithMeta: Workout = {
+              ...coreWorkout,
+              origin: 'BASE_PLAN',
+              locked: false,
+              lockReason: undefined
+            };
+            sessions.push(workoutWithMeta, coreWithMeta);
+          } else {
+            // No core found, just add the run
+            sessions.push(workoutWithMeta);
+          }
+        }
+        // Single session day
+        else {
+          sessions.push(workoutWithMeta);
+        }
+      }
+
+      if (sessions.length === 0) {
+        // Default to rest (only on non-constrained days)
+        console.warn(`[Microcycle] No workout found for ${dayName}`, {
+          expectedIds,
+          availableWorkouts: workouts.map(w => ({ id: w.id, type: w.type, title: w.title })),
+          pattern: pattern[dayName]
         });
       }
+
+      days.push({
+        day: dayName,
+        date: dateStr,
+        sessions,
+      });
     }
   }
 
