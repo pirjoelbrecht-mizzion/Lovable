@@ -145,7 +145,7 @@ export default function Quest() {
   const t = useT();
   const [openQuick, setOpenQuick] = useState(false);
   const [races, setRaces] = useState<Race[]>([]);
-  const [viewMode, setViewMode] = useState<"bubbles" | "list" | "mobile" | "cosmic">("cosmic");
+  const [viewMode, setViewMode] = useState<"list" | "cosmic">("cosmic");
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [liveWorkoutMode, setLiveWorkoutMode] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -1311,13 +1311,10 @@ export default function Quest() {
                 <button
                   className="quest-list-btn"
                   onClick={() => {
-                    const modes: Array<"cosmic" | "bubbles" | "list" | "mobile"> = ["cosmic", "bubbles", "list", "mobile"];
-                    const currentIndex = modes.indexOf(viewMode);
-                    const nextIndex = (currentIndex + 1) % modes.length;
-                    setViewMode(modes[nextIndex]);
+                    setViewMode(viewMode === "cosmic" ? "list" : "cosmic");
                   }}
                 >
-                  {viewMode === "cosmic" ? "🫧 Bubbles" : viewMode === "bubbles" ? "📋 List" : viewMode === "list" ? "📱 Today" : "🌌 Cosmic"}
+                  {viewMode === "cosmic" ? "📋 List" : "🌌 Cosmic"}
                 </button>
               </div>
             </div>
@@ -1328,215 +1325,6 @@ export default function Quest() {
                   onWorkoutClick={handleCosmicWorkoutClick}
                   onAddClick={handleCosmicAddClick}
                 />
-              </>
-            ) : viewMode === "mobile" ? (
-              <>
-                {/* NEW: Mobile Training View */}
-                {todayData ? (
-                  <div style={{ padding: '16px' }}>
-                    <TodayTrainingMobile
-                      data={{
-                        type: todayData.summary.title,
-                        duration: todayData.summary.duration,
-                        distance: todayData.summary.distance,
-                        pace: todayData.summary.pace,
-                        isToday: true,
-                        isAdapted: false
-                      }}
-                      onComplete={() => {
-                        const todaySession = sessions.find(s => s.isToday);
-                        if (todaySession) {
-                          const monday = getMonday();
-                          const workoutDate = new Date(monday);
-                          workoutDate.setDate(workoutDate.getDate() + sessions.indexOf(todaySession));
-                          setSelectedWorkoutForFeedback({
-                            date: workoutDate.toISOString().slice(0, 10),
-                            title: todaySession.type,
-                            type: detectSessionType(todaySession.type),
-                            distanceKm: parseFloat(todaySession.distance?.replace('K', '') || '0'),
-                            durationMinutes: parseInt(todaySession.duration.match(/\d+/)?.[0] || '0', 10)
-                          });
-                          setFeedbackModalOpen(true);
-                        }
-                      }}
-                      onEdit={() => {
-                        const todaySession = sessions.find(s => s.isToday);
-                        if (todaySession) setSelectedSessionId(todaySession.id);
-                      }}
-                    />
-
-                    {/* Core Training Session (if scheduled for today) */}
-                    {selectedCoreSession.length > 0 && coreEmphasis && coreFrequency.frequency > 0 && (
-                      <div style={{ marginTop: 16 }}>
-                        <CoreSessionCard
-                          exercises={selectedCoreSession}
-                          emphasis={coreEmphasis}
-                          frequency={coreFrequency}
-                          sessionsThisWeek={0}
-                          sorenessAdjustment={sorenessAdjustment}
-                          onComplete={() => {
-                            toast('Core session completed!', 'success');
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div style={{ padding: '32px', textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>
-                    No training session scheduled for today
-                  </div>
-                )}
-              </>
-            ) : viewMode === "bubbles" ? (
-              <>
-                <p className="quest-instruction-text">💡 Tap sessions for details • Drag to reorder</p>
-                {swappingWith && (
-                  <div className="quest-swap-indicator">
-                    <span className="quest-swap-text">✨ Swapping sessions...</span>
-                  </div>
-                )}
-                <div
-                  ref={containerRef}
-                  className="quest-bubble-container"
-                  onPointerMove={handlePointerMove}
-                  onPointerUp={handlePointerUp}
-                >
-                  {Array.from(new Set(sessions.map(s => s.day))).map(day => {
-                    const firstSessionForDay = sessions.find(s => s.day === day);
-                    const dayIndex = DAYS_SHORT.indexOf(day);
-                    const dayLabel = DAYS[dayIndex];
-
-                    if (!firstSessionForDay) {
-                      const pos = BUBBLE_POSITIONS[dayIndex];
-                      return (
-                        <div key={`label-${day}`} style={{ position: "absolute", left: `${pos.x}%`, top: `${pos.y}%` }}>
-                          <div className={`quest-day-label ${pos.x > 50 ? "quest-day-right" : "quest-day-left"}`}>
-                            {day}
-                          </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              console.log('[STEP 7] Opening add session modal for day:', dayLabel, dayIndex);
-                              setAddSessionDay({ label: dayLabel, index: dayIndex });
-                            }}
-                            style={{
-                              position: 'absolute',
-                              top: '100%',
-                              left: '50%',
-                              transform: 'translateX(-50%)',
-                              marginTop: '4px',
-                              padding: '4px 8px',
-                              fontSize: '10px',
-                              background: 'rgba(59, 130, 246, 0.9)',
-                              border: 'none',
-                              borderRadius: '4px',
-                              color: 'white',
-                              cursor: 'pointer',
-                              fontWeight: 600,
-                              whiteSpace: 'nowrap',
-                              zIndex: 10,
-                            }}
-                            title={`Add session to ${dayLabel}`}
-                          >
-                            + Add
-                          </button>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div key={`label-${day}`} style={{ position: "absolute", left: `${firstSessionForDay.x}%`, top: `${firstSessionForDay.y}%` }}>
-                        <div className={`quest-day-label ${firstSessionForDay.x > 50 ? "quest-day-right" : "quest-day-left"}`}>
-                          {day}
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            console.log('[STEP 7] Opening add session modal for day:', dayLabel, dayIndex);
-                            setAddSessionDay({ label: dayLabel, index: dayIndex });
-                          }}
-                          style={{
-                            position: 'absolute',
-                            top: '100%',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            marginTop: '4px',
-                            padding: '4px 8px',
-                            fontSize: '10px',
-                            background: 'rgba(59, 130, 246, 0.9)',
-                            border: 'none',
-                            borderRadius: '4px',
-                            color: 'white',
-                            cursor: 'pointer',
-                            fontWeight: 600,
-                            whiteSpace: 'nowrap',
-                            zIndex: 10,
-                          }}
-                          title={`Add session to ${dayLabel}`}
-                        >
-                          + Add
-                        </button>
-                      </div>
-                    );
-                  })}
-                  {sessions.map((session) => {
-                    const pos = tempPositions[session.id] || { x: session.x, y: session.y };
-                    const isDragging = draggingId === session.id;
-                    const isSwapTarget = swappingWith === session.id;
-                    const sessionsOnSameDay = sessions.filter(s => s.day === session.day);
-                    const isMultiSession = sessionsOnSameDay.length > 1;
-                    const sessionIndex = sessionsOnSameDay.findIndex(s => s.id === session.id) + 1;
-
-                    return (
-                      <div
-                        key={session.id}
-                        className={`quest-bubble ${session.completed ? "quest-bubble-completed" : ""} ${
-                          session.isToday ? "quest-bubble-today" : ""
-                        } ${!session.completed && !session.isToday ? "quest-bubble-upcoming" : ""} ${
-                          isDragging ? "quest-bubble-dragging" : ""
-                        } ${isSwapTarget ? "quest-bubble-swap-target" : ""}`}
-                        style={{
-                          left: `${pos.x}%`,
-                          top: `${pos.y}%`,
-                          width: `${session.size}px`,
-                          height: `${session.size}px`,
-                          cursor: isDragging ? "grabbing" : "grab",
-                        }}
-                        onPointerDown={(e) => handlePointerDown(e, session.id)}
-                        onClick={() => handleBubbleClick(session)}
-                      >
-                        <div className="quest-bubble-content">
-                          <div className="quest-bubble-emoji">{session.emoji}</div>
-                          <div className="quest-bubble-type">{session.type}</div>
-                          <div className="quest-bubble-duration">{session.duration}</div>
-                          {session.weather && (
-                            <div className="quest-bubble-weather">
-                              {session.weather.icon} {session.weather.temp}°
-                            </div>
-                          )}
-                        </div>
-                        {session.completed && <div className="quest-bubble-badge quest-bubble-check">✓</div>}
-                        {session.isToday && <div className="quest-bubble-badge quest-bubble-now">NOW</div>}
-                        {isMultiSession && (
-                          <div
-                            className="quest-bubble-badge"
-                            style={{
-                              background: 'rgba(59, 130, 246, 0.9)',
-                              fontSize: '10px',
-                              top: 'auto',
-                              bottom: '4px',
-                              right: '4px'
-                            }}
-                            title={`Session ${sessionIndex} of ${sessionsOnSameDay.length}`}
-                          >
-                            {sessionIndex}/{sessionsOnSameDay.length}
-                          </div>
-                        )}
-                        {session.isAdapted && <div className="quest-bubble-badge quest-bubble-ai">AI</div>}
-                      </div>
-                    );
-                  })}
-                </div>
               </>
             ) : (
               <div className="quest-list-view">
