@@ -57,13 +57,11 @@ const VOLUME_SETTINGS = {
   Cat1: {
     START_KM_LOW: 20,
     START_KM_HIGH: 40,
-    CEILING_KM: 80,
     DEFAULT_RECOVERY_RATIO: "2:1" as RecoveryRatio,
   },
   Cat2: {
     START_KM_LOW: 40,
     START_KM_HIGH: 70,
-    CEILING_KM: 140,
     DEFAULT_RECOVERY_RATIO: "3:1" as RecoveryRatio,
   },
 };
@@ -77,7 +75,6 @@ const VOLUME_SETTINGS = {
 export interface ClassificationResult {
   category: AthleteCategory;
   startMileage: number;        // Weekly starting mileage in km
-  volumeCeiling: number;        // Maximum safe weekly km
   recoveryRatio: RecoveryRatio;
   confidence: number;           // 0-100 (how certain the classification is)
   reasoning: string[];          // Factors that influenced classification
@@ -205,8 +202,8 @@ export function classifyAthlete(profile: Partial<AthleteProfile>): Classificatio
     ? Math.round((Math.max(cat1Score, cat2Score) / totalScore) * 100)
     : 50;
 
-  // Calculate starting mileage and ceiling
-  const { startMileage, volumeCeiling } = calculateVolumeParameters(
+  // Calculate starting mileage
+  const startMileage = calculateStartingMileage(
     category,
     profile.averageMileage || 0,
     profile.age
@@ -222,7 +219,6 @@ export function classifyAthlete(profile: Partial<AthleteProfile>): Classificatio
   return {
     category,
     startMileage,
-    volumeCeiling,
     recoveryRatio,
     confidence,
     reasoning: factors,
@@ -237,13 +233,14 @@ export function classifyAthlete(profile: Partial<AthleteProfile>): Classificatio
 //
 
 /**
- * Calculate starting mileage and volume ceiling based on category and history
+ * Calculate starting mileage based on category and history
+ * NO hard ceiling - volume emerges from progression rules
  */
-function calculateVolumeParameters(
+function calculateStartingMileage(
   category: AthleteCategory,
   currentMileage: number,
   age?: number
-): { startMileage: number; volumeCeiling: number } {
+): number {
   const settings = VOLUME_SETTINGS[category];
 
   // If athlete has consistent mileage, start close to their current level
@@ -261,15 +258,14 @@ function calculateVolumeParameters(
     startMileage = settings.START_KM_LOW;
   }
 
-  // Adjust ceiling for age
-  let volumeCeiling = settings.CEILING_KM;
+  // Age-based starting point adjustment
   if (age && age >= CLASSIFICATION_THRESHOLDS.VETERAN_AGE) {
-    volumeCeiling = Math.round(volumeCeiling * 0.8); // Reduce by 20% for veterans
+    startMileage = Math.round(startMileage * 0.8); // Reduce by 20% for veterans
   } else if (age && age >= CLASSIFICATION_THRESHOLDS.MASTERS_AGE) {
-    volumeCeiling = Math.round(volumeCeiling * 0.9); // Reduce by 10% for masters
+    startMileage = Math.round(startMileage * 0.9); // Reduce by 10% for masters
   }
 
-  return { startMileage, volumeCeiling };
+  return startMileage;
 }
 
 //
@@ -375,7 +371,6 @@ export function applyClassification(
     ...profile,
     category: classification.category,
     startMileage: classification.startMileage,
-    volumeCeiling: classification.volumeCeiling,
     recoveryRatio: classification.recoveryRatio,
   } as AthleteProfile;
 }

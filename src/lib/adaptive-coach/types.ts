@@ -59,7 +59,6 @@ export interface AthleteProfile {
   // Computed by Module 2 (Athlete Profiler)
   category?: AthleteCategory;
   startMileage?: number;
-  volumeCeiling?: number;
   recoveryRatio?: "2:1" | "3:1";
 }
 

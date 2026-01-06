@@ -260,9 +260,6 @@ function calculateTargetMileage(params: {
     targetMileage = previousWeekMileage * (1 - PROGRESSION_RULES.RECOVERY_WEEK_REDUCTION);
   }
 
-  // Cap at athlete's ceiling
-  targetMileage = Math.min(targetMileage, athlete.volumeCeiling || 120);
-
   return Math.round(targetMileage);
 }
 

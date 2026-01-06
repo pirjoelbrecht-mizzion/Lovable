@@ -22,6 +22,7 @@ import type {
   TrainingPhase,
   DailyPlan
 } from './types';
+import { calculateProgressionConstraints, type ProgressionContext } from './progressionRules';
 
 export const SAFETY_LIMITS = {
   MAX_WEEKLY_INCREASE_PCT: 10,
@@ -326,27 +327,6 @@ function checkAgeAppropriate(
 ): void {
   if (!athlete.age) return;
 
-  const currentMileage = plan.actualMileage || 0;
-  const baselineCeiling = athlete.volumeCeiling || 100;
-
-  let adjustedCeiling = baselineCeiling;
-  if (athlete.age >= SAFETY_LIMITS.AGE_MODIFIERS.VETERAN_AGE) {
-    adjustedCeiling = baselineCeiling * SAFETY_LIMITS.AGE_MODIFIERS.VETERAN_VOLUME_REDUCTION;
-  } else if (athlete.age >= SAFETY_LIMITS.AGE_MODIFIERS.MASTERS_AGE) {
-    adjustedCeiling = baselineCeiling * SAFETY_LIMITS.AGE_MODIFIERS.MASTERS_VOLUME_REDUCTION;
-  }
-
-  if (currentMileage > adjustedCeiling) {
-    warnings.push({
-      severity: 'warning',
-      rule: 'AGE_APPROPRIATE_VOLUME',
-      message: `Volume (${currentMileage}km) high for age ${athlete.age}`,
-      value: currentMileage,
-      limit: adjustedCeiling,
-      recommendation: `Consider age-adjusted ceiling of ${adjustedCeiling.toFixed(0)}km/week`
-    });
-  }
-
   const restDays = plan.days.filter(d => d.sessions.length === 0 || d.sessions.every(s => s.type === 'rest')).length;
   let minRestDays = 1;
   if (athlete.age >= SAFETY_LIMITS.AGE_MODIFIERS.VETERAN_AGE) {
@@ -370,7 +350,9 @@ function checkAgeAppropriate(
 export function calculateSafeVolumeRange(
   athlete: AthleteProfile,
   phase: TrainingPhase,
-  previousWeekMileage?: number
+  previousWeekMileage?: number,
+  weeksInBuildCycle?: number,
+  twoWeeksAgoMileage?: number
 ): { min: number; max: number; optimal: number } {
   const category = athlete.category || 'Cat1';
 
@@ -379,21 +361,18 @@ export function calculateSafeVolumeRange(
     : { min: SAFETY_LIMITS.WEEKLY_VOLUME.CAT2_MIN, max: SAFETY_LIMITS.WEEKLY_VOLUME.CAT2_MAX };
 
   let max = baseLimits.max;
-  if (athlete.age) {
-    if (athlete.age >= SAFETY_LIMITS.AGE_MODIFIERS.VETERAN_AGE) {
-      max *= SAFETY_LIMITS.AGE_MODIFIERS.VETERAN_VOLUME_REDUCTION;
-    } else if (athlete.age >= SAFETY_LIMITS.AGE_MODIFIERS.MASTERS_AGE) {
-      max *= SAFETY_LIMITS.AGE_MODIFIERS.MASTERS_VOLUME_REDUCTION;
-    }
-  }
 
   if (previousWeekMileage !== undefined) {
-    const maxIncrease = previousWeekMileage * (1 + SAFETY_LIMITS.MAX_WEEKLY_INCREASE_PCT / 100);
-    max = Math.min(max, maxIncrease);
-  }
+    const context: ProgressionContext = {
+      currentWeekLoad: previousWeekMileage,
+      previousWeekLoad: twoWeeksAgoMileage,
+      twoWeeksAgoLoad: twoWeeksAgoMileage,
+      weeksInBuildCycle: weeksInBuildCycle || 0,
+      recoveryRatio: athlete.recoveryRatio || '3:1',
+    };
 
-  if (athlete.volumeCeiling) {
-    max = Math.min(max, athlete.volumeCeiling);
+    const constraints = calculateProgressionConstraints(context);
+    max = Math.min(max, constraints.maxIncrease);
   }
 
   const phaseModifiers: Record<TrainingPhase, number> = {

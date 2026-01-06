@@ -156,7 +156,7 @@ export async function buildAthleteIntelligenceProfile(
       category: classificationData?.category || 'Cat1',
       categoryConfidence: classificationData?.confidence || 0.5,
       yearsTraining: trainingData?.yearsTraining || 1,
-      weeklyMileageCapacity: classificationData?.volumeCeiling || 80,
+      weeklyMileageCapacity: (classificationData?.category === 'Cat1' ? 80 : 140),
 
       // ACWR
       acwrRiskLevel: acwrData?.riskLevel || 'low',
@@ -240,8 +240,7 @@ async function fetchClassificationData(userId: string) {
 
   return {
     category,
-    confidence: avgMileage > 0 ? 0.8 : 0.5,
-    volumeCeiling: category === 'Cat1' ? 80 : 140
+    confidence: avgMileage > 0 ? 0.8 : 0.5
   };
 }
 
