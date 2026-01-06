@@ -42,6 +42,8 @@ import { TProvider } from "@/i18n";
 
 console.log('🚀 main.tsx executing...');
 console.log('Environment:', import.meta.env.MODE);
+console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
+console.log('Has Supabase Key:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 // TEMPORARILY DISABLED console filter to see all errors
 // if (import.meta.env.DEV) {
