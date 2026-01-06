@@ -58,6 +58,7 @@ type SessionNode = {
   isToday: boolean;
   isAdapted: boolean;
   isMESession: boolean;
+  isCoreSession?: boolean;
   x: number;
   y: number;
   size: number;
@@ -779,8 +780,6 @@ export default function Quest() {
   const selectedSession = useMemo(() => {
     if (!selectedSessionId) return null;
 
-    console.log('[Quest] 🔍 Resolving session for selectedSessionId:', selectedSessionId);
-
     // CRITICAL: Look up across entire week, not just one day
     const matchedSession = weekPlan
       .flatMap(d => d.sessions)
@@ -790,13 +789,6 @@ export default function Quest() {
       console.error('[Quest] Selected sessionId not found:', selectedSessionId);
       return null;
     }
-
-    console.log('[Quest] ✅ Matched session:', {
-      id: matchedSession.id,
-      title: matchedSession.title,
-      type: (matchedSession as any).type,
-      km: matchedSession.km
-    });
 
     // Find which day this session is on
     let dayIndex = -1;
@@ -821,15 +813,6 @@ export default function Quest() {
     const isCoreSession = sessionType === 'strength';
     const isStrengthType = isMESession || isCoreSession;
 
-    console.log('[Quest] 🎨 Session type detection:', {
-      title: matchedSession.title,
-      explicitType: (matchedSession as any).type,
-      detectedType: sessionType,
-      isStrengthType,
-      isMESession,
-      isCoreSession
-    });
-
     const reconstructed: SessionNode = {
       id: matchedSession.id!,
       day: DAYS_SHORT[dayIndex],
@@ -848,19 +831,11 @@ export default function Quest() {
       isToday: dayIndex === today,
       isAdapted: matchedSession.source === 'coach',
       isMESession: isMESession,
+      isCoreSession: isCoreSession,
       x: BUBBLE_POSITIONS[dayIndex]?.x || 0,
       y: BUBBLE_POSITIONS[dayIndex]?.y || 0,
       size: BUBBLE_POSITIONS[dayIndex]?.size || 80,
     };
-
-    console.log('[Quest] 🎯 Final reconstructed session:', {
-      id: reconstructed.id,
-      day: reconstructed.dayFull,
-      type: reconstructed.type,
-      emoji: reconstructed.emoji,
-      distance: reconstructed.distance,
-      duration: reconstructed.duration
-    });
 
     return reconstructed;
   }, [selectedSessionId, weekPlan, completionStatus, today]);
@@ -1267,13 +1242,6 @@ export default function Quest() {
 
   // Memoize callbacks to prevent re-renders
   const handleCosmicWorkoutClick = useCallback((workout: any, day: string) => {
-    console.log('[Quest] 🎯 Workout clicked:', {
-      day,
-      workoutId: workout.id,
-      sessionId: workout.sessionId,
-      title: workout.title,
-      type: workout.type
-    });
     if (!workout.sessionId) {
       console.error('[Quest] Workout missing sessionId:', workout);
       return;
@@ -1655,8 +1623,8 @@ export default function Quest() {
                   }}
                 />
 
-                {/* Core Training Session (if scheduled for today) */}
-                {selectedCoreSession.length > 0 && coreEmphasis && coreFrequency.frequency > 0 && (
+                {/* Core Training Session (only show if THIS session is a core session) */}
+                {selectedSession.isCoreSession && selectedCoreSession.length > 0 && coreEmphasis && coreFrequency.frequency > 0 && (
                   <div style={{ marginTop: 16 }}>
                     <CoreSessionCard
                       exercises={selectedCoreSession}
