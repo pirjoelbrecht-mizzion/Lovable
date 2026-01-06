@@ -49,11 +49,15 @@ export interface MicrocycleInput {
   athlete: AthleteProfile;
   race: RaceEvent;
   isRecoveryWeek?: boolean;
-  previousWeekMileage?: number;
-  previousWeekVertical?: number;  // NEW: Track vertical progression
-  twoWeeksAgoMileage?: number;    // NEW: For progression rules
-  twoWeeksAgoVertical?: number;   // NEW: For vertical progression
-  weeksInBuildCycle?: number;     // NEW: Track build cycle position
+
+  // TIME-BASED PROGRESSION (minutes, not km)
+  previousWeekLoad?: number;       // Last week's training time (minutes)
+  previousWeekVertical?: number;   // Last week's vert (meters) - INDEPENDENT
+  twoWeeksAgoLoad?: number;        // Two weeks ago load (minutes)
+  twoWeeksAgoVertical?: number;    // Two weeks ago vert (meters)
+  weeksInBuildCycle?: number;      // Track build cycle position
+  currentACWR?: number;            // PRIMARY CONSTRAINT
+
   daysToRace?: number; // CRITICAL: Pass days to race for race week detection
   constraints?: TrainingConstraints; // CRITICAL: v1.1 Rest days from onboarding
 }
@@ -89,58 +93,63 @@ export function generateMicrocycle(input: MicrocycleInput): WeeklyPlan {
     athlete,
     race,
     isRecoveryWeek,
-    previousWeekMileage,
+    previousWeekLoad,
     previousWeekVertical,
-    twoWeeksAgoMileage,
+    twoWeeksAgoLoad,
     twoWeeksAgoVertical,
     weeksInBuildCycle,
+    currentACWR,
     constraints
   } = input;
 
-  // Calculate progression constraints (distance + vertical)
+  // Calculate progression constraints (load + vertical) with ACWR as PRIMARY constraint
   let progressionConstraints;
-  if (previousWeekMileage) {
+  if (previousWeekLoad) {
     const context: ProgressionContext = {
-      currentWeekLoad: previousWeekMileage,
-      previousWeekLoad: twoWeeksAgoMileage,
-      twoWeeksAgoLoad: twoWeeksAgoMileage,
+      currentWeekLoad: previousWeekLoad,
+      previousWeekLoad: twoWeeksAgoLoad,
+      twoWeeksAgoLoad: twoWeeksAgoLoad,
       currentWeekVertical: previousWeekVertical,
       previousWeekVertical: twoWeeksAgoVertical,
       twoWeeksAgoVertical: twoWeeksAgoVertical,
       weeksInBuildCycle: weeksInBuildCycle || 0,
       recoveryRatio: athlete.recoveryRatio || '3:1',
+      currentACWR: currentACWR, // PRIMARY CONSTRAINT
     };
     progressionConstraints = calculateProgressionConstraints(context);
 
-    console.log('[MicrocycleGenerator] Progression constraints:', {
-      maxDistanceIncrease: progressionConstraints.maxIncrease,
+    console.log('[MicrocycleGenerator] Progression constraints (ACWR-based):', {
+      acwrStatus: progressionConstraints.acwrStatus,
+      maxLoadIncrease: progressionConstraints.maxLoadIncrease,
       maxVerticalIncrease: progressionConstraints.maxVerticalIncrease,
-      canIncreaseDistance: progressionConstraints.canIncreaseDistance,
+      canIncreaseLoad: progressionConstraints.canIncreaseLoad,
       canIncreaseVertical: progressionConstraints.canIncreaseVertical,
       reasoning: progressionConstraints.reasoning
     });
   }
 
-  // Calculate target volume
+  // Calculate target volume (still uses mileage for backward compatibility)
+  // TODO: Migrate to time-based targets
   const targetMileage = calculateTargetMileage({
     athlete,
     phase: macrocycleWeek.phase,
     weekNumber,
-    previousWeekMileage,
+    previousWeekMileage: previousWeekLoad, // Temporary: treating load as mileage
     isRecoveryWeek,
   });
 
-  // Apply distance constraints if available
+  // Apply load constraints if available
   let constrainedMileage = targetMileage;
-  if (progressionConstraints && !progressionConstraints.canIncreaseDistance && previousWeekMileage) {
-    constrainedMileage = Math.min(targetMileage, previousWeekMileage);
-    console.log('[MicrocycleGenerator] Distance limited by progression rules:', {
+  if (progressionConstraints && !progressionConstraints.canIncreaseLoad && previousWeekLoad) {
+    constrainedMileage = Math.min(targetMileage, previousWeekLoad);
+    console.log('[MicrocycleGenerator] Load limited by progression rules:', {
       target: targetMileage,
       constrained: constrainedMileage,
-      reason: 'Cannot increase distance this week'
+      reason: 'Cannot increase load this week (ACWR or multi-dimensional constraint)'
     });
   }
 
+  // Calculate target vertical (INDEPENDENT of distance)
   const targetVert = calculateTargetVert(
     race,
     macrocycleWeek.phase,

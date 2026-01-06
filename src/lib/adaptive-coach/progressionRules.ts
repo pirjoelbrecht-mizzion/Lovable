@@ -1,57 +1,67 @@
 /**
  * ======================================================================
- *  PROGRESSION RULES — CONSTRAINT-BASED VOLUME MANAGEMENT
+ *  PROGRESSION RULES — ACWR-BASED LOAD MANAGEMENT
  * ======================================================================
  *
- * NO HARD CEILINGS. Maximum volume emerges from:
+ * TIME-BASED PROGRESSION with ACWR as primary safety mechanism.
+ * NO HARD CEILINGS. Safe load emerges from:
+ * - ACWR boundaries (0.8-1.3 safe zone, >1.5 = danger)
  * - Safe progression rates (≤10% per week)
  * - Modulation cycles (3:1 or 2:1)
- * - Multi-dimensional constraints (distance, vertical, time)
- * - ACWR safety boundaries
+ * - Multi-dimensional constraints (load + vertical)
  *
  * Key Principles:
- * - Keep increases at ≤10% per week for distance, vertical, and time
+ * - Training load measured in TIME (minutes), not distance (km)
+ * - ACWR is PRIMARY constraint (Acute:Chronic Workload Ratio)
+ * - Vertical gain is INDEPENDENT dimension (meters)
+ * - Keep increases at ≤10% per week for both load and vertical
  * - Do not increase for more than 3 weeks in a row
- * - Do not increase distance, vertical, AND intensity in the same week
+ * - Do not increase load AND vertical in the same week
  * - Follow large jumps (~15%) with a recovery week
- * - Do not increase >15% for two weeks in a row
  * - Use 3:1 or 2:1 build-to-recovery cycle
  * - Recovery weeks: Drop load by 40-60%
  * - Do not hold load constant for multiple weeks
  */
 
 export interface ProgressionContext {
-  currentWeekLoad: number;
-  previousWeekLoad?: number;
-  twoWeeksAgoLoad?: number;
+  // Training load (time-based, in minutes)
+  currentWeekLoad: number;      // This week's total training time
+  previousWeekLoad?: number;    // Last week's load
+  twoWeeksAgoLoad?: number;     // Two weeks ago load
 
-  // Vertical tracking
+  // Vertical tracking (meters) - INDEPENDENT dimension
   currentWeekVertical?: number;
   previousWeekVertical?: number;
   twoWeeksAgoVertical?: number;
 
-  weeksInBuildCycle: number;  // How many consecutive build weeks
+  // Build cycle tracking
+  weeksInBuildCycle: number;    // How many consecutive build weeks
   recoveryRatio: '2:1' | '3:1';
   isIntensityWeek?: boolean;
-  currentACWR?: number;
+
+  // PRIMARY CONSTRAINT: ACWR
+  currentACWR?: number;         // If >1.3 = caution, if >1.5 = danger
 }
 
 export interface ProgressionConstraints {
-  maxIncrease: number;           // Maximum safe increase this week (distance)
-  minDecrease?: number;          // Minimum decrease if recovery week
+  // Training load constraints (time-based, in minutes)
+  maxLoadIncrease: number;       // Maximum safe load this week (minutes)
+  minLoadDecrease?: number;      // Minimum decrease if recovery (minutes)
   mustRecover: boolean;          // Is recovery week mandatory?
   canHoldSteady: boolean;        // Can maintain current load?
 
-  // Vertical constraints
-  maxVerticalIncrease?: number;  // Maximum safe vertical increase (meters)
-  minVerticalDecrease?: number;  // Minimum vertical decrease if recovery
+  // Vertical constraints (meters) - INDEPENDENT
+  maxVerticalIncrease?: number;  // Maximum safe vertical (meters)
+  minVerticalDecrease?: number;  // Minimum decrease if recovery (meters)
 
-  // Multi-dimensional
-  canIncreaseDistance: boolean;  // Can increase distance this week
+  // Multi-dimensional flags
+  canIncreaseLoad: boolean;      // Can increase training time this week
   canIncreaseVertical: boolean;  // Can increase vertical this week
 
+  // Safety info
   reasoning: string[];           // Why these limits?
   warnings?: string[];
+  acwrStatus?: 'safe' | 'caution' | 'danger'; // ACWR zone
 }
 
 //
@@ -78,32 +88,81 @@ export const PROGRESSION_LIMITS = {
 
 /**
  * Calculate safe progression constraints based on rules
+ * ACWR is PRIMARY safety mechanism
  * NO hard ceiling - just constraints based on current state
- * Applies independently to DISTANCE and VERTICAL
+ * Applies independently to LOAD (time) and VERTICAL
  */
 export function calculateProgressionConstraints(
   context: ProgressionContext
 ): ProgressionConstraints {
   const reasoning: string[] = [];
   const warnings: string[] = [];
-  let maxIncrease = context.currentWeekLoad;
+  let maxLoadIncrease = context.currentWeekLoad;
   let maxVerticalIncrease: number | undefined;
   let mustRecover = false;
   let canHoldSteady = false;
-  let minDecrease: number | undefined;
+  let minLoadDecrease: number | undefined;
   let minVerticalDecrease: number | undefined;
+  let acwrStatus: 'safe' | 'caution' | 'danger' = 'safe';
+  let canIncreaseLoad = true;
+  let canIncreaseVertical = true;
 
   // Calculate vertical constraints if tracking vertical
   if (context.currentWeekVertical !== undefined && context.previousWeekVertical !== undefined) {
     maxVerticalIncrease = context.currentWeekVertical * (1 + PROGRESSION_LIMITS.STANDARD_INCREASE);
   }
 
+  // RULE 0: ACWR is PRIMARY constraint - check this FIRST
+  if (context.currentACWR !== undefined) {
+    if (context.currentACWR >= PROGRESSION_LIMITS.ACWR_DANGER) {
+      // ACWR >=1.5 = mandatory recovery
+      acwrStatus = 'danger';
+      mustRecover = true;
+      minLoadDecrease = context.currentWeekLoad * (1 - PROGRESSION_LIMITS.RECOVERY_DROP_MIN);
+      maxLoadIncrease = context.currentWeekLoad * (1 - PROGRESSION_LIMITS.RECOVERY_DROP_MAX);
+
+      if (context.currentWeekVertical !== undefined) {
+        minVerticalDecrease = context.currentWeekVertical * (1 - PROGRESSION_LIMITS.RECOVERY_DROP_MIN);
+        maxVerticalIncrease = context.currentWeekVertical * (1 - PROGRESSION_LIMITS.RECOVERY_DROP_MAX);
+      }
+
+      reasoning.push(`ACWR ${context.currentACWR.toFixed(2)} in danger zone (≥1.5) - mandatory recovery`);
+      warnings.push('ACWR too high - forced recovery week');
+      return {
+        maxLoadIncrease,
+        minLoadDecrease,
+        maxVerticalIncrease,
+        minVerticalDecrease,
+        mustRecover,
+        canHoldSteady: false,
+        canIncreaseLoad: false,
+        canIncreaseVertical: false,
+        reasoning,
+        warnings,
+        acwrStatus
+      };
+    } else if (context.currentACWR >= PROGRESSION_LIMITS.ACWR_CAUTION) {
+      // ACWR 1.3-1.5 = caution zone
+      acwrStatus = 'caution';
+      maxLoadIncrease = Math.min(maxLoadIncrease, context.currentWeekLoad * 1.05);
+      if (maxVerticalIncrease !== undefined) {
+        maxVerticalIncrease = Math.min(maxVerticalIncrease, context.currentWeekVertical! * 1.05);
+      }
+      reasoning.push(`ACWR ${context.currentACWR.toFixed(2)} elevated (1.3-1.5) - limited to 5% increase`);
+      warnings.push('ACWR elevated - conservative progression');
+    } else if (context.currentACWR < 0.8) {
+      reasoning.push(`ACWR ${context.currentACWR.toFixed(2)} low (<0.8) - can increase load`);
+    } else {
+      reasoning.push(`ACWR ${context.currentACWR.toFixed(2)} in safe zone (0.8-1.3)`);
+    }
+  }
+
   // Rule 1: Check if we've hit max build weeks
   const maxBuildWeeks = context.recoveryRatio === '3:1' ? 3 : 2;
   if (context.weeksInBuildCycle >= maxBuildWeeks) {
     mustRecover = true;
-    minDecrease = context.currentWeekLoad * (1 - PROGRESSION_LIMITS.RECOVERY_DROP_MIN);
-    maxIncrease = context.currentWeekLoad * (1 - PROGRESSION_LIMITS.RECOVERY_DROP_MAX);
+    minLoadDecrease = context.currentWeekLoad * (1 - PROGRESSION_LIMITS.RECOVERY_DROP_MIN);
+    maxLoadIncrease = context.currentWeekLoad * (1 - PROGRESSION_LIMITS.RECOVERY_DROP_MAX);
 
     // Apply same recovery to vertical
     if (context.currentWeekVertical !== undefined) {
@@ -113,20 +172,21 @@ export function calculateProgressionConstraints(
 
     reasoning.push(`Recovery week mandatory (${context.weeksInBuildCycle} build weeks completed)`);
     return {
-      maxIncrease,
-      minDecrease,
+      maxLoadIncrease,
+      minLoadDecrease,
       maxVerticalIncrease,
       minVerticalDecrease,
       mustRecover,
       canHoldSteady: false,
-      canIncreaseDistance: false,
+      canIncreaseLoad: false,
       canIncreaseVertical: false,
       reasoning,
-      warnings
+      warnings,
+      acwrStatus
     };
   }
 
-  // Rule 2: Check for large jump in previous week (distance OR vertical)
+  // Rule 2: Check for large jump in previous week (load OR vertical)
   if (context.previousWeekLoad && context.twoWeeksAgoLoad) {
     const previousIncrease = (context.previousWeekLoad - context.twoWeeksAgoLoad) / context.twoWeeksAgoLoad;
 
@@ -136,35 +196,36 @@ export function calculateProgressionConstraints(
       previousVerticalIncrease = (context.previousWeekVertical - context.twoWeeksAgoVertical) / context.twoWeeksAgoVertical;
     }
 
-    const largeDistanceJump = previousIncrease >= PROGRESSION_LIMITS.LARGE_JUMP;
+    const largeLoadJump = previousIncrease >= PROGRESSION_LIMITS.LARGE_JUMP;
     const largeVerticalJump = previousVerticalIncrease >= PROGRESSION_LIMITS.LARGE_JUMP;
 
-    if (largeDistanceJump || largeVerticalJump) {
+    if (largeLoadJump || largeVerticalJump) {
       // Large jump last week → must recover this week
       mustRecover = true;
-      minDecrease = context.currentWeekLoad * (1 - PROGRESSION_LIMITS.RECOVERY_DROP_MIN);
-      maxIncrease = context.currentWeekLoad * (1 - PROGRESSION_LIMITS.RECOVERY_DROP_MAX);
+      minLoadDecrease = context.currentWeekLoad * (1 - PROGRESSION_LIMITS.RECOVERY_DROP_MIN);
+      maxLoadIncrease = context.currentWeekLoad * (1 - PROGRESSION_LIMITS.RECOVERY_DROP_MAX);
 
       if (context.currentWeekVertical !== undefined) {
         minVerticalDecrease = context.currentWeekVertical * (1 - PROGRESSION_LIMITS.RECOVERY_DROP_MIN);
         maxVerticalIncrease = context.currentWeekVertical * (1 - PROGRESSION_LIMITS.RECOVERY_DROP_MAX);
       }
 
-      const jumpType = largeDistanceJump ? 'distance' : 'vertical';
-      const jumpPct = largeDistanceJump ? previousIncrease : previousVerticalIncrease;
+      const jumpType = largeLoadJump ? 'load' : 'vertical';
+      const jumpPct = largeLoadJump ? previousIncrease : previousVerticalIncrease;
       reasoning.push(`Recovery required after ${(jumpPct * 100).toFixed(0)}% ${jumpType} jump last week`);
       warnings.push(`Large ${jumpType} jump detected - mandatory recovery`);
       return {
-        maxIncrease,
-        minDecrease,
+        maxLoadIncrease,
+        minLoadDecrease,
         maxVerticalIncrease,
         minVerticalDecrease,
         mustRecover,
         canHoldSteady: false,
-        canIncreaseDistance: false,
+        canIncreaseLoad: false,
         canIncreaseVertical: false,
         reasoning,
-        warnings
+        warnings,
+        acwrStatus
       };
     }
 
@@ -174,16 +235,16 @@ export function calculateProgressionConstraints(
       : 0;
 
     if (previousIncrease > 0.10 && twoWeeksAgoIncrease > 0.10) {
-      warnings.push('Two consecutive increases detected - limit this week');
-      maxIncrease = context.currentWeekLoad * (1 + 0.05); // Cap at 5%
+      warnings.push('Two consecutive load increases detected - limit this week');
+      maxLoadIncrease = context.currentWeekLoad * (1 + 0.05); // Cap at 5%
       reasoning.push('Limited to 5% after two consecutive increases');
     }
   }
 
-  // Rule 3: Standard progression (10% rule) - applies to both distance and vertical
+  // Rule 3: Standard progression (10% rule) - applies to both load and vertical
   if (!mustRecover) {
-    maxIncrease = context.currentWeekLoad * (1 + PROGRESSION_LIMITS.STANDARD_INCREASE);
-    reasoning.push(`Standard 10% progression: ${context.currentWeekLoad.toFixed(0)} → ${maxIncrease.toFixed(0)}km`);
+    maxLoadIncrease = context.currentWeekLoad * (1 + PROGRESSION_LIMITS.STANDARD_INCREASE);
+    reasoning.push(`Standard 10% progression: ${context.currentWeekLoad.toFixed(0)} → ${maxLoadIncrease.toFixed(0)}min`);
 
     if (context.currentWeekVertical !== undefined && maxVerticalIncrease === undefined) {
       maxVerticalIncrease = context.currentWeekVertical * (1 + PROGRESSION_LIMITS.STANDARD_INCREASE);
@@ -191,81 +252,52 @@ export function calculateProgressionConstraints(
     }
   }
 
-  // Rule 3.5: Multi-dimensional constraint - can't increase BOTH distance and vertical same week
-  let canIncreaseDistance = !mustRecover;
-  let canIncreaseVertical = !mustRecover;
-
+  // Rule 3.5: Multi-dimensional constraint - can't increase BOTH load and vertical same week
   if (context.previousWeekLoad && context.previousWeekVertical) {
-    const distanceIncreased = context.currentWeekLoad > context.previousWeekLoad;
+    const loadIncreased = context.currentWeekLoad > context.previousWeekLoad;
     const verticalIncreased = (context.currentWeekVertical || 0) > context.previousWeekVertical;
 
-    if (distanceIncreased && verticalIncreased) {
+    if (loadIncreased && verticalIncreased) {
       // Both increased last week - can only increase ONE this week
-      warnings.push('Both distance and vertical increased last week - limit increases this week');
-      // Allow either, but system should choose only one
-      reasoning.push('Multi-dimensional constraint: choose distance OR vertical increase, not both');
+      warnings.push('Both load and vertical increased last week - limit increases this week');
+      reasoning.push('Multi-dimensional constraint: choose load OR vertical increase, not both');
     }
 
-    if (distanceIncreased) {
-      canIncreaseVertical = false; // Just increased distance, must hold or reduce vertical
-      reasoning.push('Distance increased recently - vertical should hold steady or decrease');
+    if (loadIncreased) {
+      canIncreaseVertical = false; // Just increased load, must hold or reduce vertical
+      reasoning.push('Load increased recently - vertical should hold steady or decrease');
     }
     if (verticalIncreased) {
-      canIncreaseDistance = false; // Just increased vertical, must hold or reduce distance
-      reasoning.push('Vertical increased recently - distance should hold steady or decrease');
+      canIncreaseLoad = false; // Just increased vertical, must hold or reduce load
+      reasoning.push('Vertical increased recently - load should hold steady or decrease');
     }
   }
 
-  // Rule 4: ACWR safety check
-  if (context.currentACWR) {
-    if (context.currentACWR >= PROGRESSION_LIMITS.ACWR_DANGER) {
-      mustRecover = true;
-      minDecrease = context.currentWeekLoad * (1 - PROGRESSION_LIMITS.RECOVERY_DROP_MIN);
-      maxIncrease = context.currentWeekLoad * (1 - PROGRESSION_LIMITS.RECOVERY_DROP_MAX);
-
-      if (context.currentWeekVertical !== undefined) {
-        minVerticalDecrease = context.currentWeekVertical * (1 - PROGRESSION_LIMITS.RECOVERY_DROP_MIN);
-        maxVerticalIncrease = context.currentWeekVertical * (1 - PROGRESSION_LIMITS.RECOVERY_DROP_MAX);
-      }
-
-      reasoning.push(`ACWR ${context.currentACWR.toFixed(2)} in danger zone - mandatory recovery`);
-      warnings.push('ACWR too high - forced recovery week');
-      canIncreaseDistance = false;
-      canIncreaseVertical = false;
-    } else if (context.currentACWR >= PROGRESSION_LIMITS.ACWR_CAUTION) {
-      maxIncrease = Math.min(maxIncrease, context.currentWeekLoad * 1.05);
-      if (maxVerticalIncrease !== undefined) {
-        maxVerticalIncrease = Math.min(maxVerticalIncrease, context.currentWeekVertical! * 1.05);
-      }
-      reasoning.push(`ACWR ${context.currentACWR.toFixed(2)} elevated - limited to 5% increase`);
-      warnings.push('ACWR elevated - conservative progression');
-    }
-  }
-
-  // Rule 5: Intensity week constraint
+  // Rule 4: Intensity week constraint
   if (context.isIntensityWeek) {
     // If adding intensity, limit volume increase
-    maxIncrease = Math.min(maxIncrease, context.currentWeekLoad * 1.05);
+    maxLoadIncrease = Math.min(maxLoadIncrease, context.currentWeekLoad * 1.05);
     reasoning.push('Intensity week - volume limited to 5% increase');
   }
 
-  // Rule 6: Can't hold steady for multiple weeks
+  // Rule 5: Can't hold steady for multiple weeks
   canHoldSteady = context.weeksInBuildCycle === 0; // Only first week of cycle
-  if (!canHoldSteady && maxIncrease === context.currentWeekLoad) {
+  if (!canHoldSteady && maxLoadIncrease === context.currentWeekLoad) {
     reasoning.push('Cannot hold load constant - must increase or recover');
   }
 
   return {
-    maxIncrease,
-    minDecrease,
+    maxLoadIncrease,
+    minLoadDecrease,
     maxVerticalIncrease,
     minVerticalDecrease,
     mustRecover,
     canHoldSteady,
-    canIncreaseDistance,
+    canIncreaseLoad,
     canIncreaseVertical,
     reasoning,
-    warnings: warnings.length > 0 ? warnings : undefined
+    warnings: warnings.length > 0 ? warnings : undefined,
+    acwrStatus
   };
 }
 
@@ -276,17 +308,15 @@ export function calculateProgressionConstraints(
 //
 
 export interface MultiDimensionalLoad {
-  distance: number;
-  vertical: number;
-  time: number;
-  intensity?: number;  // Z3/Z4 volume
+  load: number;       // Training load (time-based, minutes)
+  vertical: number;   // Vertical gain (meters)
+  intensity?: number; // Z3/Z4 volume or session intensity factor
 }
 
 export interface MultiDimensionalConstraints {
-  canIncreaseDistance: boolean;
-  canIncreaseVertical: boolean;
-  canIncreaseTime: boolean;
-  canIncreaseIntensity: boolean;
+  canIncreaseLoad: boolean;        // Can increase training time
+  canIncreaseVertical: boolean;    // Can increase vertical gain
+  canIncreaseIntensity: boolean;   // Can increase intensity
   maxSimultaneousIncreases: number;
   reasoning: string[];
 }
