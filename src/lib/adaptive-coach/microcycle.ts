@@ -617,8 +617,8 @@ function distributeWorkouts(
     Mon: 'easy_run|core_1', // Easy recovery run FIRST, then core
     Tue: 'tuesday_vo2|tuesday_hills|tuesday_sharpener', // Key workout (intervals/hills)
     Wed: 'easy_run|me_wednesday', // Easy run + ME training (multi-session)
-    Thu: 'thursday_tempo|thursday_strides|easy_run|core_2', // Moderate effort or core
-    Fri: 'easy_run|core_3', // Easy run or core (prep for long run)
+    Thu: 'thursday_tempo|thursday_strides', // Key workout only (NOT multi-session)
+    Fri: 'easy_run|core_2', // Easy run + core (prep for long run)
     Sat: 'saturday_long', // Long run (key workout)
     Sun: 'easy_run', // Recovery run (no core - pre-Monday rest)
   };
