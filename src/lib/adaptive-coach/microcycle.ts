@@ -465,12 +465,12 @@ function selectWeekWorkouts(input: WorkoutSelectionInput): Workout[] {
   // Core = lighter stability work (anti-rotation, anti-extension, planks, carries)
   // Frequency varies by phase:
   // - Transition: 3x/week (20min each)
-  // - Base: 2x/week (25min each)
+  // - Base: 3x/week (25min each)
   // - Intensity: 2x/week (15min each)
   // - Taper: 1x/week (10min activation)
   const coreFrequencyByPhase: Record<TrainingPhase, number> = {
     transition: 3,
-    base: 2,
+    base: 3,        // 3x per week for base building
     intensity: 2,
     specificity: 2,
     taper: 1,
@@ -610,15 +610,16 @@ function distributeWorkouts(
   // Distribution pattern (hard/easy principle) - NO rest entries
   // CRITICAL ME SCHEDULING RULE: Only Wednesday gets ME
   // Core training sessions (lighter work) distributed on easy days
-  // Monday = Easy run + optional Core (post-rest, good for stability work)
+  // Monday = Easy run + Core (post-rest, good for stability work)
   // Wednesday = Easy run + ME session (multi-session day)
-  // Thursday/Friday = Easy run + optional Core (recovery days)
+  // Thursday = Key workout + Core (moderate day with core)
+  // Friday = Easy run + Core (final core before long run)
   const pattern: { [key: string]: string } = {
     Mon: 'easy_run|core_1', // Easy recovery run FIRST, then core
     Tue: 'tuesday_vo2|tuesday_hills|tuesday_sharpener', // Key workout (intervals/hills)
     Wed: 'easy_run|me_wednesday', // Easy run + ME training (multi-session)
-    Thu: 'thursday_tempo|thursday_strides', // Key workout only (NOT multi-session)
-    Fri: 'easy_run|core_2', // Easy run + core (prep for long run)
+    Thu: 'thursday_tempo|thursday_strides|easy_run|core_2', // Key workout + easy run + core
+    Fri: 'easy_run|core_3', // Easy run + core (prep for long run)
     Sat: 'saturday_long', // Long run (key workout)
     Sun: 'easy_run', // Recovery run (no core - pre-Monday rest)
   };
