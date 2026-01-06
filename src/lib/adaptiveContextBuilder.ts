@@ -890,49 +890,49 @@ export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | Adaptiv
  */
 export function shouldRefreshContext(): boolean {
   const lastRefresh = load<number>('lastContextRefresh', 0);
-  const now = Date.now();
 
   // If never refreshed, need refresh
   if (lastRefresh === 0) {
-    return true;
-  }
-
-  // Always refresh if more than 5 minutes old (keep plan current)
-  const minutesSinceRefresh = (now - lastRefresh) / (1000 * 60);
-  if (minutesSinceRefresh > 5) {
+    console.log('[shouldRefreshContext] ✓ Never refreshed before - refresh needed');
     return true;
   }
 
   // Refresh if ACWR was recently updated
   const acwrUpdated = load<number>('acwrLastUpdate', 0);
   if (acwrUpdated > lastRefresh) {
+    console.log('[shouldRefreshContext] ✓ ACWR updated - refresh needed');
     return true;
   }
 
   // Refresh if weather was recently updated
   const weatherUpdated = load<number>('weatherLastUpdate', 0);
   if (weatherUpdated > lastRefresh) {
+    console.log('[shouldRefreshContext] ✓ Weather updated - refresh needed');
     return true;
   }
 
   // Refresh if race calendar changed
   const racesUpdated = load<number>('racesLastUpdate', 0);
   if (racesUpdated > lastRefresh) {
+    console.log('[shouldRefreshContext] ✓ Races updated - refresh needed');
     return true;
   }
 
   // Refresh if log entries were updated (new activities logged)
   const logEntriesUpdated = load<number>('logEntriesLastUpdate', 0);
   if (logEntriesUpdated > lastRefresh) {
+    console.log('[shouldRefreshContext] ✓ Log entries updated - refresh needed');
     return true;
   }
 
   // Refresh if feedback was provided
   const feedbackUpdated = load<number>('feedbackLastUpdate', 0);
   if (feedbackUpdated > lastRefresh) {
+    console.log('[shouldRefreshContext] ✓ Feedback provided - refresh needed');
     return true;
   }
 
+  console.log('[shouldRefreshContext] ✗ No changes detected - using cached context');
   return false;
 }
 

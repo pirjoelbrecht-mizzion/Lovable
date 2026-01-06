@@ -247,6 +247,9 @@ export async function saveLogEntry(entry: LogEntry): Promise<boolean> {
     }
   }
 
+  // Update timestamp to trigger plan regeneration
+  save('logEntriesLastUpdate', Date.now());
+
   return true;
 }
 
@@ -384,6 +387,9 @@ export async function bulkInsertLogEntries(entries: LogEntry[]): Promise<number>
     } catch (err) {
       console.error('Error analyzing terrain or updating pace profile:', err);
     }
+
+    // Update timestamp to trigger plan regeneration
+    save('logEntriesLastUpdate', Date.now());
   }
 
   return insertedCount;

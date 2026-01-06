@@ -1,4 +1,5 @@
 import { getSupabase, getCurrentUserId } from '../lib/supabase';
+import { save } from '../utils/storage';
 import type {
   RaceFeedback,
   DNFEvent,
@@ -54,6 +55,9 @@ export async function saveRaceFeedback(
       logEntryId,
     });
 
+    // Update timestamp to trigger plan regeneration
+    save('feedbackLastUpdate', Date.now());
+
     return { success: true };
   } catch (error) {
     console.error('Failed to save race feedback:', error);
@@ -95,6 +99,9 @@ export async function saveDNFFeedback(
       weight: FEEDBACK_WEIGHTS_MAP.dnf,
       logEntryId,
     });
+
+    // Update timestamp to trigger plan regeneration
+    save('feedbackLastUpdate', Date.now());
 
     return { success: true };
   } catch (error) {

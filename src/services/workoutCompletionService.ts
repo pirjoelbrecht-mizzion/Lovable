@@ -16,6 +16,7 @@
 import { supabase } from '@/lib/supabase';
 import { triggerModule4 } from './adaptiveTriggerService';
 import { toast } from '@/components/ToastHost';
+import { save } from '@/utils/storage';
 import type { LogEntry } from '@/types';
 
 /**
@@ -302,7 +303,11 @@ export async function completeWorkoutWithFeedback(
     // Always trigger workout:completed to update ACWR and check safety
     triggerModule4('workout:completed', { source: 'workout-completion' });
 
-    // Step 4: Emit event for UI to refresh
+    // Step 4: Mark log entries as updated (triggers plan regeneration)
+    save('logEntriesLastUpdate', Date.now());
+    console.log('[CompleteWorkflow] Log entries timestamp updated');
+
+    // Step 5: Emit event for UI to refresh
     window.dispatchEvent(new CustomEvent('plan:adapted', {
       detail: { date: completion.workoutDate, feedback, completion }
     }));
