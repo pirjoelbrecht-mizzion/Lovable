@@ -891,10 +891,15 @@ export async function buildAdaptiveContext(plan?: LocalStorageWeekPlan | Adaptiv
 export function shouldRefreshContext(): boolean {
   const lastRefresh = load<number>('lastContextRefresh', 0);
   const now = Date.now();
-  const hoursSinceRefresh = (now - lastRefresh) / (1000 * 60 * 60);
 
-  // Refresh if more than 1 hour old
-  if (hoursSinceRefresh > 1) {
+  // If never refreshed, need refresh
+  if (lastRefresh === 0) {
+    return true;
+  }
+
+  // Always refresh if more than 5 minutes old (keep plan current)
+  const minutesSinceRefresh = (now - lastRefresh) / (1000 * 60);
+  if (minutesSinceRefresh > 5) {
     return true;
   }
 
@@ -913,6 +918,18 @@ export function shouldRefreshContext(): boolean {
   // Refresh if race calendar changed
   const racesUpdated = load<number>('racesLastUpdate', 0);
   if (racesUpdated > lastRefresh) {
+    return true;
+  }
+
+  // Refresh if log entries were updated (new activities logged)
+  const logEntriesUpdated = load<number>('logEntriesLastUpdate', 0);
+  if (logEntriesUpdated > lastRefresh) {
+    return true;
+  }
+
+  // Refresh if feedback was provided
+  const feedbackUpdated = load<number>('feedbackLastUpdate', 0);
+  if (feedbackUpdated > lastRefresh) {
     return true;
   }
 

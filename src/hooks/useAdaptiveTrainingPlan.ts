@@ -133,8 +133,11 @@ export function useAdaptiveTrainingPlan(
       // Get user ID for checks
       let userId = await getCurrentUserId();
 
-      // Check per-week execution lock (unless bypassed by user refresh)
-      if (!bypassLock) {
+      // Check per-week execution lock (unless bypassed by user refresh OR context has changed)
+      const contextNeedsRefresh = shouldRefreshContext();
+      const shouldBypassLock = bypassLock || contextNeedsRefresh;
+
+      if (!shouldBypassLock) {
         if (hasRunAdaptiveForWeek(userId)) {
           console.log('[Module 4] Already executed for this week, skipping');
           setIsExecuting(false);
@@ -142,7 +145,12 @@ export function useAdaptiveTrainingPlan(
           return null;
         }
       } else {
-        console.log('[Module 4] Bypassing weekly lock for user-initiated refresh');
+        if (bypassLock) {
+          console.log('[Module 4] Bypassing weekly lock for user-initiated refresh');
+        }
+        if (contextNeedsRefresh) {
+          console.log('[Module 4] Bypassing weekly lock due to context changes');
+        }
       }
 
       // Get base plan
