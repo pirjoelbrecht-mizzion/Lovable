@@ -2279,8 +2279,6 @@ export async function getSavedRoutes(limit = 100, locationFilter?: { lat: number
       maxLon: locationFilter.lon + lonRange,
     };
 
-    console.log('DB: Filtering routes with bounds:', bounds);
-
     query = query
       .gte('start_lat', bounds.minLat)
       .lte('start_lat', bounds.maxLat)

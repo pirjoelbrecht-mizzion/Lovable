@@ -637,37 +637,6 @@ export default function Quest() {
       const daySessions = day.sessions.length > 0 ? day.sessions : [null];
       const pos = BUBBLE_POSITIONS[idx];
 
-      // DIAGNOSTIC: Log multi-session days
-      if (daySessions.length > 1) {
-        console.log(`[Quest] 🎯 Multi-session day: ${DAYS[idx]}`, {
-          sessionCount: daySessions.length,
-          sessions: daySessions.map(s => ({
-            id: s?.id,
-            type: (s as any)?.type,
-            title: s?.title || 'Rest',
-            km: s?.km,
-          })),
-        });
-      }
-
-      if (daySessions.length > 1) {
-        // STEP 10: Dev diagnostic for multi-session days
-        if (__DEV__) {
-          console.debug(`[ARCHITECTURE] Multi-session day detected:`, {
-            day: DAYS[idx],
-            dateISO: day.dateISO,
-            sessionCount: daySessions.length,
-            sessions: daySessions.map(s => ({
-              id: s?.id,
-              type: s?.type,
-              title: s?.title || 'Rest',
-              km: s?.km,
-              source: s?.source,
-            })),
-          });
-        }
-      }
-
       return daySessions.map((session, sessionIdx) => {
         const mainSession = session;
 
@@ -847,16 +816,9 @@ export default function Quest() {
     }
   }
 
-  // GUARD: Multi-session day detection + Session ID validation
+  // GUARD: Session ID validation
   useEffect(() => {
     weekPlan.forEach((day, dayIdx) => {
-      if (day.sessions.length > 1) {
-        console.debug(
-          '[WeekView] Multi-session day:',
-          DAYS[dayIdx],
-          day.sessions.map(s => ({ title: s.title, type: (s as any).type, id: s.id }))
-        );
-      }
       // Validate all sessions have IDs
       day.sessions.forEach((session, sIdx) => {
         if (!session.id) {

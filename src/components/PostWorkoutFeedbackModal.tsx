@@ -42,8 +42,6 @@ export function PostWorkoutFeedbackModal({
   const [painAreas, setPainAreas] = useState<string[]>(['None']);
   const [notes, setNotes] = useState('');
 
-  console.log('[FeedbackModal] Render - isOpen:', isOpen, 'workoutTitle:', workoutTitle);
-
   if (!isOpen) return null;
 
   const handlePainToggle = (area: string) => {
