@@ -779,6 +779,8 @@ export default function Quest() {
   const selectedSession = useMemo(() => {
     if (!selectedSessionId) return null;
 
+    console.log('[Quest] 🔍 Resolving session for selectedSessionId:', selectedSessionId);
+
     // CRITICAL: Look up across entire week, not just one day
     const matchedSession = weekPlan
       .flatMap(d => d.sessions)
@@ -788,6 +790,13 @@ export default function Quest() {
       console.error('[Quest] Selected sessionId not found:', selectedSessionId);
       return null;
     }
+
+    console.log('[Quest] ✅ Matched session:', {
+      id: matchedSession.id,
+      title: matchedSession.title,
+      type: (matchedSession as any).type,
+      km: matchedSession.km
+    });
 
     // Find which day this session is on
     let dayIndex = -1;
@@ -812,6 +821,15 @@ export default function Quest() {
     const isCoreSession = sessionType === 'strength';
     const isStrengthType = isMESession || isCoreSession;
 
+    console.log('[Quest] 🎨 Session type detection:', {
+      title: matchedSession.title,
+      explicitType: (matchedSession as any).type,
+      detectedType: sessionType,
+      isStrengthType,
+      isMESession,
+      isCoreSession
+    });
+
     const reconstructed: SessionNode = {
       id: matchedSession.id!,
       day: DAYS_SHORT[dayIndex],
@@ -834,6 +852,15 @@ export default function Quest() {
       y: BUBBLE_POSITIONS[dayIndex]?.y || 0,
       size: BUBBLE_POSITIONS[dayIndex]?.size || 80,
     };
+
+    console.log('[Quest] 🎯 Final reconstructed session:', {
+      id: reconstructed.id,
+      day: reconstructed.dayFull,
+      type: reconstructed.type,
+      emoji: reconstructed.emoji,
+      distance: reconstructed.distance,
+      duration: reconstructed.duration
+    });
 
     return reconstructed;
   }, [selectedSessionId, weekPlan, completionStatus, today]);
@@ -1240,6 +1267,13 @@ export default function Quest() {
 
   // Memoize callbacks to prevent re-renders
   const handleCosmicWorkoutClick = useCallback((workout: any, day: string) => {
+    console.log('[Quest] 🎯 Workout clicked:', {
+      day,
+      workoutId: workout.id,
+      sessionId: workout.sessionId,
+      title: workout.title,
+      type: workout.type
+    });
     if (!workout.sessionId) {
       console.error('[Quest] Workout missing sessionId:', workout);
       return;
